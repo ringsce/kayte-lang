@@ -1,11 +1,14 @@
-unit Vulkan;
+unit VulkanApp;
 
 {$mode ObjFPC}{$H+}
+{$linkframework SDL2}
+{$linkframework SDL2_ttf}
+{$linkframework SDL2_image}
 
 interface
 
 uses
-  Classes, SysUtils, SDL2, VulkanAPI, VulkanTypes;
+  Classes, SysUtils, VulkanAPI, VulkanTypes, SDL2, SDL2_ttf, SDL2_image;
 
 type
   TVulkanApp = class
@@ -37,7 +40,6 @@ begin
   InitWindow;
   InitVulkan;
   CreateSurface;
-  // Load your shaders from file or as a string and create the shader module
   CreateShaderModule(LoadShaderFromFile('shader.spv'));
   CreateGraphicsPipeline;
 end;
@@ -50,6 +52,8 @@ begin
   vkDestroySurfaceKHR(FInstance, FSurface, nil);
   vkDestroyDevice(FDevice, nil);
   vkDestroyInstance(FInstance, nil);
+
+  // Clean up SDL
   SDL_DestroyWindow(FWindow);
   SDL_Quit;
   inherited Destroy;
@@ -58,11 +62,13 @@ end;
 procedure TVulkanApp.InitWindow;
 begin
   if SDL_Init(SDL_INIT_VIDEO) < 0 then
-    raise Exception.Create('Failed to initialize SDL');
+    raise Exception.Create('Failed to initialize SDL2');
 
-  FWindow := SDL_CreateWindow('Vulkan Window', SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_VULKAN or SDL_WINDOW_SHOWN);
+  FWindow := SDL_CreateWindow('Vulkan Window', SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+    800, 600, SDL_WINDOW_VULKAN or SDL_WINDOW_SHOWN);
+
   if FWindow = nil then
-    raise Exception.Create('Failed to create SDL window');
+    raise Exception.Create('Failed to create SDL2 window');
 end;
 
 procedure TVulkanApp.InitVulkan;
@@ -89,7 +95,7 @@ end;
 procedure TVulkanApp.CreateSurface;
 begin
   if not SDL_Vulkan_CreateSurface(FWindow, FInstance, @FSurface) then
-    raise Exception.Create('Failed to create Vulkan surface');
+    raise Exception.Create('Failed to create Vulkan surface with SDL');
 end;
 
 procedure TVulkanApp.CreateShaderModule(const ShaderCode: TBytes);
@@ -113,15 +119,12 @@ begin
   // Setup your pipeline creation info here
   FillChar(PipelineInfo, SizeOf(PipelineInfo), 0);
   PipelineInfo.sType := VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  // Add more configurations like vertex input, rasterizer, viewport, etc.
 
   // Shader stages
   ShaderStageInfo[0].sType := VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   ShaderStageInfo[0].stage := VK_SHADER_STAGE_VERTEX_BIT;
   ShaderStageInfo[0].module := FShaderModule;
   ShaderStageInfo[0].pName := 'main';
-
-  // You would do similar for the fragment shader stage...
 
   PipelineInfo.stageCount := 2; // Assuming two stages: vertex and fragment
   PipelineInfo.pStages := @ShaderStageInfo[0];
@@ -131,12 +134,22 @@ begin
 end;
 
 procedure TVulkanApp.Run;
+var
+  Event: TSDL_Event;
+  Running: Boolean;
 begin
-  while True do
+  Running := True;
+  while Running do
   begin
-    // Your main loop, handling window events, drawing frames, etc.
-    // For simplicity, we'll just break the loop after one iteration
-    Break;
+    while SDL_PollEvent(@Event) <> 0 do
+    begin
+      if Event.type_ = SDL_QUITEV then
+        Running := False;
+    end;
+
+    // Handle Vulkan rendering here
+
+    SDL_Delay(16); // Simple frame limiter (~60 FPS)
   end;
 end;
 
