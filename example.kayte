@@ -1,0 +1,32 @@
+// This is a comment in Kayte Lang
+
+// Variable declaration
+let name = "Kayte Lang"
+let version = 1.0
+let count = 5
+
+// Function definition
+fn greetUser(username) {
+    print("Hello, " + username + "!")
+}
+
+// Conditionals
+if (count > 0) {
+    print("Count is greater than zero.")
+} else {
+    print("Count is zero or less.")
+}
+
+// Loop example
+fn printNumbers(limit) {
+    let i = 1
+    while (i <= limit) {
+        print("Number: " + i)
+        i = i + 1
+    }
+}
+
+// Function call
+greetUser("Developer")
+printNumbers(count)
+

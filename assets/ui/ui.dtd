@@ -1,0 +1,44 @@
+<!ELEMENT ui (window+, button*, label*, textbox*, menu?)>
+
+<!-- Define a window element -->
+<!ELEMENT window (title, width, height, content)>
+<!ATTLIST window
+  id ID #REQUIRED
+  visible (true | false) "true">
+
+<!-- Define the title of a window -->
+<!ELEMENT title (#PCDATA)>
+
+<!-- Define width and height for a window -->
+<!ELEMENT width (#PCDATA)>
+<!ELEMENT height (#PCDATA)>
+
+<!-- Define the content of a window -->
+<!ELEMENT content (button*, label*, textbox*)>
+
+<!-- Define a button -->
+<!ELEMENT button (text)>
+<!ATTLIST button
+  id ID #REQUIRED
+  onclick CDATA #IMPLIED>
+
+<!-- Define a label -->
+<!ELEMENT label (text)>
+<!ATTLIST label
+  id ID #REQUIRED>
+
+<!-- Define a textbox -->
+<!ELEMENT textbox (#PCDATA)>
+<!ATTLIST textbox
+  id ID #REQUIRED
+  placeholder CDATA #IMPLIED>
+
+<!-- Define a menu (optional) -->
+<!ELEMENT menu (menuitem*)>
+
+<!-- Define a menu item -->
+<!ELEMENT menuitem (#PCDATA)>
+<!ATTLIST menuitem
+  id ID #REQUIRED
+  action CDATA #IMPLIED>
+
