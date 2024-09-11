@@ -14,6 +14,9 @@ type
     // Base class for all nodes in the Abstract Syntax Tree (AST)
   end;
 
+
+
+
   TKayteFunctionNode = class(TKayteASTNode)
     FunctionName: string;
     Parameters: TStringList;
@@ -28,7 +31,9 @@ type
     FCurrentLine: Integer;
     function ParseFunction: TKayteFunctionNode;
     function ParseLine(const Line: string): TKayteASTNode;
-  public
+    public
+    function Parse(const Content: string): string;
+
     constructor Create;
     destructor Destroy; override;
     procedure LoadFromFile(const FileName: string);
@@ -77,6 +82,13 @@ procedure TKayteParser.LoadFromString(const SourceCode: string);
 begin
   FSource.Text := SourceCode;
   FCurrentLine := 0;
+end;
+
+
+function TKayteParser.Parse(const Content: string): string;
+begin
+  // Perform parsing logic here
+  Result := '<parsed>' + Content + '</parsed>';  // Example parsing logic
 end;
 
 function TKayteParser.ParseFunction: TKayteFunctionNode;
