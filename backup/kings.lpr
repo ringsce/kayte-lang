@@ -7,7 +7,7 @@ Program kings;
 uses
   SysUtils, Classes, Zipper, fphttpclient, fpjson, jsonparser, Process, CLI,
   Bytecode, TestBytecode, VirtualMachine, XMLParser, SimpleHTTPServer, sdk;
-  (*KayteToSNES*)
+  (*KayteToSNES*
 
 type
   //TInstruction = (NOP, LOAD, ADD, SUB, HALT);

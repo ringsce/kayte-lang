@@ -1,0 +1,13 @@
+// package.json
+{
+  "name": "kayte-lang-js",
+  "version": "1.0.0",
+  "description": "Kayte Lang interpreter for Node.js and web",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {}
+}
+

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Compiler Value="/usr/local/bin/fpc" Date="1621181457"/>
+  <Params Value=" -MObjFPC -Scghi -O1 -gw -gl -l -vewnhibq -Fi/Users/pedro/Documents/Projects/kayte-lang/lib/x86_64-darwin -Fu/Users/pedro/Documents/Projects/kayte-lang/ -FU/Users/pedro/Documents/Projects/kayte-lang/lib/x86_64-darwin/ -FE/Users/pedro/Documents/Projects/kayte-lang/ -o/Users/pedro/Documents/Projects/kayte-lang/kings kings.lpr"/>
+</CONFIG>

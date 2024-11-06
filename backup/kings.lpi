@@ -75,11 +75,6 @@
         <Filename Value="sdk.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
-      <Unit>
-        <Filename Value="kaytetosnes.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="KayteToSNES"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
