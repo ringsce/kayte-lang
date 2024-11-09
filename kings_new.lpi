@@ -1,80 +1,109 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <ProjectSession>
+  <ProjectOptions>
     <Version Value="12"/>
-    <BuildModes Active="Default"/>
+    <General>
+      <Flags>
+        <MainUnitHasCreateFormStatements Value="False"/>
+        <MainUnitHasTitleStatement Value="False"/>
+        <MainUnitHasScaledStatement Value="False"/>
+      </Flags>
+      <SessionStorage Value="InProjectDir"/>
+      <Title Value="kings"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
+    </General>
+    <VersionInfo>
+      <UseVersionInfo Value="True"/>
+    </VersionInfo>
+    <BuildModes>
+      <Item Name="Default" Default="True"/>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+      <UseFileFilters Value="True"/>
+    </PublishOptions>
+    <RunParams>
+      <FormatVersion Value="2"/>
+    </RunParams>
     <Units>
       <Unit>
         <Filename Value="kings.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="vulkan.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VulkanApp"/>
-        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="cli.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="CLI"/>
-        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="bytecode.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Bytecode"/>
-        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="testbytecode.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="TestBytecode"/>
-        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="testrunner.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="TestRunner"/>
-        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="kayteparser.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="KayteParser"/>
-        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="virtualmachine.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VirtualMachine"/>
-        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="xmlparser.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="XMLParser"/>
-        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="sdk.pas"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="kaytetosnes.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="KayteToSNES"/>
-        <UsageCount Value="20"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="-1"/>
-    <RunParams>
-      <FormatVersion Value="2"/>
-      <Modes ActiveMode=""/>
-    </RunParams>
-  </ProjectSession>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <Target>
+      <Filename Value="kings"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions>
+      <Item>
+        <Name Value="EAbort"/>
+      </Item>
+      <Item>
+        <Name Value="ECodetoolError"/>
+      </Item>
+      <Item>
+        <Name Value="EFOpenError"/>
+      </Item>
+    </Exceptions>
+  </Debugging>
 </CONFIG>
+
