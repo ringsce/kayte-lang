@@ -5,15 +5,20 @@
     <BuildModes Active="Default"/>
     <Units>
       <Unit>
-        <Filename Value="mathLib.lpr"/>
+        <Filename Value="kayteLib.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="3" Y="10"/>
+        <CursorPos X="13" Y="25"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="-1"/>
+    <JumpHistory>
+      <Position>
+        <Filename Value="kayteLib.lpr"/>
+        <Caret Line="26" Column="27"/>
+      </Position>
+    </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
       <Modes ActiveMode=""/>
