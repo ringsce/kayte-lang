@@ -1,0 +1,36 @@
+# Makefile.fpc for Lazarus 3.x (Linux, Windows, macOS)
+
+PROJECT_NAME = kings
+LIBRARY_NAME = lib$(PROJECT_NAME)
+SRC_FILES = $(PROJECT_NAME).lpr
+LIBRARY_SRC = $(LIBRARY_NAME).pas
+FPC_OUT = bin/$(PROJECT_NAME)
+LIB_OUT = bin/$(LIBRARY_NAME)
+
+# Platform-specific macros
+ifdef WINDOWS
+  EXEC_EXT = .exe
+  LIB_EXT = .dll
+else ifdef MACOS
+  EXEC_EXT =
+  LIB_EXT = .dylib
+else
+  EXEC_EXT =
+  LIB_EXT = .so
+endif
+
+all: $(FPC_OUT) $(LIB_OUT)$(LIB_EXT)
+
+# Build executable
+$(FPC_OUT):
+	@mkdir -p bin
+	fpc $(SRC_FILES) -obin/$(PROJECT_NAME)$(EXEC_EXT)
+
+# Build library
+$(LIB_OUT)$(LIB_EXT):
+	@mkdir -p bin
+	fpc $(LIBRARY_SRC) -obin/$(LIBRARY_NAME)$(LIB_EXT) -Cg -vewnhibq
+
+clean:
+	rm -f bin/$(PROJECT_NAME)$(EXEC_EXT) bin/$(LIBRARY_NAME)$(LIB_EXT)
+

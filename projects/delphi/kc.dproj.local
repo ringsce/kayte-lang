@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+  <Transactions>
+    <Transaction>2024/11/28 10:03:15.752,=C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2024/11/28 10:04:05.231,C:\Users\Pedro\Documents\kayte-lang\kayte.fmx=C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Unit1.fmx</Transaction>
+    <Transaction>2024/11/28 10:04:05.231,C:\Users\Pedro\Documents\kayte-lang\kayte.pas=C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2024/11/28 10:14:34.394,C:\Users\Pedro\Documents\kayte-lang\kc.dproj=C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
+  </Transactions>
+</BorlandProject>
