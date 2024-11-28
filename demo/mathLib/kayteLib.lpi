@@ -9,7 +9,7 @@
         <MainUnitHasScaledStatement Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="mathLib"/>
+      <Title Value="kayteLib"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
@@ -25,7 +25,11 @@
     </RunParams>
     <Units>
       <Unit>
-        <Filename Value="mathLib.lpr"/>
+        <Filename Value="kayteLib.lpr"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="julday.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>
@@ -33,7 +37,7 @@
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="mathLib"/>
+      <Filename Value="kayteLib"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
