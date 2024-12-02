@@ -10,7 +10,7 @@ demo/*.res
 source/lib
 source/*.res
 projects/delphi/Win32
-projects/delphi/Project1.$$$
+projects/delphi/*.$$$
 projects/delphi/__history
 projects/delphi/*.dcu
 # Type library file (binary). In old Delphi versions it should be stored.
