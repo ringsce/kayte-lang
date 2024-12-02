@@ -11,7 +11,8 @@ source/lib
 source/*.res
 projects/delphi/Win32
 projects/delphi/Project1.$$$
-
+projects/delphi/__history
+projects/delphi/*.dcu
 # Type library file (binary). In old Delphi versions it should be stored.
 # Since Delphi 2009 it is produced from .ridl file and can safely be ignored.
 #*.tlb

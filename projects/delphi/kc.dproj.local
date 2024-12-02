@@ -1,9 +1,21 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <BorlandProject>
-  <Transactions>
-    <Transaction>2024/11/28 10:03:15.752,=C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
-    <Transaction>2024/11/28 10:04:05.231,C:\Users\Pedro\Documents\kayte-lang\kayte.fmx=C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Unit1.fmx</Transaction>
-    <Transaction>2024/11/28 10:04:05.231,C:\Users\Pedro\Documents\kayte-lang\kayte.pas=C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
-    <Transaction>2024/11/28 10:14:34.394,C:\Users\Pedro\Documents\kayte-lang\kc.dproj=C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
+	<Transactions>
+    <Transaction>2024/11/28 10:03:15.000.752,=C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2024/11/28 10:04:05.000.231,C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Unit1.pas=C:\Users\Pedro\Documents\kayte-lang\kayte.pas</Transaction>
+    <Transaction>2024/11/28 10:04:05.000.231,C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Unit1.fmx=C:\Users\Pedro\Documents\kayte-lang\kayte.fmx</Transaction>
+    <Transaction>2024/11/28 10:14:34.000.394,C:\Users\Pedro\Documents\Embarcadero\Studio\Projects\Project1.dproj=C:\Users\Pedro\Documents\kayte-lang\kc.dproj</Transaction>
+    <Transaction>2024/11/28 12:38:47.000.821,=Z:\kayte\source\cli.pas</Transaction>
+    <Transaction>2024/11/28 12:38:47.000.743,=Z:\kayte\source\bytecode.pas</Transaction>
+    <Transaction>2024/11/28 12:39:08.000.764,C:\Users\Pedro\Documents\kayte-lang\projects\delphi\kc.fmx=C:\Users\Pedro\Documents\kayte-lang\projects\delphi\kayte.fmx</Transaction>
+    <Transaction>2024/11/28 12:39:08.000.764,C:\Users\Pedro\Documents\kayte-lang\projects\delphi\kc.pas=C:\Users\Pedro\Documents\kayte-lang\projects\delphi\kayte.pas</Transaction>
+    <Transaction>2024/11/28 12:40:12.000.022,=Z:\kayte\source\Makefile</Transaction>
+    <Transaction>2024/11/28 12:40:16.000.366,=Z:\kayte\source\Makefile.fpc</Transaction>
+    <Transaction>2024/11/28 12:40:18.000.366,=Z:\kayte\source\README.md</Transaction>
+    <Transaction>2024/11/28 12:40:20.000.959,=Z:\kayte\source\simplehttpserver.pas</Transaction>
+    <Transaction>2024/11/28 12:40:20.000.881,=Z:\kayte\source\sdk.pas</Transaction>
+    <Transaction>2024/11/28 12:40:21.000.070,=Z:\kayte\source\testrunner.pas</Transaction>
+    <Transaction>2024/11/28 12:40:21.000.006,=Z:\kayte\source\testbytecode.pas</Transaction>
+    <Transaction>2024/11/28 12:40:21.000.116,=Z:\kayte\source\virtualmachine.pas</Transaction>
   </Transactions>
 </BorlandProject>
