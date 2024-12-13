@@ -1,0 +1,82 @@
+<!-- Root element -->
+<!ELEMENT ui (window+)>
+
+<!-- Window element -->
+<!ELEMENT window (title, menu*, toolbar?, statusbar?, content)>
+<!ATTLIST window
+    id ID #REQUIRED
+    width CDATA #IMPLIED
+    height CDATA #IMPLIED
+    resizable (yes | no) "yes"
+    fullscreen (yes | no) "no"
+>
+
+<!-- Title element -->
+<!ELEMENT title (#PCDATA)>
+
+<!-- Menu element -->
+<!ELEMENT menu (menuitem+)>
+<!ATTLIST menu
+    id ID #IMPLIED
+    label CDATA #REQUIRED
+>
+
+<!-- MenuItem element -->
+<!ELEMENT menuitem EMPTY>
+<!ATTLIST menuitem
+    id ID #REQUIRED
+    label CDATA #REQUIRED
+    action CDATA #IMPLIED
+>
+
+<!-- Toolbar element -->
+<!ELEMENT toolbar (tool+)>
+<!ATTLIST toolbar
+    id ID #IMPLIED
+>
+
+<!-- Tool element -->
+<!ELEMENT tool EMPTY>
+<!ATTLIST tool
+    id ID #REQUIRED
+    icon CDATA #IMPLIED
+    tooltip CDATA #IMPLIED
+    action CDATA #IMPLIED
+>
+
+<!-- StatusBar element -->
+<!ELEMENT statusbar (statusitem+)>
+<!ATTLIST statusbar
+    id ID #IMPLIED
+>
+
+<!-- StatusItem element -->
+<!ELEMENT statusitem EMPTY>
+<!ATTLIST statusitem
+    id ID #REQUIRED
+    label CDATA #REQUIRED
+>
+
+<!-- Content element -->
+<!ELEMENT content (panel+)>
+<!ATTLIST content
+    id ID #IMPLIED
+>
+
+<!-- Panel element -->
+<!ELEMENT panel (widget*)>
+<!ATTLIST panel
+    id ID #REQUIRED
+    layout (horizontal | vertical | grid) "horizontal"
+>
+
+<!-- Widget element -->
+<!ELEMENT widget EMPTY>
+<!ATTLIST widget
+    id ID #REQUIRED
+    type (button | label | textbox | checkbox | combobox | custom) #REQUIRED
+    label CDATA #IMPLIED
+    value CDATA #IMPLIED
+    action CDATA #IMPLIED
+>
+

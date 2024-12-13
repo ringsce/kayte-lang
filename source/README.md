@@ -1,4 +1,26 @@
 ```markdown
+# Kayte Lang PoC: A New Programming Language for Custom Applications
+
+**Kayte Lang** is a lightweight and dynamic programming language designed for flexibility and efficiency. The language aims to simplify application development by offering a minimalistic yet powerful syntax for both logic and UI components. This article presents the Proof of Concept (PoC) version of Kayte Lang and its core features, showcasing its potential for building modern applications.
+
+## Why Kayte Lang?
+
+Kayte Lang was created with the goal of balancing simplicity and power in programming. It is perfect for rapid development while still maintaining enough flexibility to scale for larger projects. Whether you're building desktop applications, mobile apps, or even cross-platform UI components, Kayte Lang offers a clear and structured approach to development.
+
+### Key Features of Kayte Lang PoC
+
+1. **Simple and Intuitive Syntax**: Kayte Lang provides an easy-to-learn syntax, lowering the barrier for new developers while supporting complex programming patterns.
+2. **Bytecode Compilation**: Kayte Lang scripts are compiled into bytecode, which is then executed by the custom Kayte Virtual Machine (VM). This ensures efficient execution across multiple platforms.
+3. **UI Component Definition**: Kayte Lang allows developers to define UI components using XML and DTD, creating a structured and reusable approach to UI design.
+4. **Lightweight Virtual Machine (VM)**: The Kayte VM is optimized to run Kayte bytecode, ensuring efficient resource management and performance.
+5. **Cross-Platform Support**: Kayte Lang can be compiled and executed on multiple platforms, including iOS, Android, macOS, Windows, and more.
+
+## Syntax Overview
+
+Kayte Lang’s syntax is designed to be simple yet versatile, supporting common programming paradigms like object-oriented and functional programming.
+
+### 1. Functions
+
 Functions in Kayte Lang are defined using the `function` keyword.
 
 ```kayte
