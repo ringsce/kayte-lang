@@ -6,7 +6,8 @@ Program kings;
 *)
 uses
   SysUtils, Classes, Zipper, fphttpclient, fpjson, jsonparser, Process, CLI,
-  Bytecode, TestBytecode, VirtualMachine, XMLParser, SimpleHTTPServer, sdk;
+  Bytecode, TestBytecode, VirtualMachine, XMLParser, SimpleHTTPServer, sdk,
+  sys_mac, sys_ios;
   (*KayteToSNES*)
 
 type
