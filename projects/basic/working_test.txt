@@ -1,0 +1,1124 @@
+function Split(expression: string): array[1..2] of TToken;
+var
+  tokens: array[1..2] of TToken := [];
+  i: int;
+begin
+  // Define keyword functions and procedures
+  procedure ParseNumber(token: TToken);
+  var
+    Value: TNumber;
+  begin
+    while (token.TokenType = TDigit) do begin
+      Value := ToInteger(token.TokenValue);
+      break;
+    end;
+
+    Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
+
+    // Remove the number from the expression
+    tokens[i + 1 - LeftLength(expression, i)] := Tokenize(expression, i);
+  end;
+
+  procedure ParseOperator(token: TToken);
+  var
+    Value: TOperator;
+  begin
+    if token.TokenType = TDigit then begin
+      Value := ToInteger(token.TokenValue);
+      exit;
+    end;
+
+    Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
+
+    // Add the operator to the expression
+    tokens[i + 1 - LeftLength(expression, i)] := TOperator;
+  end;
+
+  procedure ParseTerm(token: TToken);
+  var
+    Value: TNumber or TRawString;
+  begin
+    while (token.TokenType = TDigit) do begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
+
+    // Add the term to the expression
+    tokens[i + 1 - LeftLength(expression, i)] := Value;
+  end;
+
+  procedure ParseExpression(token: TToken);
+  var
+    Value: TNumber or TRawString;
+  begin
+    while (token.TokenType = TDigit) do begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
+
+    // Add the expression to the result
+    tokens[i + 1 - LeftLength(expression, i)] := Value;
+  end;
+
+  procedure ParseTermExpression(token: TToken);
+  var
+    Value: TNumber or TRawString;
+    operator: TOperator;
+    term: TToken;
+  begin
+    while (token.TokenType = TDigit) do begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    operator := ToOperator(token.TokenValue);
+    while not Tokenize(expression, i + 1 - LeftLength(expression, i)) or (operator <> TOperator)
+        or (Tokenize(expression, i + 1 - LeftLength(expression, i))) = TNull do begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    term := ParseTerm(token);
+    Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
+
+    // Add the expression to the result
+    tokens[i + 1 - LeftLength(expression, i)] := operator;
+    tokens[i + 2 - LeftLength(expression, i)] := term;
+
+    exit;
+  end;
+
+  procedure ParseExpressionTerm(token: TToken);
+  var
+    Value: TNumber or TRawString;
+    operator: TOperator;
+    expression: TToken;
+  begin
+    while (token.TokenType = TDigit) do begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    operator := ToOperator(token.TokenValue);
+    while not Tokenize(expression, i + 1 - LeftLength(expression, i)) or (operator <> TOperator)
+        or (Tokenize(expression, i + 1 - LeftLength(expression, i))) = TNull do begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    expression := ParseExpression(token);
+    Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
+
+    // Add the expression to the result
+    tokens[i + 1 - LeftLength(expression, i)] := operator;
+    tokens[i + 2 - LeftLength(expression, i)] := expression;
+
+    exit;
+  end;
+
+  procedure ParseExpressionTermExpression(token: TToken);
+  var
+    Value: TNumber or TRawString;
+    operator: TOperator;
+    term: TToken;
+    expression: TToken;
+  begin
+    while (token.TokenType = TDigit) do begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    operator := ToOperator(token.TokenValue);
+    while not Tokenize(expression, i + 1 - LeftLength(expression, i)) or (operator <> TOperator)
+        or (Tokenize(expression, i + 1 - LeftLength(expression, i))) = TNull do begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    term := ParseTerm(token);
+    expression := ParseExpression(token);
+
+    Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
+
+    // Add the expression to the result
+    tokens[i + 1 - LeftLength(expression, i)] := operator;
+    tokens[i + 2 - LeftLength(expression, i)] := term;
+    tokens[i + 3 - LeftLength(expression, i)] := expression;
+
+    exit;
+  end;
+
+  procedure ParseExpressionTermExpressionExpression(token: TToken);
+  var
+    Value: TNumber or TRawString;
+    operator: TOperator;
+    term: TToken;
+    expression: TToken;
+    parenthesisCount: int64;
+  begin
+    while (token.TokenType = TDigit) do begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    parenthesisCount := 0;
+    while (parenthesisCount < LeftLength(expression, i + 1 - LeftLength(expression, i)) &&
+        expression[parenthesisCount] <> '(')
+      parenthesisCount := parenthesisCount + 1;
+
+    if parenthesisCount > 0 then begin
+      operator := ToOperator(expression[i - 1]);
+      while not Tokenize(expression, i + 2 - LeftLength(expression, i))
+          or (operator <> TOperator)
+          or (Tokenize(expression, i + 2 - LeftLength(expression, i))) = TNull do begin
+        Value := Evaluate(ToInteger(token.TokenValue));
+        break;
+      end;
+
+      expression := ParseExpressionTerm(token);
+      Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
+
+      // Add the expression to the result
+      tokens[i + 1 - LeftLength(expression, i)] := operator;
+      tokens[i + 2 - LeftLength(expression, i)] := expression;
+
+      exit;
+    end else begin
+      Value := Evaluate(ToInteger(token.TokenValue));
+      break;
+    end;
+
+    while parenthesisCount > 0 do begin
+      Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
+
+      // Add the expression to the result
+      tokens[i + 1 - LeftLength(expression, i)] := '(';
+      tokens[i + 2 - LeftLength(expression, i)] := value;
+
+      parenthesisCount := parenthesisCount - 1;
+
+      exit;
+    end while;
+  end;
+
+  procedure Parse(token: TToken) var i int64; begin
+    Result := Array[0..0];
+    i := 0;
+    while true do begin
+      if token.TokenType = TKeyword then
+        Case:
+          case token.TokenText of 'begin':
+            Result := Array[i + 1, 2];
+            exit;
+          case 'end':
+            Result := Array[i + 1];
+            exit;
+          case 'if':
+            Result := Array[i + 1, 3];
+            exit;
+          case 'for':
+            Result := Array[i + 1, 4];
+            exit;
+          case 'while':
+            Result := Array[i + 1, 5];
+            exit;
+          case 'print':
+            Result := Array[i + 1, 6];
+            exit;
+          case 'input':
+            Result := Array[i + 1];
+            exit;
+        end;
+      else begin
+        if token.TokenType = TIdentifier then
+          i := i + 1;
+        while i < Length(token) and (token[i].IsDigit or Tokenize(token, i)[0] >= 'a' and Tokenize(token, i)[0] <= 'z') do
+          i := i + 1;
+
+        Result := Array[i, 1];
+      end if;
+
+      Result := Result[0..Result.Length - 1];
+
+      if Result[0] = 0 then begin
+        Result := Result[1..Result.Length - 1];
+        Result[Result.Length - 1] := ' ';
+      end else begin
+        Result := Result[1..Result.Length - 2];
+        Result[Result.Length - 2] := ' ';
+      end;
+
+      i := i + 1;
+    end while;
+  end Parse;
+end.
+
+const
+  MaxWordLen = 1000;
+  MaxExprLen = 2000;
+
+var
+  tokenStream: TTokenStream; // Token stream of input expressions
+  output: TExpression; // Output expression
+  stack, localStack: TLocalStack; // Local and global stack for parsing
+  exprIdx: int64; // Index into the current expression in the local stack
+
+function Main() {
+  tokenStream := NewTokenStreamFromFile('input.txt');
+  begin
+    output := CreateEmptyExpression();
+    localStack := new LocalStack(MaxExprLen, MaxWordLen);
+    var word: string;
+    for each word in tokenStream do begin
+      if IsKeyword(word) then
+        Case:
+          case IsKeyword(word = 'if'):
+            IfStatement();
+          case IsKeyword(word = 'while'):
+            WhileLoop();
+          case IsKeyword(word = 'print'):
+            PrintStatement();
+          case IsKeyword(word = 'input'):
+            Input();
+          end;
+      else if word[0] >= 'a' and word[0] <= 'z' then
+        // Local identifier
+        begin
+          var i: int64;
+          while true do begin
+            if tokenStream.PeekToken() != null then
+              break;
+            if IsKeyword(tokenStream.PeekToken()) then
+              Case:
+                case IsKeyword(tokenStream.PeekToken()):
+                  word := Tokenize(tokenStream, peekPosition)[0];
+                  exit;
+                end;
+            i := i + 1;
+
+            if i < Length(tokenStream) and (tokenStream[i].IsDigit or tokenStream[i].IsPunctuation) then
+              localStack.Push(Identifier(word));
+            else if i < Length(tokenStream) and (tokenStream[i].IsDigit or Tokenize(tokenStream, peekPosition)[0] >= 'a' and Tokenize(tokenStream, peekPosition)[0] <= 'z') then
+              begin
+                var j: int64;
+                while true do begin
+                  if tokenStream.PeekToken() != null then
+                    break;
+                  if IsKeyword(tokenStream.PeekToken()) then
+                    Case:
+                      case IsKeyword(tokenStream.PeekToken()):
+                        word := Tokenize(tokenStream, peekPosition)[0];
+                        exit;
+                      end;
+                  j := j + 1;
+
+                  if j < Length(tokenStream) and (tokenStream[j].IsDigit or tokenStream[j].IsPunctuation) then
+                    localStack.Push(Identifier(word));
+                  else if j < Length(tokenStream) and (tokenStream[j].IsDigit or Tokenize(tokenStream, peekPosition)[0] >= 'a' and Tokenize(tokenStream, peekPosition)[0] <= 'z') then
+                    begin
+                      i := i + 1;
+                      continue;
+                    end;
+
+                    if tokenStream[i].IsPunctuation then
+                      Case:
+                        case IsKeyword(tokenStream.PeekToken()):
+                          word := Tokenize(tokenStream, peekPosition)[0];
+                          exit;
+                        end;
+                      else
+                        break;
+                    end;
+                  j := j + 1;
+                end while;
+              end;
+
+            if tokenStack.Length() > 0 then
+              Case:
+                case IsKeyword(tokenStack.PeekToken()):
+                  word := Tokenize(tokenStack, peekPosition)[0];
+                  exit;
+                end;
+          else
+            begin
+              i := i + 1;
+            end;
+        end while;
+    end while;
+  end;
+
+  // Output the final expression
+  output := PushLocalStack(output);
+  Case:
+  case IsKeyword(word = 'print'):
+    PrintStatement();
+  end;
+  begin
+    for each local in stack do begin
+      Case:
+        case IsKeyword(local.TokenText):
+          word := local.TokenText;
+          exit;
+        end;
+    end while;
+    output := PopLocalStack(output);
+    Case:
+    case IsKeyword(word = 'input'):
+      Input();
+    end;
+  end;
+
+  Writeln(output, '');
+}
+
+end Main.
+
+const
+  MaxWordLen = 1000;
+
+function IsKeyword(token: TToken) return boolean; begin
+  // Determine if a token is a keyword in the language.
+  Case:
+  case IsKeyword(token):
+    if token.TokenText >= 'a' and token.TokenText <= 'z' then
+      return true;
+    else
+      return false;
+  end;
+
+end IsKeyword.
+
+const
+  MaxWordLen = 1000;
+
+function Tokenize(tokenStream: TTokenStream; peekPosition: int64) return (TToken[], TToken[]): array; begin
+  // Tokenize a token stream.
+  Case:
+  case IsKeyword(token):
+    if token.TokenText >= 'a' and token.TokenText <= 'z' then
+      Result := array[
+        {TokenType = TokenType.Identifier, Value = token.Value},
+        {TokenType = TokenType.Parenthesis, Value = '('},
+        {TokenType = TokenType.RquareBracket, Value = ')'},
+      ];
+    else
+      Result := array[
+        {TokenType = TokenType.Identifier, Value = token.Value},
+        {TokenType = TokenType.Parenthesis, Value = '('},
+        {TokenType = TokenType.RquareBracket, Value = ')'},
+
+        // Handle the case where an identifier is a word.
+        Case:
+        case IsKeyword(token):
+          Result := array[
+            {TokenType = TokenType.Identifier, Value = token.Value},
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        end;
+
+      // Tokenize the local stack
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Identifier, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Identifier, Value = token.Value},
+          ];
+
+      // Tokenize the expression
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Identifier, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Identifier, Value = token.Value},
+          ];
+
+      // Tokenize the output expression
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Identifier, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Identifier, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Tokenize the output expression
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Tokenize the output expression
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+        else
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},
+          ];
+
+      // Handle the case where an identifier is a word.
+      Case:
+      case IsKeyword(token):
+        if token.TokenText >= 'a' and token.TokenText <= 'z' then
+          Result := array[
+            {TokenType = TokenType.Word, Value = token.Value},

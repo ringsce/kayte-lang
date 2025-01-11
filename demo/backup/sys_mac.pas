@@ -70,11 +70,6 @@ begin
   end;
 end;
 
-procedure LogError(const Msg: string);
-begin
-  WriteLn(StdErr, 'Error: ', Msg);
-end;
-
 class procedure SysMac.SetSystemVolume(Volume: Integer);
 var
   Script: string;

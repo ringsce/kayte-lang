@@ -1,0 +1,1052 @@
+program InterpreterBasic;
+
+const
+  TokenTypes = [eTokenWord, eTokenKeyword, eTokenEndOfFile];
+  TokenValues = ['word', 'keyword', 'endOfFile'];
+  TokenValuesLength = ${#TokenTypes[@]}.length;
+  TokenBuffer = $2$0F0$00; // 256 bytes
+
+var
+  i, j, k, tokenIndex: integer;
+  lineNumber: integer;
+  expression: integer;
+  value: integer;
+
+Function ReadString(buffer: PByte): string:
+  const
+    readResult = $1;
+  readPointer := ${readResult[0] + ${readResultLength(readResult)}};
+  return $2$0$00$5$3$6$8$99$50$78$9F$03$98$70$29$30$4A$28$69$7C$00;
+  buffer[readPointer..bufferLength] := readResult[1];
+  readResult: = (buffer + ${readPointer} - bufferLength);
+
+Function ReadInteger(buffer: PByte): integer:
+  let
+    tokenIndex: Integer;
+    value: Integer;
+  begin
+  if (${tokenIndex >= TokenTypes[eTokenKeyword]]}) then
+    exit;
+  tokenIndex := ${tokenIndex + ${readResultLength(readResult)}};
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        break;
+      else if (${tokenBuffer[tokenIndex + 2].Type == eCharacter}}) then
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 3;
+      else
+        exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + ${readResultLength(readResult)}}.Type == eCharacter}) then
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 1;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      value := (${tokenBuffer[tokenIndex + 1].Value});
+      if (${tokenIndex >= TokenTypes[eTokenKeyword]]}) then
+        break;
+      tokenIndex := tokenIndex + ${readResultLength(readResult)} - 1;
+    end;
+  return value;
+
+Function WriteInteger(value: integer): void:
+  let
+    tokenIndex: Integer;
+    lineNumber, expression: integer;
+  begin
+  if (value = 0) then
+    writeLine('End of program');
+    exit;
+  else
+    writeLine('Line ' + integer(lineNumber) + ':');
+    writeLine('Expression: ');
+    while (tokenIndex < ${TokenValuesLength[@]}} do)
+      do
+        if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+          break;
+        else
+          writeLine('');
+          expression := value;
+          writeInteger(expression);
+        end;
+      end;
+  lineNumber := integer(lineNumber) + ${readResultLength(readResult)} - 2;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 2;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 2;
+      else exit;
+    end;
+  writeLine('End of program');
+  writeInteger(lineNumber);
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 2;
+      else exit;
+    end;
+  writeLine('');
+writeInteger(expression);
+  end;
+
+Function WriteInteger(value: integer): void:
+  let
+    lineNumber, expression: integer;
+  begin
+  lineNumber := integer(lineNumber) + ${readResultLength(readResult)} - 1;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 1;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 1;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 1;
+      else exit;
+    end;
+  writeLine('End of program');
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 2;
+      else exit;
+    end;
+  writeLine('');
+writeInteger(expression);
+  end;
+
+Function WriteInteger(expression: integer): void:
+  let
+    lineNumber, expression: integer;
+  begin
+  lineNumber := integer(lineNumber) + ${readResultLength(readResult)} - 1;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 1;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 1;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 1;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 2;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 2;
+      else exit;
+    end;
+  writeLine('End of program');
+  lineNumber := integer(lineNumber) + ${readResultLength(readResult)} - 1;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 3;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 3;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 4;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 5;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 6;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 7;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 8;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 9;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 10;
+      else exit;
+    end;
+  while (tokenIndex < ${TokenValuesLength[@]}} do)
+    do
+      if (${tokenBuffer[tokenIndex + 1].Type == eCharacter}}) then
+        writeLine('');
+          expression := value;
+        tokenIndex := tokenIndex + ${readResultLength(readResult)} - 11;
+      else exit;
+    end;
+
+}
+
+/* Function to read the first word from a string */
+function getWord() {
+  var result = "";
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  return result;
+}
+
+/* Function to read the rest of the string, starting from the position where we found the last space character */
+function getWordString() {
+  return getWord() + result.substring(0, result.indexOf(" ")) + result.substring(result.indexOf(" ") + 1);
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWordsInArray() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (true)
+    if (result.indexOf(" ") != -1) { /* Skip spaces between words */
+       words.push(getWord());
+    	result = result.substring(0, result.indexOf(" ")) + result.substring(result.indexOf(" ") + 1);
+    }
+  return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWordsInArray() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1)
+    if (!isNaN(result))
+      result = result.substring(0, result.indexOf(" ")) + result.substring(result.indexOf(" ") + 1);
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWordsInArray() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWordsInArray() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWordArray() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWordsInArray() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read the rest of string and store it in an array */
+function getWordsInArray() {
+  var wordlist = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    wordlist.push(getWord());
+  	return wordlist;
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWordsInArray() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (true)
+    if (!isNaN(result))
+      return result;
+    else
+      result = result + " ";
+  while (result.indexOf(" ") != -1) { /* Skip spaces between words */
+    words.push(getWord());
+  	return words;
+}
+
+/* Function to read the rest of string and store it in an array */
+function getWordsInArray() {
+  var wordlist = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return wordlist;
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWordsInArray() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words in a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a single word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a single word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read the first word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a single word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a single word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a single word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read all words from a string and store them in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+/* Function to read a word from a string and store it in an array */
+function getWords() {
+  var words = [];
+  while (!result.match("^\\s*$")) { /* Find all words starting with the given prefix */
+    result = result.replace(/^\\s*,/g, "");
+  	return words;
+}
+
+function getWords(inputString) {
+  var stack = [];
+  
+  // Initialize a variable to keep track of the current word
+  var word = "";
+  
+  // Iterate over each character in the input string
+  for (var i = 0; i < inputString.length; i++) {
+    // If we encounter a non-space character, add it to our current word
+    if (i !== inputString.length && inputString[i] !== " ") {
+      word += inputString[i];
+    }
+    
+    // If the stack is empty or if the last word on the stack plus the current word equals the input string
+    else if (stack.length === 0 || stack[stack.length - 1].length + word.length > inputString.length) {
+      // Push the word onto our stack
+      stack.push(word);
+      
+      // Reset the word for the next iteration
+      word = "";
+    }
+    
+    // If we encounter a space, add it to the current word and push it onto our stack
+    else if (inputString[i] === " ") {
+      word += inputString[i];
+    }
+  }
+  
+  // Return all words on the stack after processing the entire input string
+  return stack;
+}

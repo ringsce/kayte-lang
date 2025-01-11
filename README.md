@@ -1,3 +1,9 @@
+## Build and Test Status
+
+[![CircleCI](https://circleci.com/gh/ringsce/kayte-lang/tree/main.svg?style=svg)](https://circleci.com/gh/ringsce/kayte-lang/tree/main)  
+![macOS Passing](https://img.shields.io/badge/macOS-Passing-brightgreen)  
+![Linux Passing](https://img.shields.io/badge/Linux-Passing-brightgreen)  
+![Windows Passing](https://img.shields.io/badge/Windows-Passing-brightgreen)
 ```markdown
 Functions in Kayte Lang are defined using the `function` keyword.
 
@@ -113,6 +119,7 @@ Kayte Lang is currently in its Proof of Concept phase, but there are ambitious p
 - **Standard Libraries**: Expanding Kayte Lang’s ecosystem with libraries for common tasks like file handling, networking, and more.
 - **Cross-Platform UI Toolkit**: Developing a unified UI framework to build applications for multiple platforms with a single codebase.
 
+
 ## Get Involved
 
 Kayte Lang is an open-source project, and contributions are welcome! Whether you're interested in improving the language, building libraries, or providing feedback, you can get involved.
@@ -131,6 +138,4 @@ Kayte Lang is a promising new language that simplifies modern application develo
 As Kayte Lang continues to evolve, its flexibility and ease of use will make it a compelling choice for developers looking to build both simple and complex applications.
 
 Stay tuned for more updates as Kayte Lang moves beyond its PoC phase into full-scale development!
-
----
-``` 
+```
