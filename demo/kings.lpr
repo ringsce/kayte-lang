@@ -30,19 +30,29 @@ TVirtualMachine = class
     procedure Run;
   end;
 
-  (* Download Repo *)
-  procedure DownloadMapsFromGitHubRepo(const RepoURL: string);
+procedure DownloadMapsFromGitHubRepo(const RepoURL: string);
 var
   Process: TProcess;
 begin
+  if RepoURL = '' then
+  begin
+    Writeln('Error: Repository URL is empty.');
+    Exit;
+  end;
+
   Process := TProcess.Create(nil);
   try
-    Process.Executable := '/usr/bin/curl'; // Path to the curl executable
-    Process.Parameters.Add('-LOk'); // -LOk flags to download files and follow redirects
-    Process.Parameters.Add(RepoURL); // GitHub repository URL
-    Process.Options := Process.Options + [poWaitOnExit];
-    Process.Execute;
-    Writeln('Maps downloaded successfully from GitHub repository.');
+    try
+      Process.Executable := '/usr/bin/curl'; // Path to the curl executable
+      Process.Parameters.Add('-LOk');        // -LOk flags to download files and follow redirects
+      Process.Parameters.Add(RepoURL);      // GitHub repository URL
+      Process.Options := Process.Options + [poWaitOnExit];
+      Process.Execute;
+      Writeln('Maps downloaded successfully from GitHub repository: ', RepoURL);
+    except
+      on E: Exception do
+        Writeln('Error downloading maps: ', E.Message);
+    end;
   finally
     Process.Free;
   end;
@@ -324,6 +334,18 @@ begin
 
   // Initialize and run the virtual machine
   InitializeAndRunVM;
+
+  // Call the procedure with a GitHub repository URL
+  DownloadMapsFromGitHubRepo('https://github.com/username/repo-name/archive/main.zip');
+
+  // Call the procedure with the update URL
+  CheckForUpdates('https://example.com/updates/info');
+
+  // Example call to SaveKayteFileToBytecode
+  SaveKayteFileToBytecode('example.kayte', 'example.bytecode');
+
+  // Example call to CreatePK3File
+  CreatePK3File('example.txt', 'example.pk3');
 end.
 
 
