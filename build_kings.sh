@@ -3,7 +3,7 @@
 # Define project paths
 LAZBUILD="/Applications/lazarus/lazbuild"
 PROJECT_FILE="demo/kings.lpr"
-BUILD_DIR="demo/"
+BUILD_DIR="demo/build"
 EXECUTABLE_NAME="kings"
 
 # Function to clean the build directory
@@ -22,7 +22,7 @@ build() {
   echo "Building $PROJECT_FILE..."
   if [ -f "$LAZBUILD" ]; then
     mkdir -p "$BUILD_DIR"
-    $LAZBUILD --bm=Release --output="$BUILD_DIR/$EXECUTABLE_NAME" "$PROJECT_FILE"
+    $LAZBUILD  $PROJECT_FILE
     if [ $? -eq 0 ]; then
       echo "Build completed successfully."
     else
@@ -51,4 +51,3 @@ case "$1" in
     exit 1
     ;;
 esac
-
