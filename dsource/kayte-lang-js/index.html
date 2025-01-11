@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kayte Lang Web Interpreter</title>
+  <script type="module" src="src/kayteVM.js"></script>
+</head>
+<body>
+  <h1>Kayte Lang Web Interpreter</h1>
+  <button onclick="runKayteProgram()">Run Program</button>
+
+  <script type="module">
+    import { KayteVM } from './src/kayteVM.js';
+
+    function runKayteProgram() {
+      const bytecode = [1, 0, 42, 2, 0, 1, 3, 4];
+      const vm = new KayteVM();
+      vm.loadProgram(bytecode);
+      vm.run();
+      console.log("Program completed");
+    }
+  </script>
+</body>
+</html>
+

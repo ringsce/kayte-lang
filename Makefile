@@ -1,7 +1,7 @@
 # Main Makefile for Kings Project
 
 APP_NAME := kings
-SRC_DIR := src
+SRC_DIR := source
 BUILD_DIR := build
 FPC := fpc
 
