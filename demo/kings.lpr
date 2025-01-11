@@ -258,15 +258,16 @@ begin
   end;
 end;
 
-(* StartHTTPSERVER *)
+(* StartHTTPServer *)
 procedure StartHTTPServer;
 var
   Port: Integer;
   Server: TSimpleHTTPServer;
   StopSignal: Boolean; // Flag to handle stopping the server
-
 begin
   Port := 9090; // Default port
+  StopSignal := False; // Initialize StopSignal
+
   Writeln('Starting Kings server on port ', Port, '...');
 
   if ParamCount > 0 then
@@ -274,22 +275,35 @@ begin
     try
       Port := StrToInt(ParamStr(1)); // Allow user to specify the port via command-line
     except
-      Writeln('Invalid port specified. Using default port ', Port);
+      on E: EConvertError do // Catch specific conversion errors
+      begin
+        Writeln('Invalid port specified. Using default port ', Port);
+      end;
     end;
   end;
 
+  Server := nil;
   try
     Server := TSimpleHTTPServer.Create(Port);
+    try
+      Server.StartServer;
+      Writeln('Server is running. Press [Ctrl+C] to stop...');
+
+      // Simulate stopping the server with a condition
+      while not StopSignal do
+        Sleep(1000); // Keep the main thread alive
+    except
+      on E: Exception do
+        Writeln('An error occurred while starting the server: ', E.Message);
+    end;
+  finally
     if Assigned(Server) then
     begin
-      Server.StartServer;
+      Server.StopServer;
       FreeAndNil(Server);
     end;
-  except
-    on E: Exception do
-      Writeln('An error occurred while starting the server: ', E.Message)
+    Writeln('Server stopped.');
   end;
-
 end;
 
 procedure InitializeAndRunVM;
