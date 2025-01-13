@@ -333,7 +333,7 @@ end;
 
 var
   KayteConverter: TKayte2PCE;
-
+  t
 begin
   // Initialize the CLI handler and process arguments
   InitializeCLIHandler;
