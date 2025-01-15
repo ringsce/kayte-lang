@@ -1,53 +1,64 @@
 #!/bin/bash
 
-# Define project paths
-LAZBUILD="/Applications/lazarus/lazbuild"
-PROJECT_FILE="demo/kings.lpr"
-BUILD_DIR="demo/build"
-EXECUTABLE_NAME="kings"
+# Variables
+PROJECT_PATH="demo/kings.lpr"  # Path to the main project file
+LAZARUS_BUILD_TOOL="/Applications/lazarus/lazbuild" # Path to Lazarus build tool
+OUTPUT_DIR="build"           # Directory for build artifacts
+STATIC_LIB="libkayte.a"      # Name for the static library
 
 # Function to clean the build directory
-clean() {
+function clean() {
   echo "Cleaning build directory..."
-  if [ -d "$BUILD_DIR" ]; then
-    rm -rf "$BUILD_DIR"
-    echo "Build directory cleaned."
-  else
-    echo "No build directory to clean."
-  fi
+  rm -rf "$OUTPUT_DIR"
+  mkdir -p "$OUTPUT_DIR"
+  echo "Clean completed."
 }
 
 # Function to build the project
-build() {
-  echo "Building $PROJECT_FILE..."
-  if [ -f "$LAZBUILD" ]; then
-    mkdir -p "$BUILD_DIR"
-    $LAZBUILD  $PROJECT_FILE
-    if [ $? -eq 0 ]; then
-      echo "Build completed successfully."
-    else
-      echo "Build failed."
-    fi
+function build() {
+  echo "Building Kings project..."
+  if [ -f "$LAZARUS_BUILD_TOOL" ]; then
+    "$LAZARUS_BUILD_TOOL" "$PROJECT_PATH"
+    echo "Build completed successfully."
   else
-    echo "Error: lazbuild not found at $LAZBUILD."
+    echo "Error: Lazarus build tool not found at $LAZARUS_BUILD_TOOL."
     exit 1
   fi
 }
 
-# Main menu
-case "$1" in
-  build)
-    build
-    ;;
+# Function to create the static library
+function build_static_library() {
+  echo "Creating static library..."
+  OBJECT_FILES=$(find "$OUTPUT_DIR" -name "*.o") # Find all object files
+  if [ -n "$OBJECT_FILES" ]; then
+    ar rcs "$OUTPUT_DIR/$STATIC_LIB" $OBJECT_FILES
+    echo "Static library created: $OUTPUT_DIR/$STATIC_LIB"
+  else
+    echo "Error: No object files found to create static library."
+    exit 1
+  fi
+}
+
+# Main script execution
+case $1 in
   clean)
     clean
     ;;
-  rebuild)
+  build)
     clean
     build
     ;;
+  staticlib)
+    build_static_library
+    ;;
+  all)
+    clean
+    build
+    build_static_library
+    ;;
   *)
-    echo "Usage: $0 {build|clean|rebuild}"
+    echo "Usage: $0 {clean|build|staticlib|all}"
     exit 1
     ;;
 esac
+
