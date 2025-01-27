@@ -7,10 +7,21 @@
       <Unit>
         <Filename Value="interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="BasicInterpreter"/>
         <IsVisibleTab Value="True"/>
         <TopLine Value="143"/>
         <CursorPos Y="176"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="23"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../../demo/kaytelibloader.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KayteLibLoader"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="31"/>
+        <CursorPos Y="64"/>
+        <UsageCount Value="23"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>

@@ -27,12 +27,6 @@
       <Unit>
         <Filename Value="interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="BasicInterpreter"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../../demo/kaytelibloader.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="KayteLibLoader"/>
       </Unit>
     </Units>
   </ProjectOptions>
@@ -43,7 +37,6 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../demo"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
   </CompilerOptions>

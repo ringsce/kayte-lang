@@ -8,16 +8,23 @@
         <Filename Value="interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="63"/>
-        <CursorPos Y="96"/>
+        <TopLine Value="143"/>
+        <CursorPos Y="176"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
-    <JumpHistory>
+    <JumpHistory HistoryIndex="2">
       <Position>
         <Filename Value="interpreter.lpr"/>
         <Caret Line="109" Column="5" TopLine="76"/>
+      </Position>
+      <Position>
+        <Filename Value="interpreter.lpr"/>
+        <Caret Line="96" TopLine="63"/>
+      </Position>
+      <Position>
+        <Filename Value="interpreter.lpr"/>
       </Position>
     </JumpHistory>
     <RunParams>

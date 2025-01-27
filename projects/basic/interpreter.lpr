@@ -1,7 +1,7 @@
 program BasicInterpreter;
 
 uses
-  SysUtils;
+  SysUtils, KayteLibLoader;
 
 type
   TTokenType = (ttNumber, ttOperator, ttEnd, ttError);

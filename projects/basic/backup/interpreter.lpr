@@ -1,105 +1,176 @@
-program interpreter;
+program BasicInterpreter;
 
-const
+uses
+  SysUtils;
 
-// Define the operators and their precedence levels
 type
-  Operator = ('+' | '-') | '*' | '/' | '%' | '=';
-var
-  Token: TToken; // Token type (e.g. number, variable)
-  Value: TNumber or TRawString; // Value to be evaluated
-  Precedence: int; // Precedence level of the operator
+  TTokenType = (ttNumber, ttOperator, ttEnd, ttError);
+  TToken = record
+    TokenType: TTokenType;
+    Value: string;
+  end;
 
-// Define a stack to store operators and operands
-type
-  Stack = array[1..2] of TStack[1]; // Top two elements of the stack
-var
-  OperatorStack: TStack[1]; // Top element of the operator stack
-  TokenIndex: int; // Index into the input stream
+  TStack = record
+    Items: array of string;
+    Top: Integer;
+  end;
 
-// Function to get the next token from the input stream
-function GetToken(input: TStream): TToken;
+var
+  Input: string;
+  TokenIndex: Integer;
+  OperatorStack, OperandStack: TStack;
+
+procedure InitializeStack(var Stack: TStack);
 begin
-  if not input.Eof then
-    Result := input.ReadToken; // Read a token (e.g. number, variable)
-  else
-    Exit(TToken); // End of input
-
-  TokenIndex := 0;
-
-  while TokenIndex < Length(input) and (input[TokenIndex] <> ' ') or input[TokenIndex] = ' '
-    if not input[TokenIndex].IsDigit then break; // Skip whitespace tokens
-
-  Result := TToken.Create(input, TokenIndex);
+  SetLength(Stack.Items, 100); // Allocate a fixed size for simplicity
+  Stack.Top := -1;
 end;
 
-function Split(expression: string): array[1..2] of TToken;
-var
-  tokens: array[1..2] of TToken := [];
-  i: int;
+procedure Push(var Stack: TStack; Item: string);
 begin
-  // Split the expression into tokens
-  for i := 0 to Length(expression) - 1 do
-    if expression[i] <> ' ' then
-      tokens[i + 1 - LeftLength(expression, i)] := TToken.Create(expression[i], i);
+  Inc(Stack.Top);
+  Stack.Items[Stack.Top] := Item;
 end;
 
-var
-  Result: array[1..2] of TNumber or TRawString;
+function Pop(var Stack: TStack): string;
 begin
-  Value := TNumber.Create(0, 10); // Default value for undefined operators
-
-  // Initialize the stack with two empty slots
-  Stack := array[1..2] of TStack[1];
-
-  // Split the expression into tokens and evaluate each token
-  tokens := Split(expression);
-  while not tokens[0].IsDigit then begin
-    if tokens[0] = '+' then
-      while (Stack[1] <> TOperator and Stack[1] <> TNull) or (Stack[1] = TNull)
-        if not Stack[2].Empty then
-          Value := Evaluate(Stack[2].Value);
-        else exit; // Invalid expression
-
-      Value := TNumber.Create(tokens[0], 0, 10); // Convert the token to a number
-      Stack[1]:= TOperator; // Add an empty slot for the operator
-    else if tokens[0] = '-' then
-      while (Stack[1] <> TOperator and Stack[1] <> TNull) or (Stack[1] = TNull)
-        if not Stack[2].Empty then
-          Value := Evaluate(Stack[2].Value);
-        else exit; // Invalid expression
-
-      Value := TNumber.Create(tokens[0], 0, 10); // Convert the token to a number
-      Stack[1]:= TOperator;
-    else begin
-      if tokens[0] = '/' then
-        while (Stack[1] <> TOperator and Stack[1] <> TNull) or (Stack[1] <> TNull)
-          if not Stack[2].Empty then
-            Value := Evaluate(Stack[2].Value);
-          else exit;
-        end;
-
-      if tokens[0] = 0 then exit; // Division by zero error
-      while (Stack[1] <> TOperator and Stack[1] <> TNull) or (Stack[1] <> TNull)
-         if not Stack[2].Empty then
-           Value := Evaluate(Stack[2].Value);
-         else exit;
-        end;
-
-      Value := TNumber.Create(tokens[0], 0, 10); // Convert the token to a number
-    end;
+  if Stack.Top >= 0 then
+  begin
+    Result := Stack.Items[Stack.Top];
+    Dec(Stack.Top);
   end
+  else
+    Result := '';
+end;
 
-  Result := Array[1..2][0:LeftLength(Result, 1)] of TNumber or TRawString := (Result[0] = LeftLength(Result, 1) > 0 ? Result[0] : nil);
-end.
-
-
+function Peek(var Stack: TStack): string;
 begin
-  WriteStream := stdout;
+  if Stack.Top >= 0 then
+    Result := Stack.Items[Stack.Top]
+  else
+    Result := '';
+end;
 
-  while not GetToken(input) = TError; do begin
-    if token.TokenType = TNull then exit; // End of input reached
+function GetToken(const Expr: string; var Index: Integer): TToken;
+var
+  Start: Integer;
+begin
+  while (Index <= Length(Expr)) and (Expr[Index] = ' ') do
+    Inc(Index);
 
-    WriteStream.Write(Format('Result: %d', Evaluate(token.TokenValue))); // Print the result
+  if Index > Length(Expr) then
+  begin
+    Result.TokenType := ttEnd;
+    Exit;
+  end;
+
+  if CharInSet(Expr[Index], ['0'..'9']) then
+  begin
+    Start := Index;
+    while (Index <= Length(Expr)) and CharInSet(Expr[Index], ['0'..'9']) do
+      Inc(Index);
+    Result.TokenType := ttNumber;
+    Result.Value := Copy(Expr, Start, Index - Start);
+  end
+  else if CharInSet(Expr[Index], ['+', '-', '*', '/', '%']) then
+  begin
+    Result.TokenType := ttOperator;
+    Result.Value := Expr[Index];
+    Inc(Index);
+  end
+  else
+  begin
+    Result.TokenType := ttError;
+    Result.Value := Expr[Index];
+  end;
+end;
+
+function EvaluateOperator(const A, B: string; const Op: string): string;
+var
+  NumA, NumB: Integer;
+begin
+  NumA := StrToInt(A);
+  NumB := StrToInt(B);
+
+  case Op of
+    '+': Result := IntToStr(NumA + NumB);
+    '-': Result := IntToStr(NumA - NumB);
+    '*': Result := IntToStr(NumA * NumB);
+    '/': if NumB <> 0 then
+           Result := IntToStr(NumA div NumB)
+         else
+           raise Exception.Create('Division by zero');
+    '%': if NumB <> 0 then
+           Result := IntToStr(NumA mod NumB)
+         else
+           raise Exception.Create('Modulo by zero');
+  else
+    raise Exception.Create('Unknown operator: ' + Op);
+  end;
+end;
+
+procedure ProcessStacks;
+var
+  B, A, Op: string;
+begin
+  B := Pop(OperandStack);
+  A := Pop(OperandStack);
+  Op := Pop(OperatorStack);
+
+  if (A <> '') and (B <> '') and (Op <> '') then
+    Push(OperandStack, EvaluateOperator(A, B, Op))
+  else
+    raise Exception.Create('Invalid expression');
+end;
+
+procedure ParseExpression(const Expr: string);
+var
+  CurrentToken: TToken;
+begin
+  TokenIndex := 1;
+  while True do
+  begin
+    CurrentToken := GetToken(Expr, TokenIndex);
+    if CurrentToken.TokenType = ttEnd then
+      Break;
+
+    case CurrentToken.TokenType of
+      ttNumber:
+        Push(OperandStack, CurrentToken.Value);
+      ttOperator:
+        Push(OperatorStack, CurrentToken.Value);
+      ttError:
+        raise Exception.Create('Unexpected token: ' + CurrentToken.Value);
+    end;
+  end;
+
+  // Process remaining operators in the stack
+  while OperatorStack.Top >= 0 do
+    ProcessStacks;
+end;
+
+function Interpret(const Expr: string): string;
+begin
+  InitializeStack(OperatorStack);
+  InitializeStack(OperandStack);
+
+  ParseExpression(Expr);
+
+  if OperandStack.Top = 0 then
+    Result := Pop(OperandStack)
+  else
+    raise Exception.Create('Invalid expression');
+end;
+
+// Main program
+begin
+  WriteLn('Enter an expression: ');
+  ReadLn(Input);
+  try
+    WriteLn('Result: ', Interpret(Input));
+  except
+    on E: Exception do
+      WriteLn('Error: ', E.Message);
   end;
 end.
+

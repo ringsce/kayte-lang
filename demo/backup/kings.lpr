@@ -336,8 +336,8 @@ var
   LibraryPath: string;
 
 begin
-    (*WriteLn('Enter the library file path to load:');
-  ReadLn(LibraryPath);*)
+    WriteLn('Enter the library file path to load:');
+  ReadLn(LibraryPath);
 
   // Safe load
   if not LoadLibraryFile(LibraryPath, lmSafe) then
