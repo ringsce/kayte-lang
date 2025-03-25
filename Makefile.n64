@@ -1,0 +1,26 @@
+# Cross-compiler configuration for N64 (Assumes libdragon is installed)
+CC = mips64-elf-gcc
+CFLAGS = -march=vr4300 -mabi=32 -O2 -G0 -Wall -Wextra
+LDFLAGS = -ldragon -lm
+
+# Pascal Compiler
+FPC = ppcrossmips
+FPC_FLAGS = -Mobjfpc -Tembedded -Parmips -O2
+
+# Files
+TARGET = kayte64
+SRC = main.pas n64.pas
+OBJ = $(SRC:.pas=.o)
+
+# Default build target
+all: $(TARGET).z64
+
+$(TARGET).z64: $(OBJ)
+	$(CC) $(LDFLAGS) -o $@ $^
+
+%.o: %.pas
+	$(FPC) $(FPC_FLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJ) $(TARGET).z64
+

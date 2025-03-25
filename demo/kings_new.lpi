@@ -80,6 +80,15 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="KayteToSNES"/>
       </Unit>
+      <Unit>
+        <Filename Value="n64.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kayten64.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KayteN64"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -106,4 +115,3 @@
     </Exceptions>
   </Debugging>
 </CONFIG>
-

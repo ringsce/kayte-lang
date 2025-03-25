@@ -7,7 +7,7 @@ Program kings;
 uses
   SysUtils, Classes, Zipper, fphttpclient, fpjson, jsonparser, Process, cli,
   Bytecode, TestBytecode, VirtualMachine, XMLParser, SimpleHTTPServer, sdk,c99,
-  sys_ios, basic, kayte2pce, KayteLibLoader;
+  sys_ios, basic, kayte2pce, KayteLibLoader, n64;
   (*KayteToSNES*)
 
 type
@@ -336,8 +336,8 @@ var
   LibraryPath: string;
 
 begin
-    WriteLn('Enter the library file path to load:');
-  ReadLn(LibraryPath);
+    (*WriteLn('Enter the library file path to load:');
+  ReadLn(LibraryPath);*)
 
   // Safe load
   if not LoadLibraryFile(LibraryPath, lmSafe) then
