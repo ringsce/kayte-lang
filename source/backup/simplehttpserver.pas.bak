@@ -5,7 +5,7 @@ unit SimpleHTTPServer;
 interface
 
 uses
-  Classes, SysUtils, fphttpserver, HTTPDefs, fpWeb, KayteParser;  // Assume KayteParser is a unit that can process .kayte files
+  Classes, SysUtils, fphttpserver, HTTPDefs, fpWeb, KayteParser;  // KayteParser processes .kayte files
 
 type
   TSimpleHTTPServer = class
@@ -22,15 +22,7 @@ type
 
 implementation
 
-{ TSimpleHTTPServer }
-
-constructor TSimpleHTTPServer.Create(APort: Integer);
-begin
-  FServer := TFPHTTPServer.Create(nil);
-  FServer.Port := APort;
-  FServer.OnRequest := @OnRequestHandler;
-end;
-
+{ Utility function to load a file into a string }
 function LoadFileAsString(const FileName: string): string;
 var
   FileStream: TFileStream;
@@ -47,61 +39,68 @@ begin
   end;
 end;
 
+{ TSimpleHTTPServer }
+
+constructor TSimpleHTTPServer.Create(APort: Integer);
+begin
+  FServer := TFPHTTPServer.Create(nil);
+  FServer.Port := APort;
+  FServer.OnRequest := @OnRequestHandler;
+end;
+
+{ Parses a .kayte file and returns its HTML representation }
 function TSimpleHTTPServer.ParseKayteFile(const FilePath: string): string;
 var
   KayteContent, ParsedContent: string;
   KayteParser: TKayteParser;
 begin
-  KayteContent := LoadFileAsString(FilePath);  // Load the .kayte file content into a string
+  KayteContent := LoadFileAsString(FilePath);  // Load .kayte content
   KayteParser := TKayteParser.Create;
   try
-    ParsedContent := KayteParser.Parse(KayteContent);  // Call the Parse method with the file content
+    ParsedContent := KayteParser.Parse(KayteContent);  // Parse the content
   finally
     KayteParser.Free;
   end;
   Result := ParsedContent;
 end;
 
+{ Handles incoming HTTP requests }
 procedure TSimpleHTTPServer.OnRequestHandler(Sender: TObject; var ARequest: TFPHTTPConnectionRequest;
   var AResponse: TFPHTTPConnectionResponse);
 var
   FilePath, ContentType: string;
-  FileStream: TFileStream;
   ParsedKayteContent: string;
 begin
   FilePath := '.' + ARequest.URI;
   if (ARequest.URI = '/') then
-    FilePath := './index.html';  // Serve default index.html
+    FilePath := './index.kayte';  // Default to index.kayte if no specific file is requested
 
   if FileExists(FilePath) then
   begin
-    ContentType := 'text/html';
-    if LowerCase(ExtractFileExt(FilePath)) = '.css' then
-      ContentType := 'text/css'
-    else if LowerCase(ExtractFileExt(FilePath)) = '.kayte' then
+    if LowerCase(ExtractFileExt(FilePath)) = '.kayte' then
     begin
+      // Handle .kayte file and convert to HTML
       ParsedKayteContent := ParseKayteFile(FilePath);
-      AResponse.ContentType := 'text/html';  // Serve the parsed .kayte as HTML
+      AResponse.ContentType := 'text/html';
       AResponse.Content := ParsedKayteContent;
-      //AResponse.ResponseCode := 200;  // Use ResponseCode instead of ResultCode
-      Exit;  // Skip the rest of the file handling logic for .kayte files
-    end;
+    end
+    else
+    begin
+      // Handle regular files
+      ContentType := 'text/html';
+      if LowerCase(ExtractFileExt(FilePath)) = '.css' then
+        ContentType := 'text/css'
+      else if LowerCase(ExtractFileExt(FilePath)) = '.js' then
+        ContentType := 'application/javascript';
 
-    FileStream := TFileStream.Create(FilePath, fmOpenRead);
-    try
-      AResponse.ContentStream := TMemoryStream.Create;
-      AResponse.ContentStream.CopyFrom(FileStream, FileStream.Size);
-      AResponse.ContentStream.Position := 0;
+      AResponse.ContentStream := TFileStream.Create(FilePath, fmOpenRead or fmShareDenyWrite);
       AResponse.ContentType := ContentType;
-      //AResponse.ResponseCode := 200;  // Use ResponseCode instead of ResultCode
-    finally
-      FileStream.Free;
     end;
   end
   else
   begin
     AResponse.Content := '404 Not Found';
-    //AResponse.ResponseCode := 404;  // Use ResponseCode instead of ResultCode
+    AResponse.Code := 404;  // Correctly set HTTP status code
   end;
 end;
 
@@ -114,7 +113,7 @@ end;
 procedure TSimpleHTTPServer.StopServer;
 begin
   FServer.Active := False;
-  FServer.Free;
+  FreeAndNil(FServer);
   Writeln('HTTP server stopped');
 end;
 

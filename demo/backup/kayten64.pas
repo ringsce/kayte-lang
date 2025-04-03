@@ -5,50 +5,99 @@ unit KayteN64;
 interface
 
 uses
-  SysUtils, Classes;
+  SysUtils, N64, N64Graphics, N64Input, N64Memory;
+
+const
+  KAYTE_MEMORY_SIZE = 1024 * 64; // 64 KB memory for the VM
+  KAYTE_REGISTER_COUNT = 16;     // 16 general-purpose registers
+
+type
+  TKayteVM = class
+  private
+    FMemory: array[0..KAYTE_MEMORY_SIZE - 1] of Byte;
+    FRegisters: array[0..KAYTE_REGISTER_COUNT - 1] of UInt32;
+    FPC: UInt32; // Program Counter
+    FRunning: Boolean;
+  public
+    procedure Initialize;
+    procedure LoadBytecode(const Data: array of Byte);
+    procedure Execute;
+    procedure DebugConsole;
+  end;
 
 procedure InitializeKayte;
-procedure RunKayteScript(const Script: string);
 
 implementation
 
 procedure InitializeKayte;
 begin
   Writeln('Initializing Kayte for Nintendo 64...');
-
-  // Initialize graphics system
-  display_init(RESOLUTION_320x240, DEPTH_16_BPP, 2);
-  Writeln('Display initialized.');
-
-  // Initialize controller input
-  controller_init;
-  Writeln('Controller initialized.');
-
-  // Set up memory management for scripts
-  heap_init;
-  Writeln('Heap memory initialized.');
-
-  // Enable interrupts for system stability
-  irq_init;
-  irq_enable;
-  Writeln('Interrupts enabled.');
-
-  // Set up execution environment for Kayte scripts
-  KayteVM_Init;
-  Writeln('Kayte Virtual Machine initialized.');
-
-  Writeln('Kayte environment setup complete.');
+  N64_InitGraphics;
+  N64_ClearScreen;
+  Writeln('Graphics initialized.');
+  N64_InitInput;
+  Writeln('Input initialized.');
+  Writeln('Kayte VM Ready.');
 end;
 
+{ TKayteVM }
 
-procedure RunKayteScript(const Script: string);
+procedure TKayteVM.Initialize;
 begin
-  Writeln('Running Kayte script on Nintendo 64: ', Script);
-  // This function would interpret or execute Kayte bytecode
+  FillChar(FMemory, SizeOf(FMemory), 0);
+  FillChar(FRegisters, SizeOf(FRegisters), 0);
+  FPC := 0;
+  FRunning := True;
+  Writeln('Kayte VM initialized with ', KAYTE_MEMORY_SIZE, ' bytes of memory.');
 end;
 
+procedure TKayteVM.LoadBytecode(const Data: array of Byte);
+var
+  I: Integer;
 begin
-  InitializeKayte;
+  if Length(Data) > KAYTE_MEMORY_SIZE then
+  begin
+    Writeln('Error: Bytecode too large.');
+    Exit;
+  end;
+
+  for I := 0 to High(Data) do
+    FMemory[I] := Data[I];
+
+  Writeln('Bytecode loaded into memory.');
+end;
+
+procedure TKayteVM.Execute;
+begin
+  Writeln('Executing Kayte bytecode...');
+  while FRunning do
+  begin
+    // Simple instruction fetch-decode-execute cycle
+    case FMemory[FPC] of
+      $00: begin
+        Writeln('NOP');
+        Inc(FPC);
+      end;
+      $FF: begin
+        Writeln('HALT');
+        FRunning := False;
+      end;
+    else
+      Writeln('Unknown instruction at ', FPC);
+      FRunning := False;
+    end;
+  end;
+  Writeln('Execution finished.');
+end;
+
+procedure TKayteVM.DebugConsole;
+begin
+  Writeln('Kayte Debug Console');
+  Writeln('PC: ', FPC);
+  Writeln('Registers: ');
+  for var I := 0 to KAYTE_REGISTER_COUNT - 1 do
+    Writeln('R', I, ': ', FRegisters[I]);
+end;
+
 end.
-
 

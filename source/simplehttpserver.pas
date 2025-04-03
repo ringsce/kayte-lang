@@ -5,7 +5,8 @@ unit SimpleHTTPServer;
 interface
 
 uses
-  Classes, SysUtils, fphttpserver, HTTPDefs, fpWeb, KayteParser;  // KayteParser processes .kayte files
+  Classes, SysUtils, fphttpserver, HTTPDefs, fpWeb,
+  KayteParser in '../source/KayteParser.pas';  // KayteParser processes .kayte files
 
 type
   TSimpleHTTPServer = class
