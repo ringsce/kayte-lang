@@ -7,7 +7,7 @@
       <Unit>
         <Filename Value="kayte.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="6" Y="17"/>
+        <CursorPos X="14" Y="17"/>
         <UsageCount Value="71"/>
         <Loaded Value="True"/>
       </Unit>
@@ -87,7 +87,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="4"/>
         <TopLine Value="28"/>
-        <CursorPos X="62" Y="74"/>
+        <CursorPos X="9" Y="74"/>
         <UsageCount Value="71"/>
         <Loaded Value="True"/>
       </Unit>
@@ -96,7 +96,7 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="KayteN64"/>
         <EditorIndex Value="5"/>
-        <CursorPos X="42"/>
+        <CursorPos X="15"/>
         <UsageCount Value="71"/>
         <Loaded Value="True"/>
       </Unit>
@@ -111,14 +111,19 @@
       <Unit>
         <Filename Value="../source/simplehttpserver.pas"/>
         <UnitName Value="SimpleHTTPServer"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="45" Y="9"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/sys_mac.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="45" Y="9"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="9">
+    <JumpHistory HistoryIndex="19">
       <Position>
         <Filename Value="../demo/xmlparser.pas"/>
         <Caret Line="8" Column="22"/>
@@ -157,6 +162,46 @@
       <Position>
         <Filename Value="kayte.lpr"/>
         <Caret Line="17" Column="6"/>
+      </Position>
+      <Position>
+        <Filename Value="kayte.lpr"/>
+        <Caret Line="18" Column="38"/>
+      </Position>
+      <Position>
+        <Filename Value="kayte.lpr"/>
+        <Caret Line="17" Column="14"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/sys_mac.pas"/>
+        <Caret Line="11" Column="8"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/sys_mac.pas"/>
+        <Caret Line="89" Column="36" TopLine="58"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/sys_mac.pas"/>
+        <Caret Line="90" TopLine="58"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/sys_mac.pas"/>
+        <Caret Line="8" Column="42"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/sys_mac.pas"/>
+        <Caret Line="23" Column="28"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/sys_mac.pas"/>
+        <Caret Line="82" TopLine="50"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/sys_mac.pas"/>
+        <Caret Line="35" Column="20" TopLine="18"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/sys_mac.pas"/>
+        <Caret Line="78" Column="32" TopLine="50"/>
       </Position>
     </JumpHistory>
     <RunParams>

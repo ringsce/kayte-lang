@@ -2,4 +2,5 @@
 <CONFIG>
   <Compiler Value="/Users/pedro/fpcupdeluxe/fpc/bin/aarch64-darwin/fpc.sh" Date="1740570255"/>
   <Params Value="-MObjFPC -Scghi -O1 -gw -gl -l -vewnhibq -Fi/Users/pedro/Projects/kayte-lang/projects/lib/aarch64-darwin -Fu/Users/pedro/Projects/kayte-lang/projects/ -FU/Users/pedro/Projects/kayte-lang/projects/lib/aarch64-darwin/ -FE/Users/pedro/Projects/kayte-lang/projects/ -o/Users/pedro/Projects/kayte-lang/projects/kayte kayte.lpr"/>
+  <Complete Value="False"/>
 </CONFIG>
