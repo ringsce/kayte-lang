@@ -6,7 +6,7 @@ unit sys_mac;
 interface
 
 uses
-  Classes, SysUtils, MacOSAll, CocoaAll; // CocoaAll provides macOS API support
+  Classes, SysUtils, MacOSAll, CocoaAll, Process; // CocoaAll provides macOS API support
 
 type
   TMacOSSystemInfo = record
@@ -60,8 +60,21 @@ begin
       OutputList.Free;
     end;
 
-    Output := Trim(SysUtils.ExecuteProcess('/usr/bin/osascript', [ScriptFile]));
-    Result := Output;
+    // Fix: Use `TProcess` instead of `ExecuteProcess`
+    with TProcess.Create(nil) do
+    try
+      Executable := '/usr/bin/osascript';
+      Parameters.Add(ScriptFile);
+      Options := [poWaitOnExit, poUsePipes];
+      Execute;
+
+      // Read output
+      SetLength(Output, OutputStream.Size);
+      OutputStream.Read(Output[1], Length(Output));
+      Result := Trim(Output);
+    finally
+      Free;
+    end;
   except
     on E: Exception do
       raise Exception.Create('AppleScript execution failed: ' + E.Message);
