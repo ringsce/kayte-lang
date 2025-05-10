@@ -97,6 +97,15 @@
         <DCCReference Include="..\..\dsource\cli.pas"/>
         <DCCReference Include="..\..\dsource\Bytecode.pas"/>
         <DCCReference Include="..\..\dsource\TestBytecode.pas"/>
+        <DCCReference Include="..\..\dsource\VirtualMachine.pas"/>
+        <DCCReference Include="..\..\dsource\XMLParser.pas"/>
+        <DCCReference Include="..\..\dsource\sdk.pas"/>
+        <DCCReference Include="..\..\dsource\c99.pas"/>
+        <DCCReference Include="..\..\dsource\kayte2pce.pas"/>
+        <DCCReference Include="..\..\dsource\KayteLibLoader.pas"/>
+        <DCCReference Include="..\..\dsource\basic.pas"/>
+        <None Include="..\..\dsource\assets\ui\ui.dtd"/>
+        <None Include="..\..\dsource\assets\ui\your-dtd-file.dtd"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -140,8 +149,26 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
+                <DeployFile LocalName="..\..\dsource\assets\ui\ui.dtd" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win64">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="..\..\dsource\assets\ui\your-dtd-file.dtd" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win64">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="kayte.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
+                        <RemoteName>kayte.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="kayte.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win64">
                         <RemoteName>kayte.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>

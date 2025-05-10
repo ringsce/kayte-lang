@@ -1,7 +1,5 @@
 unit Bytecode;
 
-{$mode objfpc}{$H+}
-
 interface
 
 uses

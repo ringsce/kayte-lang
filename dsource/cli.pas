@@ -1,11 +1,12 @@
 unit CLI;
 
-{$mode objfpc}{$H+}
-
 interface
 
 uses
-  SysUtils, Bytecode, KayteParser, VirtualMachine;
+  SysUtils,
+  Bytecode  in '..\..\dsource\Bytecode.pas',
+  KayteParser  in '..\..\dsource\KayteParser.pas',
+  VirtualMachine in '..\dsource\VirtualMachine.pas';
 
 type
   TCLIOptions = record

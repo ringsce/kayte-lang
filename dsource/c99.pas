@@ -1,6 +1,5 @@
 unit c99;
 
-{$mode ObjFPC}{$H+}
 
 interface
 
