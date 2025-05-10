@@ -76,15 +76,22 @@ begin
   FVars.Values[Name] := IntToStr(Value);
 end;
 
+
+
 function TBASICInterpreter.EvaluateExpression(const Expr: string): Integer;
 var
   Parser: TFPExpressionParser;
+  Ident: TFPExpressionIdentifierDef;
   i: Integer;
 begin
   Parser := TFPExpressionParser.Create(nil);
   try
+    // Add variable values
     for i := 0 to FVars.Count - 1 do
-  Parser.Variables[FVars.Names[i]] := StrToFloat(FVars.ValueFromIndex[i]);
+    begin
+      Ident := Parser.Identifiers.Add(FVars.Names[i]);
+      Ident.Value := StrToFloat(FVars.ValueFromIndex[i]);
+    end;
 
     Parser.Expression := Expr;
     Result := Round(Parser.Evaluate.ResFloat);

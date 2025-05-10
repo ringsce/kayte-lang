@@ -1,4 +1,11 @@
-# Makefile for kayte-lang project
+# Makefile for kay# Choose toolchain: lazarus or delphi
+TOOLCHAIN ?= lazarus
+
+ifeq ($(TOOLCHAIN),delphi)
+  include Makefile.delphi
+else
+  include Makefile.lazarus
+endif
 
 # Project settings
 PROJECT_NAME := kayte

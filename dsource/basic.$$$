@@ -1,0 +1,11 @@
+unit basic;
+
+interface
+
+uses
+  Classes, SysUtils;
+
+implementation
+
+end.
+

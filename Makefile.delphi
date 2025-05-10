@@ -1,0 +1,16 @@
+PROJECT_NAME := kayte
+BIN_DIR := bin
+DPROJ_FILE := projects/kayte.dproj
+
+.PHONY: all clean run
+
+all:
+	@mkdir -p $(BIN_DIR)
+	msbuild $(DPROJ_FILE) /t:Build /p:Config=Release /p:Platform=Win64
+
+clean:
+	msbuild $(DPROJ_FILE) /t:Clean
+
+run:
+	$(BIN_DIR)/$(PROJECT_NAME).exe
+

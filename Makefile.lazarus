@@ -1,0 +1,16 @@
+PROJECT_NAME := kayte
+LPI_FILE := projects/kayte.lpi
+BIN_DIR := bin
+
+.PHONY: all clean run
+
+all:
+	@mkdir -p $(BIN_DIR)
+	lazbuild $(LPI_FILE) --build-all --bm=Release
+
+clean:
+	lazbuild $(LPI_FILE) --clean
+
+run:
+	./$(BIN_DIR)/$(PROJECT_NAME)
+

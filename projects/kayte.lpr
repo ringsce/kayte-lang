@@ -14,8 +14,8 @@ uses
   SimpleHTTPServer in '../source/SimpleHTTPServer.pas',
   sdk in '../source/sdk.pas',
   c99 in '../source/c99.pas',
-  sys_ios in '../source/sys_ios.pas',
-  sys_mac in '../source/sys_mac.pas',
+  //sys_ios in '../source/sys_ios.pas',
+  //sys_mac in '../source/sys_mac.pas',
   //basic in '../source/basic.pas',
   kayte2pce in '../source/kayte2pce.pas',
   KayteLibLoader in '../source/KayteLibLoader.pas'
