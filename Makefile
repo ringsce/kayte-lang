@@ -1,29 +1,10 @@
 # Makefile for kay# Choose toolchain: lazarus or delphi
 TOOLCHAIN ?= lazarus
 
-ifeq ($(TOOLCHAIN),delphi)
-  include Makefile.delphi
-else
-  include Makefile.lazarus
-endif
-
 # Project settings
 PROJECT_NAME := kayte
 SRC_DIR := ../source
 BIN_DIR := bin
-UNIT_FILES := $(SRC_DIR)/c99.pas \
-$(SRC_DIR)/sys_mac.pas \
-$(SRC_DIR)/sys_ios.pas \
-$(SRC_DIR)/n64.pas \
-$(SRC_DIR)/cli.pas \
-$(SRC_DIR)/kaytetosnes.pas \
-$(SRC_DIR)/cli.pas \
-$(SRC_DIR)/bytecode.pas \
-$(SRC_DIR)/kayteparser.pas \
-$(SRC_DIR)/sdk.pas \
-$(SRC_DIR)/simplehttpserver.pas \
-$(SRC_DIR)/virtualmachine.pas 
-
 
 MAIN_FILE := projects/kayte.lpr
 FPC := fpc
@@ -46,7 +27,7 @@ $(TARGET): $(MAIN_FILE) $(UNIT_FILES)
 	$(FPC) -Fu$(SRC_DIR) -FE$(BIN_DIR) -o$(TARGET) $(MAIN_FILE)
 
 clean:
-	rm -rf $(BIN_DIR)
+	rm -rf bin/*.o bin/*.ppu bin/kayte
 
 run: $(TARGET)
 	./$(TARGET)

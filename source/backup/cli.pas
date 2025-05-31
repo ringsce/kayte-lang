@@ -7,7 +7,7 @@ interface
 uses
   SysUtils, Bytecode,
   KayteParser in '../source/kayteparser.pas',
-  VirtualMachine in '../source/virtualmachine.pas';
+  VirtualMachine;
 
 type
   TCLIOptions = record

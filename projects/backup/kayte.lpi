@@ -89,52 +89,6 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="KayteN64"/>
       </Unit>
-      <Unit>
-        <Filename Value="../source/simplehttpserver.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="SimpleHTTPServer"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/cli.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="CLI"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/bytecode.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/testbytecode.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/virtualmachine.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/xmlparser.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/sdk.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/c99.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/kayte2pce.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/kaytelibloader.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/c_backend.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -144,7 +98,6 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../source"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
   </CompilerOptions>
