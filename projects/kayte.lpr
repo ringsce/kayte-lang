@@ -18,7 +18,8 @@ uses
   //sys_mac in '../source/sys_mac.pas',
   //basic in '../source/basic.pas',
   kayte2pce in '../source/kayte2pce.pas',
-  KayteLibLoader in '../source/KayteLibLoader.pas', c_backend
+  KayteLibLoader in '../source/KayteLibLoader.pas',
+  c_backend in '../source/c_backend.pas'
   //n64 in '../source/n64.pas'
   ;
   (*KayteToSNES*)

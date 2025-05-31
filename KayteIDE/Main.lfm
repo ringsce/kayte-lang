@@ -1,0 +1,51 @@
+object MainForm: TMainForm
+  Left = 200
+  Height = 400
+  Top = 200
+  Width = 600
+  Caption = 'KayteIDE'
+  ClientHeight = 400
+  ClientWidth = 600
+  OnCreate = FormCreate
+  LCLVersion = '3.0.0'
+  object MainMenu1: TMainMenu
+    Left = 10
+    Top = 10
+    object MenuFile: TMenuItem
+      Caption = 'File'
+    end
+    object MenuEdit: TMenuItem
+      Caption = 'Edit'
+    end
+    object MenuView: TMenuItem
+      Caption = 'View'
+    end
+    object MenuBuild: TMenuItem
+      Caption = 'Build'
+    end
+    object MenuHelp: TMenuItem
+      Caption = 'Help'
+    end
+  end
+  object ToolBar1: TToolBar
+    Align = alTop
+    Left = 0
+    Top = 0
+    Width = 600
+    Height = 40
+  end
+  object Memo1: TMemo
+    Align = alClient
+    Left = 0
+    Top = 40
+    Width = 600
+    Height = 360
+    Lines.Strings = (
+      'Welcome to KayteIDE!'
+    )
+  end
+  object ImageList1: TImageList
+    Left = 40
+    Top = 10
+  end
+end
