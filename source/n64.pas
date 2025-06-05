@@ -35,8 +35,11 @@ begin
 end;
 
 procedure RunKayteScript(const Script: PChar);
+var
+  Msg: AnsiString;
 begin
-  n64_console_print(PChar('Running Kayte script: ' + Script));
+  Msg := 'Running Kayte script: ' + Script;
+  n64_console_print(PChar(Msg));
 end;
 
 procedure MainLoop;

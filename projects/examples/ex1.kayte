@@ -1,0 +1,13 @@
+let name = "Kayte"
+MessageBox("Welcome")
+
+if name == "Kayte" {
+  MessageBox("Hello " + name)
+}
+
+let count = "0"
+while count == "0" {
+  MessageBox("This runs once")
+  let count = "1"
+}
+

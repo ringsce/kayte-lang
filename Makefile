@@ -6,6 +6,10 @@ PROJECT_NAME := kayte
 SRC_DIR := ../source
 BIN_DIR := bin
 
+
+LDFLAGS += -L$(PROJECT_PATH)/lib -ln64
+LDFLAGS += -macos_version_min=10.14
+
 MAIN_FILE := projects/kayte.lpr
 FPC := fpc
 TARGET := $(BIN_DIR)/$(PROJECT_NAME)

@@ -4,10 +4,20 @@ Program kayte;
 * usage, with this tool you can make custom scripts
 * to run on our own games, delivered by ringsce store
 *)
+
+(*{$linklib n64}
+{$linklibc}
+{$ifdef darwin}
+  {$linkframework CoreFoundation}  // if you use macOS native features
+  {$linkframework IOKit}
+  {$linkframework Cocoa}
+  {$linkframework AppKit}
+{$endif} *)
+
 uses
   SysUtils, Classes, Zipper, fphttpclient, fpjson, jsonparser, Process,
   cli in '../source/cli.pas',
-  Bytecode in '../source/Bytecode.pas',
+  Bytecode in '../source/bytecode.pas',
   TestBytecode in '../source/TestBytecode.pas',
   VirtualMachine in '../source/VirtualMachine.pas',
   XMLParser in '../source/XMLParser.pas',
@@ -20,12 +30,12 @@ uses
   kayte2pce in '../source/kayte2pce.pas',
   KayteLibLoader in '../source/KayteLibLoader.pas',
   c_backend in '../source/c_backend.pas'
+  //kayte_parser in '../source/kayte_parser.pas',
   //n64 in '../source/n64.pas'
   ;
   (*KayteToSNES*)
 
 type
-  //TInstruction = (NOP, LOAD, ADD, SUB, HALT);
   TInstruction = (NOP, LOAD, ADD, SUB, HALT, IRC_HELP, IRC_WHOIS, IRC_SERVER, IRC_CONNECT, IF_COND, ELSE_COND, ENDIF, CASE_COND, ENDCASE);
 
 
@@ -400,20 +410,6 @@ begin
 
 end.
 
-
-procedure TVirtualMachine.InitializeMemory(Size: Integer);
-  begin
-    if Size > 0 then
-    begin
-      SetLength(FMemory, Size);
-      FillChar(FMemory[0], Size, 0);
-      Writeln('Memory initialized to ', Size, ' bytes.');
-    end
-    else
-    begin
-      Writeln('Error: Memory size must be greater than 0.');
-    end;
-  end;
 
 procedure TVirtualMachine.InitializeRegisters(Count: Integer);
   begin
