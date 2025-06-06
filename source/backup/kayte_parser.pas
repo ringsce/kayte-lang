@@ -24,8 +24,9 @@ TKayteParser = class
     property OnMessageBox: TKayteFunctionHandler read FOnMessageBox write FOnMessageBox;
     property OnInputBox: TKayteFunctionHandler read FOnInputBox write FOnInputBox;
   end;
-    TKayteFunctionHandler = procedure(const Args: string);
-    TVarMap = specialize TFPGMap<String, TStringObject>;
+
+TKayteFunctionHandler = procedure(const Args: string);
+TVarMap = specialize TFPGMap<String, TStringObject>;
 
 
   TStringObject = class

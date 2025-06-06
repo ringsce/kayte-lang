@@ -29,7 +29,12 @@ uses
   //basic in '../source/basic.pas',
   kayte2pce in '../source/kayte2pce.pas',
   KayteLibLoader in '../source/KayteLibLoader.pas',
-  c_backend in '../source/c_backend.pas'
+  c_backend in '../source/c_backend.pas',
+  kayte_compiler in '../kayte_compiler.pas',
+  kayte_runtime in '../source/kayte_runtime.pas',
+  kayte_loader in '../source/kayte_loader.pas',
+  kayte_vm in '../source/kayte_vm.pas'
+  //bytecode_embed in '../source/bytecode_embed.pas'
   //kayte_parser in '../source/kayte_parser.pas',
   //n64 in '../source/n64.pas'
   ;
