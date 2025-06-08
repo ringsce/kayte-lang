@@ -293,30 +293,26 @@ else if cmd = 'goto' then
 (* End *)
 
 
-var
-    pc: Integer;
 begin
-    Code := TStringList.Create;
-    Vars := TStringList.Create;
-    Vars.Sorted := False;
-    Labels := TStringList.Create;
-    Labels.Sorted := False;
+  // Initialize all interpreter components
+  InitInterpreter;
 
-    LoadCode;
+  // Load the code into the global 'Code' TStringList
+  LoadCode;
 
-    pc := 0;
-    while pc < Code.Count do
-    begin
-      ExecuteLine(Code[pc], pc);
-      Inc(pc);
-    end;
+  // Build labels and subroutines using the global Code, Labels, and Subs
+  BuildLabels(Code, Labels);
+  BuildSubs(Code, Subs);
 
-    BuildLabels(Code, Labels);
-    BuildSubs(Code, Subs);
+  pc := 0;
+  while pc < Code.Count do
+  begin
+    ExecuteLine(Code[pc], pc);
+    Inc(pc); // Increment pc unless ExecuteLine changes it (e.g., for GOTO/CALL)
+  end;
 
+  // Clean up all interpreter components
+  FreeInterpreter;
 
-    Vars.Free;
-    Labels.Free;
-    Code.Free;
-    Subs.Free;
+  Readln; // Keep console open if running directly
 end.

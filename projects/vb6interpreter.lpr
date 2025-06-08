@@ -34,6 +34,9 @@ var
   Subs: TStringList;
   Stack: TStack;          // Only this one
   LoopStack: TLoopStack;
+  pc: Integer; // Program Counter
+
+
 
 
   procedure TSubroutineMap.Add(SubName: String; LineNumber: Integer);
@@ -293,20 +296,14 @@ else if cmd = 'goto' then
 (* End *)
 
 
-var
-  Code, Vars, Labels: TStringList;
-  Subs: TSubroutineMap;
-  pc: Integer;
-
 begin
-  Code := TStringList.Create;
-  Vars := TStringList.Create;
-  Vars.Sorted := False;
-  Labels := TStringList.Create;
-  Labels.Sorted := False;
+  // Initialize all interpreter components
+  InitInterpreter;
 
+  // Load the code into the global 'Code' TStringList
   LoadCode;
 
+  // Build labels and subroutines using the global Code, Labels, and Subs
   BuildLabels(Code, Labels);
   BuildSubs(Code, Subs);
 
@@ -314,11 +311,11 @@ begin
   while pc < Code.Count do
   begin
     ExecuteLine(Code[pc], pc);
-    Inc(pc);
+    Inc(pc); // Increment pc unless ExecuteLine changes it (e.g., for GOTO/CALL)
   end;
 
-  Vars.Free;
-  Labels.Free;
-  Code.Free;
-  Subs.Free;
+  // Clean up all interpreter components
+  FreeInterpreter;
+
+  Readln; // Keep console open if running directly
 end.
