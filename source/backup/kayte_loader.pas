@@ -4,62 +4,92 @@ unit kayte_loader;
 
 interface
 
-procedure Kayte_LoadAllFromDir(const Dir: string);
+procedure Kayte_LoadAllFromResources;
 procedure Kayte_RunAll;
 
 implementation
 
 uses
-  SysUtils, Process, kayte_vm;
+  SysUtils, Classes, Process, kayte_vm;
 
-procedure CompileIfNeeded(const KayteFile, BinFile: string);
-var
-  SrcTime, BinTime: TDateTime;
+type
+  { TCompileTask: Compiles a .kayte file to .bin asynchronously }
+  TCompileTask = class(TThread)
+  private
+    FSrcFile, FOutFile: string;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(const Src, OutFile: string);
+  end;
+
+constructor TCompileTask.Create(const Src, OutFile: string);
 begin
-  if not FileExists(BinFile) then
-  begin
-    WriteLn('[kayte_loader] Compiling ', KayteFile, ' → ', BinFile);
-    RunCommand('kaytec', [KayteFile, '-o', BinFile], []);
-    Exit;
-  end;
+  inherited Create(False); // auto-start
+  FSrcFile := Src;
+  FOutFile := OutFile;
+  FreeOnTerminate := True;
+end;
 
-  SrcTime := FileAge(KayteFile);
-  BinTime := FileAge(BinFile);
+procedure TCompileTask.Execute;
+var
+  Output: string;
+begin
+  WriteLn('[kayte_loader] Compiling: ', FSrcFile);
+  RunCommand('kaytec', [FSrcFile, '-o', FOutFile], Output);
+end;
 
-  if SrcTime > BinTime then
-  begin
-    WriteLn('[kayte_loader] Recompiling ', KayteFile, ' (source is newer)');
-    RunCommand('kaytec', [KayteFile, '-o', BinFile], []);
-  end;
+procedure CompileIfNeededAsync(const KayteFile, BinFile: string);
+begin
+  if (not FileExists(BinFile)) or (FileAge(KayteFile) > FileAge(BinFile)) then
+    TCompileTask.Create(KayteFile, BinFile);
 end;
 
 procedure LoadBinaryToVM(const Name, BinFile: string);
 var
-  Stream: TFileStream;
-  Buffer: string;
+  FS: TFileStream;
+  Buffer: array of Byte;
 begin
-  Stream := TFileStream.Create(BinFile, fmOpenRead);
+  FS := TFileStream.Create(BinFile, fmOpenRead or fmShareDenyNone);
   try
-    SetLength(Buffer, Stream.Size);
-    Stream.ReadBuffer(Pointer(Buffer)^, Stream.Size);
+    SetLength(Buffer, FS.Size);
+    if FS.Size > 0 then
+      FS.ReadBuffer(Buffer[0], FS.Size);
     KayteVM_LoadModule(Name, Buffer);
   finally
-    Stream.Free;
+    FS.Free;
   end;
 end;
 
-procedure Kayte_LoadAllFromDir(const Dir: string);
+function AppResourcePath: string;
+begin
+  {$ifdef darwin}
+  // macOS .app bundle structure
+  Result := ExpandFileName(ExtractFilePath(ParamStr(0)) + '../../Resources/kayte/');
+  {$else}
+  Result := ExpandFileName('resources/kayte/');
+  {$endif}
+end;
+
+procedure Kayte_LoadAllFromResources;
 var
   SR: TSearchRec;
-  KayteFile, BinFile, ModName: string;
+  KayteFile, BinFile, ModName, BasePath: string;
 begin
-  if FindFirst(IncludeTrailingPathDelimiter(Dir) + '*.kayte', faAnyFile, SR) = 0 then
-  repeat
-    KayteFile := IncludeTrailingPathDelimiter(Dir) + SR.Name;
-    ModName := ChangeFileExt(SR.Name, '');
-    BinFile := IncludeTrailingPathDelimiter(Dir) + ModName + '.bin';
+  BasePath := AppResourcePath;
+  if not DirectoryExists(BasePath) then
+  begin
+    WriteLn('[kayte_loader] ❌ Resource directory not found: ', BasePath);
+    Exit;
+  end;
 
-    CompileIfNeeded(KayteFile, BinFile);
+  if FindFirst(BasePath + '*.kayte', faAnyFile, SR) = 0 then
+  repeat
+    KayteFile := BasePath + SR.Name;
+    ModName := ChangeFileExt(SR.Name, '');
+    BinFile := BasePath + ModName + '.bin';
+
+    CompileIfNeededAsync(KayteFile, BinFile);
     LoadBinaryToVM(ModName, BinFile);
   until FindNext(SR) <> 0;
   FindClose(SR);

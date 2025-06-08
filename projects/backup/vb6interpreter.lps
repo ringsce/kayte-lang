@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="vb6interpreter.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <TopLine Value="287"/>
+        <CursorPos Y="296"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/interpreterutils.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="InterpreterUtils"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="65"/>
+        <CursorPos Y="97"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="32" Column="17"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="34" Column="30" TopLine="6"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="5"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="6" Column="32"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="257" TopLine="240"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="265" Column="10" TopLine="241"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="250" Column="6" TopLine="233"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="282" TopLine="253"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="179" Column="9" TopLine="159"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="267" Column="24" TopLine="251"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="268" Column="24" TopLine="251"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="282" Column="11" TopLine="252"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="267" TopLine="266"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="268" TopLine="263"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="283" TopLine="251"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="368" TopLine="334"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="85" TopLine="62"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="296" TopLine="269"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="107" TopLine="79"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="94" Column="3" TopLine="77"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="364" Column="5" TopLine="330"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="342" TopLine="309"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="40" TopLine="22"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="12" Column="7" TopLine="3"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="312" TopLine="280"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="353" TopLine="343"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpreterutils.pas"/>
+        <Caret Line="59" TopLine="25"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="363" Column="5" TopLine="343"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="296" Column="12" TopLine="281"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpreterutils.pas"/>
+        <Caret Line="78" TopLine="45"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

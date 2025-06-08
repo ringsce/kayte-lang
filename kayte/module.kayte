@@ -1,0 +1,9 @@
+fn greet(who) {
+  print("Greetings, " + who + "!");
+}
+
+fn main() {
+  greet("Universe");
+  greet("Kayte Dev");
+}
+
