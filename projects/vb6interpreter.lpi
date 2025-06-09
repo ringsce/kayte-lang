@@ -31,7 +31,25 @@
       <Unit>
         <Filename Value="../source/interpreterutils.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="InterpreterUtils"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/interpretercore.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="InterpreterCore"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/dhtml.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/vbcompiler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="VBCompiler"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/synvbhighlighter.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SynVBHighlighter"/>
       </Unit>
     </Units>
   </ProjectOptions>

@@ -1,11 +1,12 @@
-unit InterpreterUtils;
+unit interpreterutils;
 
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils,
+  Contnrs; // <--- Add Contnrs here
 
 type
   // Define a record or a small class to hold the line number,
@@ -38,8 +39,8 @@ var
 procedure InitInterpreter;
 procedure FreeInterpreter;
 procedure LoadCode; // Declared in interface so main program can call it
-procedure BuildLabels(Code, Labels: TStringList);
-procedure BuildSubs(Code: TStringList; var Subs: TSubroutineMap); // var is correct here
+procedure BuildLabels(Code: TStringList; var Labels: TStringList);
+procedure BuildSubs(Code: TStringList; var Subs: TSubroutineMap);
 
 implementation
 
@@ -72,21 +73,19 @@ begin
 end;
 
 
-procedure BuildLabels(Code, Labels: TStringList);
+procedure BuildLabels(Code: TStringList; var Labels: TStringList);
 var
   i: Integer;
   line, labelName: String;
-  Data: PLineNumberData;
 begin
+  Labels.Clear;
   for i := 0 to Code.Count - 1 do
   begin
     line := Trim(Code[i]);
     if (line <> '') and (line[Length(line)] = ':') then
     begin
       labelName := Copy(line, 1, Length(line) - 1);
-      New(Data);
-      Data^.Line := i;
-      Labels.AddObject(labelName, TObject(Data));
+      Labels.AddObject(labelName, TObject(PtrInt(i))); // Might warn on some platforms
     end;
   end;
 end;
@@ -94,18 +93,16 @@ end;
 procedure BuildSubs(Code: TStringList; var Subs: TSubroutineMap);
 var
   i: Integer;
-  line: String;
+  line, subName: String;
 begin
-  // Subs is already created in InitInterpreter, no need to create it again here.
-  // This procedure just populates the existing Subs map.
+  Subs.Clear;
   for i := 0 to Code.Count - 1 do
   begin
     line := Trim(Code[i]);
-    // Assuming subroutine declaration is "Sub SubName:"
-    if (LowerCase(Copy(line, 1, 3)) = 'sub') and (Length(line) > 4) and (line[Length(line)] = ':') then // Added check for ":"
+    if SameText(Copy(line, 1, 3), 'Sub') then
     begin
-      // Extract "SubName" from "Sub SubName:"
-      Subs.Add(Copy(line, 5, Length(line) - 5 -1), i); // Adjusting substring to remove "Sub " and ":"
+      subName := Trim(Copy(line, 4, Length(line)));
+      Subs.Add(subName, i);
     end;
   end;
 end;
@@ -140,8 +137,8 @@ begin
   Vars.Sorted := False; // Ensure it's not sorted if you intend to use IndexOf
   Labels := TStringList.Create;
   Labels.Sorted := False; // Ensure it's not sorted
-  Subs := TSubroutineMap.Create; // Correctly create TSubroutineMap
-  Stack := TObjectList.Create; // Assuming TStack is TObjectList or similar
+  Subs := TSubroutineMap.Create;
+  Stack := TObjectList.Create; // Correct: TObjectList is now recognized
   Variables := TStringList.Create;
 end;
 
