@@ -6,9 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, Menus,
-  ExtCtrls, ImgList, StdCtrls,
-  FPImage, FPReadTIFF, FPImgCanv, // FPImage defines TFPImage, FPReadTIFF reads TIFF, FPImgCanv provides drawing helpers
-  IniFiles;
+  ExtCtrls, ImgList, StdCtrls, FPImage, FPReadTIFF, FPImgCanv, IniFiles; // Replaced LazIntfImage and FPReadPNG with FPReadTIFF
 
 type
   TMainForm = class(TForm)
@@ -43,41 +41,38 @@ procedure TMainForm.LoadIcons;
 var
   i: Integer;
   names: array[0..4] of string = ('build','clean','run','debug','save');
-  reader: TFPReaderTIFF;
-  img: TFPImage; // Correctly declared from FPImage unit
+  reader: TFPReaderTIFF; // Changed to TFPReaderTIFF
+  img: TFPImage;         // Changed to TFPImage
   bmp: TBitmap;
 begin
   ImageList1.Clear;
-  reader := TFPReaderTIFF.Create;
+  reader := TFPReaderTIFF.Create; // Create TIFF reader
   try
     for i := 0 to High(names) do
     begin
       img := TFPImage.Create; // Create FPImage instance
       try
         // Load the TIFF file into the TFPImage
-        // IMPORTANT: Ensure your icons are actually .tiff files in 'ide_icons/'
+        // Make sure your icon files are now .tiff (e.g., 'ide_icons/build.tiff')
         img.LoadFromFile('ide_icons/' + names[i] + '.tiff', reader);
 
         bmp := TBitmap.Create;
         try
-          // 1. Set the size of the TBitmap to match the loaded image
-          bmp.Width := img.Width;
-          bmp.Height := img.Height;
-
-          // 2. Draw the content of the TFPImage onto the TBitmap's canvas
+          // Convert TFPImage to TBitmap
+          // We need to ensure the bitmap has the correct size before drawing
+          bmp.SetSize(img.Width, img.Height);
+          // Draw the FPImage content onto the bitmap's canvas
           img.Draw(bmp.Canvas, 0, 0);
-
-          // 3. Add the TBitmap to the ImageList
           ImageList1.Add(bmp, nil);
         finally
-          bmp.Free; // Free the temporary TBitmap
+          bmp.Free;
         end;
       finally
-        img.Free; // Free the temporary TFPImage
+        img.Free;
       end;
     end;
   finally
-    reader.Free; // Free the TIFF reader
+    reader.Free;
   end;
   ToolBar1.Images := ImageList1;
 end;

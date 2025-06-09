@@ -7,9 +7,9 @@
       <Unit>
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
-        <CursorPos X="40" Y="6"/>
-        <UsageCount Value="20"/>
+        <TopLine Value="87"/>
+        <CursorPos X="15" Y="104"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -18,7 +18,46 @@
         <EditorIndex Value="5"/>
         <TopLine Value="83"/>
         <CursorPos Y="109"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/interpretercore.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="InterpreterCore"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="116"/>
+        <CursorPos X="5" Y="142"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/dhtml.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="94"/>
+        <CursorPos X="50" Y="118"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/vbcompiler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="VBCompiler"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="222"/>
+        <CursorPos X="13" Y="230"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/synvbhighlighter.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SynVBHighlighter"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="22" Y="8"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -29,86 +68,8 @@
         <CursorPos X="11" Y="42"/>
         <UsageCount Value="10"/>
       </Unit>
-      <Unit>
-        <Filename Value="../source/interpretercore.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="InterpreterCore"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="116"/>
-        <CursorPos X="5" Y="142"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/dhtml.pas"/>
-        <IsPartOfProject Value="True"/>
-        <EditorIndex Value="4"/>
-        <TopLine Value="94"/>
-        <CursorPos Y="128"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/vbcompiler.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="VBCompiler"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="138"/>
-        <CursorPos X="3" Y="155"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/synvbhighlighter.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="SynVBHighlighter"/>
-        <EditorIndex Value="1"/>
-        <CursorPos X="22" Y="8"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-      </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="77" TopLine="69"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="43" TopLine="35"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="90" TopLine="63"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="80" Column="7" TopLine="63"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="92" TopLine="63"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="97" Column="7" TopLine="80"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="93" TopLine="86"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="95" Column="13" TopLine="95"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="117" Column="25" TopLine="95"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="112" Column="3" TopLine="95"/>
-      </Position>
       <Position>
         <Filename Value="vb6interpreter.lpr"/>
         <Caret Line="39" Column="3" TopLine="17"/>
@@ -188,6 +149,46 @@
       <Position>
         <Filename Value="../source/vbcompiler.pas"/>
         <Caret Line="155" Column="3" TopLine="138"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/synvbhighlighter.pas"/>
+        <Caret Line="8" Column="22"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/synvbhighlighter.pas"/>
+        <Caret Line="411" Column="5" TopLine="377"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/synvbhighlighter.pas"/>
+        <Caret Line="402" Column="34" TopLine="377"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/synvbhighlighter.pas"/>
+        <Caret Line="411" Column="5" TopLine="377"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="8" Column="25"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/dhtml.pas"/>
+        <Caret Line="121" Column="39" TopLine="94"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/vbcompiler.pas"/>
+        <Caret Line="226" Column="5" TopLine="202"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/vbcompiler.pas"/>
+        <Caret Line="232" Column="2" TopLine="202"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/vbcompiler.pas"/>
+        <Caret Line="332" Column="5" TopLine="298"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/vbcompiler.pas"/>
+        <Caret Line="241" Column="18" TopLine="225"/>
       </Position>
     </JumpHistory>
     <RunParams>

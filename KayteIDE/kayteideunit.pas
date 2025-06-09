@@ -1,13 +1,15 @@
-unit Main;
+unit KayteIDEUnit; // Renamed from Main
 
-{$mode delphi}
+{$mode objfpc}{$H+} // Standard Free Pascal project mode
 
 interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ComCtrls, Menus,
   ExtCtrls, ImgList, StdCtrls,
-  FPImage, FPReadTIFF, FPImgCanv, // FPImage defines TFPImage, FPReadTIFF reads TIFF, FPImgCanv provides drawing helpers
+  FPImage,     // Provides TFPImage, TBitmap drawing functionality
+  FPReadJPG,   // <--- NEW: For reading JPEG files
+  FPImgCanv,   // Provides drawing helpers like img.Draw()
   IniFiles;
 
 type
@@ -43,41 +45,36 @@ procedure TMainForm.LoadIcons;
 var
   i: Integer;
   names: array[0..4] of string = ('build','clean','run','debug','save');
-  reader: TFPReaderTIFF;
-  img: TFPImage; // Correctly declared from FPImage unit
+  reader: TFPReaderJPG; // <--- Changed to TFPReaderJPG
+  img: TFPImage;
   bmp: TBitmap;
 begin
   ImageList1.Clear;
-  reader := TFPReaderTIFF.Create;
+  reader := TFPReaderJPG.Create; // <--- Create JPEG reader
   try
     for i := 0 to High(names) do
     begin
-      img := TFPImage.Create; // Create FPImage instance
+      img := TFPImage.Create;
       try
-        // Load the TIFF file into the TFPImage
-        // IMPORTANT: Ensure your icons are actually .tiff files in 'ide_icons/'
-        img.LoadFromFile('ide_icons/' + names[i] + '.tiff', reader);
+        // Load the JPEG file into the TFPImage
+        // IMPORTANT: Ensure your icons are now .jpeg or .jpg files in 'ide_icons/'
+        img.LoadFromFile('ide_icons/' + names[i] + '.jpeg', reader); // <--- Changed file extension
 
         bmp := TBitmap.Create;
         try
-          // 1. Set the size of the TBitmap to match the loaded image
           bmp.Width := img.Width;
           bmp.Height := img.Height;
-
-          // 2. Draw the content of the TFPImage onto the TBitmap's canvas
-          img.Draw(bmp.Canvas, 0, 0);
-
-          // 3. Add the TBitmap to the ImageList
+          img.Draw(bmp.Canvas, 0, 0); // This is the correct way to transfer image data
           ImageList1.Add(bmp, nil);
         finally
-          bmp.Free; // Free the temporary TBitmap
+          bmp.Free;
         end;
       finally
-        img.Free; // Free the temporary TFPImage
+        img.Free;
       end;
     end;
   finally
-    reader.Free; // Free the TIFF reader
+    reader.Free;
   end;
   ToolBar1.Images := ImageList1;
 end;

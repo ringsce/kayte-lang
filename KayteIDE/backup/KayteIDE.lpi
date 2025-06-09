@@ -3,6 +3,9 @@
   <ProjectOptions>
     <Version Value="12"/>
     <General>
+      <Flags>
+        <UseDefaultCompilerOptions Value="True"/>
+      </Flags>
       <SessionStorage Value="InProjectDir"/>
       <Title Value="KayteIDE"/>
       <Scaled Value="True"/>
@@ -32,18 +35,6 @@
       <Unit>
         <Filename Value="KayteIDE.lpr"/>
         <IsPartOfProject Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="Main.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="MainForm"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-      </Unit>
-      <Unit>
-        <Filename Value="kayteideunit.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="KayteIDEUnit"/>
       </Unit>
     </Units>
   </ProjectOptions>

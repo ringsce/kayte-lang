@@ -5,7 +5,7 @@ unit VBCompiler;
 interface
 
 uses
-  Classes, SysUtils, Process; // Process unit for executing external commands
+  Classes, SysUtils, Process, Math; // Added Math unit for min function
 
 type
   TVBCompilerResult = record
@@ -43,19 +43,16 @@ begin
   Proc := TProcess.Create(nil);
   OutputList := TStringList.Create;
   try
-    Proc.CommandLine := Command;
+    Proc.Executable := Command; // Use Executable for the command itself
     for I := Low(Args) to High(Args) do
-      Proc.Parameters.Add(Args[I]);
+      Proc.Parameters.Add(Args[I]); // Add arguments individually
 
     Proc.Options := [poWaitOnExit, poUsePipes];
     Proc.Execute;
 
-    Proc.Output.SetLength(Proc.Output.Size);
+    // Load from streams directly, no need for SetLength
     OutputList.LoadFromStream(Proc.Output);
-
-    // Capture stderr as well, as compiler errors often go there
-    Proc.Stderr.SetLength(Proc.Stderr.Size);
-    OutputList.LoadFromStream(Proc.Stderr);
+    OutputList.LoadFromStream(Proc.Stderr); // Capture stderr as well
 
     Result.Output.AddStrings(OutputList);
 
@@ -66,7 +63,7 @@ begin
       Result.Success := False;
       Result.ErrorMessage := 'Compiler exited with error code ' + IntToStr(Proc.ExitStatus);
       // Try to find first few error lines
-      for I := 0 to min(OutputList.Count - 1, 5) do // Look at first 5 lines
+      for I := 0 to Math.Min(OutputList.Count - 1, 5) do // Use Math.Min
       begin
         if (Pos('Error:', OutputList[I]) > 0) or (Pos('Fatal:', OutputList[I]) > 0) then
         begin
@@ -156,32 +153,37 @@ function CompileToStaticLibrary(
 var
   CompilerPath: String;
   OutputFile: String;
+  OutputObjFile: String; // To store the .o or .obj file path
   OutputSwitch: String;
   LibrarySwitch: String;
   TargetExt: String;
   CompilerArgs: TStringArray;
 begin
+  Result.Success := False; // Initialize Result
+  Result.Output := TStringList.Create;
+  Result.ErrorMessage := '';
+
   CompilerPath := 'fpc'; // Assumes fpc is in PATH
 
   {$IFDEF WINDOWS}
     TargetExt := '.lib'; // .lib for MSVC-compatible import libraries or static libraries on Windows
     LibrarySwitch := '-WM'; // Compile as module (for creating .obj/.o later for static lib)
-    // For a true .a static library on Windows, you'd usually use a linker after .obj files
-    // But FPC can generate .obj files for other linkers.
-    // If you specifically want a .a, you'd target MinGW (e.g., -Twin32 -WG -XPmingw)
-    // or manually run ar.exe
+    OutputObjFile := IncludeTrailingPathDelimiter(OutputDir) + TargetName + '.obj';
   {$ENDIF}
   {$IFDEF LINUX}
     TargetExt := '.a';
     LibrarySwitch := '-WM'; // Compile as module (produces .o which ar uses)
+    OutputObjFile := IncludeTrailingPathDelimiter(OutputDir) + TargetName + '.o';
   {$ENDIF}
   {$IFDEF DARWIN} // macOS
     TargetExt := '.a';
     LibrarySwitch := '-WM'; // Compile as module
+    OutputObjFile := IncludeTrailingPathDelimiter(OutputDir) + TargetName + '.o';
   {$ENDIF}
   {$IFDEF UNIX} // Generic Unix-like
     TargetExt := '.a';
     LibrarySwitch := '-WM';
+    OutputObjFile := IncludeTrailingPathDelimiter(OutputDir) + TargetName + '.o';
   {$ENDIF}
 
   // Ensure TargetExt is set
@@ -192,49 +194,78 @@ begin
     Exit;
   end;
 
-  OutputFile := IncludeTrailingPathDelimiter(OutputDir) + TargetName + TargetExt;
-  OutputSwitch := '-o' + OutputFile;
-
-  // For static libraries, FPC typically compiles to .o (object) files, then ar combines them.
-  // Using -WM will produce .o files. To get a .a directly, you might need a different approach
-  // or a post-build step with `ar`.
-  // For simplicity, this will just compile the unit. If you need a combined .a,
-  // you'd typically compile all units to .o then use 'ar rcs libname.a obj1.o obj2.o'.
-  // FPC's -WL-a usually is for the linker, not the compiler producing .a.
-  // Let's assume -WM is sufficient to get object files for later static linking.
-  // If you want a combined .a, you would need a loop over all units and then `ar` call.
+  // This will make FPC produce the object file (e.g., .o or .obj)
+  OutputSwitch := '-o' + OutputObjFile;
 
   CompilerArgs := [
-    LibrarySwitch,        // Compile as module (produces .o)
+    LibrarySwitch,        // Compile as module (produces .o/.obj)
     '-Fu' + IncludeTrailingPathDelimiter(OutputDir), // Add output directory to unit path
     '-FE' + IncludeTrailingPathDelimiter(OutputDir), // Set output directory for .ppu files etc.
-    // For static libraries, the -o switch might just specify the .o file, not the .a
-    // You'd usually link multiple .o files into a .a using 'ar'
-    // This function focuses on compiling a single unit to an object file (.o or .obj)
-    OutputSwitch, // This will make FPC name the .o file according to TargetName.o
+    OutputSwitch, // Direct FPC to output the object file here
     UnitSourceFile
   ];
 
   Result := ExecuteCommand(CompilerPath, CompilerArgs);
 
-  // For static libraries, you typically compile multiple .o files and then use 'ar'
-  // to combine them into a single .a archive. FPC itself doesn't directly output .a
-  // from a single unit compilation usually without extra linker flags.
-  // This part would need refinement if you want a complete .a automation.
+  // If compilation to object file was successful, try to archive it into a .a
   if Result.Success then
   begin
     {$IFDEF LINUX}
     {$IFDEF DARWIN}
     {$IFDEF UNIX}
-      // If we compiled successfully to an .o file, try to archive it into a .a
-      // This is a simplified example; a real static library might involve many .o files.
-      // Assumes 'ar' is in PATH.
-      Result := ExecuteCommand('ar', ['rcs', OutputFile, IncludeTrailingPathDelimiter(OutputDir) + TargetName + '.o']);
+      // Assuming 'ar' is in PATH for Unix-like systems
+      // This step combines the .o file into a .a archive.
+      // OutputFile will be the actual .a file path now.
+      OutputFile := IncludeTrailingPathDelimiter(OutputDir) + TargetName + TargetExt;
+      Result := ExecuteCommand('ar', ['rcs', OutputFile, OutputObjFile]);
       if not Result.Success then
         Result.ErrorMessage := 'Failed to create static archive (.a) using ar.';
     {$ENDIF}
     {$ENDIF}
     {$ENDIF}
+    {$IFDEF WINDOWS}
+            // On Windows, if you want a .a, you typically use a MinGW-compatible ar.exe
+        // If targeting MSVC, you usually use a .lib.
+        // This section is left for you to implement if you need a specific Windows static archive tool.
+        // For now, it just produces the .obj file.
+
+      case StaticLibFormat of
+        slfMSVC:
+        begin
+          // For MSVC, use 'lib.exe' (part of Visual Studio's Build Tools)
+          // You need to ensure 'lib.exe' is in the system's PATH, or provide its full path.
+          if FileExists(OutputObjFile) then
+          begin
+            LinkerArgs := ['/OUT:' + FinalLibFile, OutputObjFile];
+            Result := ExecuteCommand('lib.exe', LinkerArgs); // Assuming lib.exe is in PATH
+            if not Result.Success then
+              Result.ErrorMessage := 'Failed to create static library (.lib) using lib.exe.';
+          end
+          else
+          begin
+            Result.Success := False;
+            Result.ErrorMessage := 'FPC did not produce the expected object file for MSVC: ' + OutputObjFile;
+          end;
+        end;
+        slfMinGW, slfAuto:
+        begin
+          // For MinGW, use 'ar.exe' (part of MinGW/MSYS2 distribution)
+          // You need to ensure 'ar.exe' is in the system's PATH, or provide its full path.
+          if FileExists(OutputObjFile) then
+          begin
+            LinkerArgs := ['rcs', FinalLibFile, OutputObjFile];
+            Result := ExecuteCommand('ar.exe', LinkerArgs); // Assuming ar.exe is in PATH
+            if not Result.Success then
+              Result.ErrorMessage := 'Failed to create static archive (.a) using ar.exe.';
+          end
+          else
+          begin
+            Result.Success := False;
+            Result.ErrorMessage := 'FPC did not produce the expected object file for MinGW: ' + OutputObjFile;
+          end;
+        end;
+      end;
+      {$ENDIF}
   end;
 end;
 

@@ -224,11 +224,48 @@ begin
     {$ENDIF}
     {$ENDIF}
     {$IFDEF WINDOWS}
-      // On Windows, if you want a .a, you typically use a MinGW-compatible ar.exe
-      // If targeting MSVC, you usually use a .lib.
-      // This section is left for you to implement if you need a specific Windows static archive tool.
-      // For now, it just produces the .obj file.
-    {$ENDIF}
+            // On Windows, if you want a .a, you typically use a MinGW-compatible ar.exe
+            // If targeting MSVC, you usually use a .lib.
+            // This section is left for you to implement if you need a specific Windows static archive tool.
+            // For now, it just produces the .obj file.
+
+      case StaticLibFormat of
+        slfMSVC:
+        begin
+          // For MSVC, use 'lib.exe' (part of Visual Studio's Build Tools)
+          // You need to ensure 'lib.exe' is in the system's PATH, or provide its full path.
+          if FileExists(OutputObjFile) then
+          begin
+            LinkerArgs := ['/OUT:' + FinalLibFile, OutputObjFile];
+            Result := ExecuteCommand('lib.exe', LinkerArgs); // Assuming lib.exe is in PATH
+            if not Result.Success then
+              Result.ErrorMessage := 'Failed to create static library (.lib) using lib.exe.';
+          end
+          else
+          begin
+            Result.Success := False;
+            Result.ErrorMessage := 'FPC did not produce the expected object file for MSVC: ' + OutputObjFile;
+          end;
+        end;
+        slfMinGW, slfAuto:
+        begin
+          // For MinGW, use 'ar.exe' (part of MinGW/MSYS2 distribution)
+          // You need to ensure 'ar.exe' is in the system's PATH, or provide its full path.
+          if FileExists(OutputObjFile) then
+          begin
+            LinkerArgs := ['rcs', FinalLibFile, OutputObjFile];
+            Result := ExecuteCommand('ar.exe', LinkerArgs); // Assuming ar.exe is in PATH
+            if not Result.Success then
+              Result.ErrorMessage := 'Failed to create static archive (.a) using ar.exe.';
+          end
+          else
+          begin
+            Result.Success := False;
+            Result.ErrorMessage := 'FPC did not produce the expected object file for MinGW: ' + OutputObjFile;
+          end;
+        end;
+      end;
+      {$ENDIF}
   end;
 end;
 

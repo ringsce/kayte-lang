@@ -159,6 +159,11 @@
         <Filename Value="../source/kayte_vm.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/buildkayte.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="BuildKayte"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -1,7 +1,8 @@
 program KayteIDE;
 
 uses
-  Forms, Interfaces, Main in 'Main.pas' {MainForm};
+  Forms, Interfaces, Main in 'Main.pas', {MainForm}
+  SynVBHighlighter in '../source/SynVBHighlighter.pas';
 
 begin
   Application.Initialize;

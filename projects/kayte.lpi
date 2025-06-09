@@ -164,6 +164,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="BuildKayte"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/kaytesyntax.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KayteSyntax"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

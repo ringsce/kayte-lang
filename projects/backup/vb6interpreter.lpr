@@ -3,9 +3,9 @@ program vb6interpreter;
 {$mode objfpc}{$H+}
 
 uses
-  SysUtils, Classes, StrUtils, Contnrs // <- Contnrs gives you TStack,
+  SysUtils, Classes, StrUtils, Contnrs, // <- Contnrs gives you TStack,
   InterpreterUtils, InterpreterCore,
-  dhtml, fgl, VBCompiler; //, SynVBHighlighter;
+  dhtml, fgl, VBCompiler, SynVBHighlighter;
 
 type
   TSubroutineMap = specialize TFPGMap<String, Integer>;
