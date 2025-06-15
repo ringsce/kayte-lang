@@ -3,9 +3,9 @@ unit dhtml;
 
 interface
 uses
-  Classes, SysUtils, contnrs,
+  Classes, SysUtils, contnrs;
   // NEW: Add a unit for your QuickJS/Duktape bindings
-  JSBindings; // This would be the unit you create in step 2
+  //JSBindings; // This would be the unit you create in step 2
 
 type
   // Forward declarations (details depend on engine API)

@@ -1,163 +1,248 @@
-unit interpreterutils;
-
-{$mode objfpc}{$H+}
+unit InterpreterUtils;
 
 interface
 
 uses
-  Classes, SysUtils,
-  Contnrs; // <--- Add Contnrs here
+  Classes, Contnrs, SysUtils; // Added SysUtils for TFileStream and file operations,
+                             // and for Pos, Length, Copy functions used in SplitString.
 
 type
-  // Define a record or a small class to hold the line number,
-  // making the TStringList.AddObject usage safer.
+  TStringArray = array of String; // Common definition for string arrays
+
   PLineNumberData = ^TLineNumberData;
   TLineNumberData = record
     Line: Integer;
   end;
 
-  TSubroutineMap = class(TStringList)
-  public
-    // Add method now uses the safe way to store line numbers
-    procedure Add(SubName: String; LineNumber: Integer);
-    // You might want a function to retrieve the line number safely too
-    function GetLineNumber(SubName: String): Integer;
-  end;
-
-// Global variables that will be managed by the interpreter.
-// Declaring them here makes them accessible throughout the unit and to the main program.
-// Using 'var' in the interface section declares global variables.
 var
-  Code: TStringList;
-  Vars: TStringList;      // This was declared in the main program, but seems like a global interpreter state
-  Labels: TStringList;
-  Subs: TSubroutineMap;   // Changed to TSubroutineMap type
-  Stack: TObjectList;     // Assuming TStack is TObjectList or similar (need its definition if custom)
-  Variables: TStringList; // From InitInterpreter
+  i: Integer;
+  Vars: TStringList;        // Stores variable names and their PVariable pointers
+  Code: TStringList;        // Stores the lines of code from the script
+  Labels: TStringList;      // Stores labels and their PLineNumberData
+  Subs: TStringList;        // Stores subroutine names and their PLineNumberData
+  Stack: TObjectList;       // Stores return addresses for CALL/ENDSUB (PInteger)
+  FormLocations: TStringList; // Stores form names and their start line (like Labels/Subs)
 
-// Procedures that need to be called from the main program
-procedure InitInterpreter;
-procedure FreeInterpreter;
-procedure LoadCode; // Declared in interface so main program can call it
-procedure BuildLabels(Code: TStringList; var Labels: TStringList);
-procedure BuildSubs(Code: TStringList; var Subs: TSubroutineMap);
+// --- Procedures for parsing/building script metadata ---
+procedure BuildLabels;
+procedure BuildSubs;
+procedure BuildForms; // New procedure to find form definitions
+
+// --- Procedure to load code from a file ---
+procedure LoadCodeFromFile(const FileName: String);
+
+// --- Declaration for SplitString function ---
+function SplitString(const S, Delimiters: String): TStringArray;
 
 implementation
 
-{ TSubroutineMap }
-
-procedure TSubroutineMap.Add(SubName: String; LineNumber: Integer);
+// --- Implementation of SplitString function ---
+function SplitString(const S, Delimiters: String): TStringArray;
 var
-  Data: PLineNumberData;
+  CurrentPos, LastPos: Integer;
+  LenS: Integer;
+  TempList: TStringList;
+  // --- MOVED THESE DECLARATIONS TO THE TOP OF THE FUNCTION ---
+  FoundDelimiter: Boolean;
+  DelimiterPos: Integer;
+  P: Integer; // For Pos function result
+  i: Integer; // For the loop variable
 begin
-  New(Data); // Allocate memory for the record
-  Data^.Line := LineNumber;
-  Self.AddObject(SubName, TObject(Data)); // Store the pointer to the record
-end;
+  Result := nil; // Initialize result to empty array
+  LenS := Length(S);
+  if LenS = 0 then
+    Exit; // Nothing to split
 
-function TSubroutineMap.GetLineNumber(SubName: String): Integer;
-var
-  Index: Integer;
-  Data: PLineNumberData;
-begin
-  Index := Self.IndexOf(SubName);
-  if Index <> -1 then
-  begin
-    Data := PLineNumberData(Self.Objects[Index]);
-    Result := Data^.Line;
-  end
-  else
-  begin
-    Result := -1; // Or raise an error, or some other indicator of not found
+  TempList := TStringList.Create;
+  try
+    LastPos := 1;
+    CurrentPos := 1;
+
+    while CurrentPos <= LenS do
+    begin
+      // Find the next occurrence of any delimiter
+      FoundDelimiter := False; // Now just assignment, not declaration
+      DelimiterPos := MaxInt; // Initialize with a large value
+
+      for i := 1 to Length(Delimiters) do // Now just assignment, not declaration
+      begin
+        P := Pos(Delimiters[i], S, CurrentPos); // Now just assignment, not declaration
+        if (P > 0) and (P < DelimiterPos) then
+        begin
+          DelimiterPos := P;
+          FoundDelimiter := True;
+        end;
+      end;
+
+      if FoundDelimiter then
+      begin
+        TempList.Add(Trim(Copy(S, LastPos, DelimiterPos - LastPos)));
+        CurrentPos := DelimiterPos + 1; // Move past the delimiter
+        LastPos := CurrentPos;
+      end
+      else
+      begin // No more delimiters found
+        TempList.Add(Trim(Copy(S, LastPos, LenS - LastPos + 1)));
+        CurrentPos := LenS + 1; // Exit loop
+      end;
+    end;
+
+    SetLength(Result, TempList.Count);
+    for CurrentPos := 0 to TempList.Count - 1 do
+      Result[CurrentPos] := TempList[CurrentPos];
+  finally
+    TempList.Free;
   end;
 end;
 
 
-procedure BuildLabels(Code: TStringList; var Labels: TStringList);
+procedure BuildLabels;
 var
   i: Integer;
-  line, labelName: String;
+  trimmedLine: String;
+  parts: TStringArray;
+  labelName: String;
+  LineData: PLineNumberData;
 begin
-  Labels.Clear;
+  Labels.Clear; // Clear existing labels
+
   for i := 0 to Code.Count - 1 do
   begin
-    line := Trim(Code[i]);
-    if (line <> '') and (line[Length(line)] = ':') then
+    trimmedLine := Trim(Code[i]);
+    // Check if the line ends with a colon, indicating a label
+    if (Length(trimmedLine) > 0) and (trimmedLine[Length(trimmedLine)] = ':') then
     begin
-      labelName := Copy(line, 1, Length(line) - 1);
-      Labels.AddObject(labelName, TObject(PtrInt(i))); // Might warn on some platforms
+      labelName := Copy(trimmedLine, 1, Length(trimmedLine) - 1); // Remove the colon
+      labelName := LowerCase(Trim(labelName));
+
+      if Labels.IndexOf(labelName) = -1 then // Only add if it's a new label
+      begin
+        New(LineData);
+        LineData^.Line := i; // Store the 0-based line index
+        Labels.AddObject(labelName, TObject(LineData));
+      end
+      else
+      begin
+        Writeln('Warning: Duplicate label found: ', labelName, ' at line ', i + 1);
+      end;
     end;
   end;
 end;
 
-procedure BuildSubs(Code: TStringList; var Subs: TSubroutineMap);
+procedure BuildSubs;
 var
   i: Integer;
-  line, subName: String;
+  trimmedLine: String;
+  parts: TStringArray;
+  subName: String;
+  LineData: PLineNumberData;
 begin
-  Subs.Clear;
+  Subs.Clear; // Clear existing subroutines
+
   for i := 0 to Code.Count - 1 do
   begin
-    line := Trim(Code[i]);
-    if SameText(Copy(line, 1, 3), 'Sub') then
+    trimmedLine := LowerCase(Trim(Code[i]));
+    parts := SplitString(trimmedLine, ' '); // Now SplitString is defined here!
+
+    if (Length(parts) >= 2) and (parts[0] = 'sub') then
     begin
-      subName := Trim(Copy(line, 4, Length(line)));
-      Subs.Add(subName, i);
+      subName := parts[1];
+      if Pos(':', subName) > 0 then // Remove trailing colon if present (e.g., "MySub:")
+        subName := Copy(subName, 1, Length(subName) - 1);
+      subName := Trim(subName); // Trim again just in case
+
+      if Subs.IndexOf(subName) = -1 then // Only add if it's a new subroutine
+      begin
+        New(LineData);
+        LineData^.Line := i; // Store the 0-based line index of the 'Sub' declaration
+        Subs.AddObject(subName, TObject(LineData));
+      end
+      else
+      begin
+        Writeln('Warning: Duplicate subroutine found: ', subName, ' at line ', i + 1);
+      end;
     end;
   end;
 end;
 
-{ LoadCode, InitInterpreter, FreeInterpreter - now in interface section }
-
-procedure LoadCode;
+procedure BuildForms;
+var
+  i: Integer;
+  trimmedLine: String;
+  parts: TStringArray;
+  formName: String;
+  LineData: PLineNumberData;
 begin
-  Code.Text :=
-    'Dim x As Integer' + LineEnding +
-    'Let x = 5' + LineEnding +
-    'Print x' + LineEnding +
-    '10:' + LineEnding +
-    'Let x = 10' + LineEnding +
-    'If x = 10 Then Goto 20' + LineEnding +
-    'Print x' + LineEnding +
-    'Goto 30' + LineEnding +
-    '20:' + LineEnding +
-    'Print x' + LineEnding +
-    '30:' + LineEnding +
-    'Print x' + LineEnding +
-    'Sub MySub:' + LineEnding + // Added a sample subroutine for BuildSubs to find
-    '  Print "Inside MySub"' + LineEnding +
-    'End Sub';
+  FormLocations.Clear;
+
+  for i := 0 to Code.Count - 1 do
+  begin
+    trimmedLine := LowerCase(Trim(Code[i]));
+    parts := SplitString(trimmedLine, ' '); // Now SplitString is defined here!
+
+    if (Length(parts) >= 2) and (parts[0] = 'form') then
+    begin
+      formName := parts[1];
+      formName := Trim(formName);
+
+      if FormLocations.IndexOf(formName) = -1 then
+      begin
+        New(LineData);
+        LineData^.Line := i; // Store the 0-based line index of the 'Form' declaration
+        FormLocations.AddObject(formName, TObject(LineData));
+      end
+      else
+      begin
+        Writeln('Warning: Duplicate form found: ', formName, ' at line ', i + 1);
+      end;
+    end;
+  end;
 end;
 
-procedure InitInterpreter;
+procedure LoadCodeFromFile(const FileName: String);
 begin
-  // Initialize all global lists and maps
-  Code := TStringList.Create;
+  if not FileExists(FileName) then
+  begin
+    raise Exception.CreateFmt('Error: File "%s" not found.', [FileName]);
+  end;
+
+  Code.Clear; // Clear any previously loaded code
+  Code.LoadFromFile(FileName); // Load all lines from the specified file
+
+  // After loading, rebuild labels and subroutines
+  BuildLabels;
+  BuildSubs;
+  BuildForms; // Also build form locations
+end;
+
+initialization
   Vars := TStringList.Create;
-  Vars.Sorted := False; // Ensure it's not sorted if you intend to use IndexOf
+  Code := TStringList.Create;
   Labels := TStringList.Create;
-  Labels.Sorted := False; // Ensure it's not sorted
-  Subs := TSubroutineMap.Create;
-  Stack := TObjectList.Create; // Correct: TObjectList is now recognized
-  Variables := TStringList.Create;
-end;
+  Subs := TStringList.Create;
+  Stack := TObjectList.Create;
+  Stack.OwnsObjects := True; // Make TObjectList responsible for freeing objects it contains
+  FormLocations := TStringList.Create; // Initialize FormLocations
+finalization
+  begin
+    // Free any dynamically allocated LineNumberData objects in Labels and Subs
+    for i := 0 to Labels.Count - 1 do
+      Dispose(PLineNumberData(Labels.Objects[i]));
+    Labels.Clear;
 
-procedure FreeInterpreter;
-var
-  i: Integer;
-begin
-  // Free TLineNumberData records stored in Labels and Subs
-  for i := 0 to Labels.Count - 1 do
-    Dispose(PLineNumberData(Labels.Objects[i]));
-  for i := 0 to Subs.Count - 1 do
-    Dispose(PLineNumberData(Subs.Objects[i]));
+    for i := 0 to Subs.Count - 1 do
+      Dispose(PLineNumberData(Subs.Objects[i]));
+    Subs.Clear;
 
-  // Free the TStringList/TObjectList instances themselves
-  Stack.Free;
-  Code.Free;
-  Labels.Free;
-  Subs.Free;
-  Variables.Free;
-end;
+    for i := 0 to FormLocations.Count - 1 do // Free for FormLocations as well
+      Dispose(PLineNumberData(FormLocations.Objects[i]));
+    FormLocations.Clear;
 
+    FreeAndNil(Vars);
+    FreeAndNil(Code);
+    FreeAndNil(Labels);
+    FreeAndNil(Subs);
+    FreeAndNil(Stack);
+    FreeAndNil(FormLocations); // Free the TStringList itself
+  end;
 end.

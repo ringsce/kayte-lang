@@ -23,6 +23,11 @@
     <RunParams>
       <FormatVersion Value="2"/>
     </RunParams>
+    <RequiredPackages>
+      <Item>
+        <PackageName Value="LCL"/>
+      </Item>
+    </RequiredPackages>
     <Units>
       <Unit>
         <Filename Value="vb6interpreter.lpr"/>
@@ -31,6 +36,7 @@
       <Unit>
         <Filename Value="../source/interpreterutils.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="InterpreterUtils"/>
       </Unit>
       <Unit>
         <Filename Value="../source/interpretercore.pas"/>
@@ -46,6 +52,27 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="VBCompiler"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/synvbhighlighter.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SynVBHighlighter"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/jsbindings.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="JSBindings"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/wincominterop.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="WinComInterop"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/frm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -58,6 +85,11 @@
       <OtherUnitFiles Value="../source"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
+    <Linking>
+      <Debugging>
+        <DebugInfoType Value="dsDwarf3"/>
+      </Debugging>
+    </Linking>
   </CompilerOptions>
   <Debugging>
     <Exceptions>

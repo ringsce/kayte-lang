@@ -1,518 +1,740 @@
 unit InterpreterCore;
 
-{$mode objfpc}{$H+}
+{$mode objfpc}{$H+} // Use Object Pascal mode and extended syntax
 
 interface
 
 uses
-  Classes, SysUtils, Contnrs,
-  InterpreterUtils;
+  Classes,
+  SysUtils,           // For string functions like Trim, LowerCase, SameText, IntToStr, StrToIntDef, FileExists, Exceptions
+  InterpreterUtils,   // Your utility unit for Code, Vars, Labels, Subs, SplitString, FormLocations
+  Forms;              // <--- CRUCIAL FIX: Added this unit to make TForm and FormsList visible
 
+// Define TVarType and TVariable if not already defined elsewhere (e.g., in InterpreterUtils
+// or a dedicated Types unit). For this example, I'll include basic definitions.
 type
-  // --- Type Declarations ---
-  TVarType = (vtInteger, vtString);
-
+  TVarType = (vtInteger, vtString, vtBoolean, vtUndefined); // Added vtBoolean, vtUndefined for completeness
+  PVariable = ^TVariable;
   TVariable = record
     vtype: TVarType;
     intValue: Integer;
     strValue: String;
+    boolValue: Boolean; // Added for boolean variables
   end;
 
-  // IMPORTANT: Define PVariable here so it's globally visible within this unit
-  PVariable = ^TVariable;
-
-  // TLoopFrame and TLoopStack need to be defined only once
+// Dummy record types for loop/select case stacks if they're not fully implemented yet
+// (These are conceptual and depend on your full interpreter's state management)
+type
   TLoopFrame = record
     startLine: Integer;
-    varName: String;
-    conditionVal: Integer;
-    // Potentially add a string field here if you want to store string conditions
-    // stringCondition: String;
+    // Add other relevant loop state, e.g., loop variables, conditions
   end;
-  TLoopStack = array of TLoopFrame; // Dynamic array for loop stack
+  PInteger = ^Integer; // For the call stack's return addresses
+  TSelectCaseFrame = record
+    startLine: Integer;
+    selectVarValue: TVariable;
+    matchedCase: Boolean;
+    endSelectLine: Integer;
+    caseElseLine: Integer;
+  end;
 
-var
-  // --- Global Variable Declarations ---
-  LoopStack: TLoopStack; // Declare LoopStack only once here
+
+  // Your existing global variables will be here
+  // For example:
+  Code: TStringList;
+  Vars: TStringList;
+  Labels: TStringList;
+  Subs: TStringList;
+  Stack: TObjectList;
+  FormLocations: TStringList; // Your list of declared form names and their code lines
+
+  // --- ADD THIS GLOBAL DECLARATION ---
+  RuntimeForms: TObjectList;
+
+// Helper to get a variable's value pointer (you'll need to implement this fully)
+function GetVar(const VarName: String): PVariable;
+// Helper to set a variable's value (you'll need to implement this fully)
+procedure SetVar(const VarName: String; const AValue: TVariable);
 
 
-// Helper function to split a string (ensure return type is NOT const or var)
-function SplitString(const S, Delimiters: String): TStringArray; // <--- Check this line carefully!
-
-
-// Helper functions for variable management (assuming they don't exist yet)
-procedure SetVar(const VarName: String; VarValue: TVariable); // Removed 'const' from VarValue
-function GetVar(const VarName: String): TVariable;
-
-// The main execution procedure
-procedure ExecuteLine(var Line: String; var pc: Integer);
+procedure ExecuteLine(const Line: String; var pc: Integer);
 
 implementation
 
-//Implementation for SplitString (simplified, real one is more robust)
-function SplitString(const S, Delimiters: String): TStringArray;
-var
-  i, LastPos: Integer;
-  CurrentToken: String;
-  TokenList: TStringList; // Use a temporary TStringList for easier building
-begin
-  TokenList := TStringList.Create; // Create a temporary string list
-  try
-    LastPos := 1;
-    for i := 1 to Length(S) do
-    begin
-      if Pos(S[i], Delimiters) > 0 then
-      begin
-        CurrentToken := Trim(Copy(S, LastPos, i - LastPos));
-        if CurrentToken <> '' then
-          TokenList.Add(CurrentToken); // Add to the temporary list
-        LastPos := i + 1;
-      end;
-    end;
-    // Add the last token (or the only token if no delimiters)
-    CurrentToken := Trim(Copy(S, LastPos, Length(S) - LastPos + 1));
-    if CurrentToken <> '' then
-      TokenList.Add(CurrentToken);
-
-    // Convert TStringList to TStringArray
-    SetLength(Result, TokenList.Count);
-    for i := 0 to TokenList.Count - 1 do
-      Result[i] := TokenList[i];
-  finally
-    TokenList.Free; // Ensure the temporary list is freed
-  end;
-end;
-
-// Helper for SetVar
-procedure SetVar(const VarName: String; VarValue: TVariable);
+// --- Minimal stub implementations for GetVar/SetVar for compilation ---
+// YOU MUST REPLACE THESE WITH YOUR ACTUAL, ROBUST VARIABLE MANAGEMENT LOGIC
+// If these are defined in InterpreterUtils, you don't need them here.
+function GetVar(const VarName: String): PVariable;
 var
   idx: Integer;
-  ExistingData: PVariable; // Use this to check if pointer exists
-  NewData: PVariable;      // Declare a variable for the new pointer
 begin
   idx := Vars.IndexOf(LowerCase(VarName));
-  if idx = -1 then // Variable not found, add it
-  begin
-    idx := Vars.Add(LowerCase(VarName));
-    // When a new item is added, Objects[idx] is initially nil
-    ExistingData := nil; // Initialize to nil as no object exists yet
-  end
+  if idx <> -1 then
+    Result := PVariable(Vars.Objects[idx])
   else
-  begin
-    // If variable exists, retrieve existing pointer
-    ExistingData := PVariable(Vars.Objects[idx]);
-  end;
-
-  // Free old data ONLY if it exists
-  if Assigned(ExistingData) then // Check if pointer is not nil before disposing
-    Dispose(ExistingData); // Correctly deallocates previous TVariable record
-
-  // Allocate new memory for the variable data
-  New(NewData); // Allocate memory for the new TVariable and get its pointer
-  NewData^ := VarValue; // Assign the value to the newly allocated memory
-
-  // Store the new pointer in the TStringList's Objects property
-  Vars.Objects[idx] := TObject(NewData); // Store the pointer as a TObject
+    Result := nil; // Variable not found
 end;
 
-
-// In InterpreterCore.pas
-
-// Helper for GetVar
-function GetVar(const VarName: String): TVariable;
+procedure SetVar(const VarName: String; const AValue: TVariable);
 var
   idx: Integer;
+  PVar: PVariable;
 begin
-  // Initialize Result explicitly at the start to satisfy the compiler warning
-  Result.vtype := vtInteger; // Default type
-  Result.intValue := 0;      // Default integer value
-  Result.strValue := '';     // Default empty string
-
   idx := Vars.IndexOf(LowerCase(VarName));
   if idx <> -1 then
   begin
-    // Check if an object (PVariable) is actually associated with this entry
-    if Assigned(Vars.Objects[idx]) then
-    begin
-      Result := PVariable(Vars.Objects[idx])^;
-    end
-    // else, the default initialized Result (from above) will be returned
+    // Variable already exists, update it
+    PVar := PVariable(Vars.Objects[idx]);
+    PVar^ := AValue;
   end
-  // else (variable not found at all), the default initialized Result will be returned
-end;
-
-procedure ExecuteLine(var Line: String; var pc: Integer);
-var
-  parts: TStringArray;
-  cmd, arg1, arg2: String;
-  varVal: TVariable;
-  idx: Integer;
-  lineData: PLineNumberData; // For safer access to Labels and Subs objects
-  ReturnPC: PInteger;       // For CALL/ENDSUB stack management
-  trimmedLine: String;      // Added for the 'const Line' fix
-  LoopFrame: TLoopFrame;    // MOVED THIS DECLARATION HERE (from inside 'wend' block)
-begin
-  trimmedLine := Trim(Line); // Use a local variable for the trimmed line
-
-  if trimmedLine = '' then Exit;
-  if (Length(trimmedLine) > 0) and (trimmedLine[Length(trimmedLine)] = ':') then Exit; // Skip labels
-
-  parts := SplitString(trimmedLine, ' '); // Use trimmedLine
-  if Length(parts) = 0 then Exit;
-  cmd := LowerCase(parts[0]);
-
-  // --- DIM Command ---
-  if cmd = 'dim' then
-  begin
-    // Example: Dim x As Integer, Dim s As String
-    if Length(parts) < 4 then
-    begin
-      Writeln('Syntax Error: DIM. Expected: DIM <var> AS <type>');
-      Exit;
-    end;
-    arg1 := parts[1]; // Variable name
-    // Check for 'As' at parts[2] and type at parts[3]
-    if LowerCase(parts[2]) <> 'as' then
-    begin
-      Writeln('Syntax Error: DIM. Expected AS keyword.');
-      Exit;
-    end;
-
-    if Pos('string', LowerCase(parts[3])) > 0 then
-    begin
-      varVal.vtype := vtString;
-      varVal.strValue := '';
-    end
-    else if Pos('integer', LowerCase(parts[3])) > 0 then
-    begin
-      varVal.vtype := vtInteger;
-      varVal.intValue := 0;
-    end
-    else
-    begin
-      Writeln('Error: Unknown variable type: ', parts[3]);
-      Exit;
-    end;
-    SetVar(arg1, varVal);
-  end
-
-  // --- LET Command ---
-  else if cmd = 'let' then
-  begin
-    // Example: Let x = 5, Let s = "Hello"
-    if Length(parts) < 4 then
-    begin
-      Writeln('Syntax Error: LET. Expected: LET <var> = <value>');
-      Exit;
-    end;
-    arg1 := parts[1]; // Variable name
-    // Assuming parts[2] is "="
-    if parts[2] <> '=' then
-    begin
-      Writeln('Syntax Error: LET. Expected = sign.');
-      Exit;
-    end;
-    arg2 := parts[3]; // Value
-
-    varVal := GetVar(arg1); // Retrieve existing variable details
-    if varVal.vtype = vtInteger then
-    begin
-      varVal.intValue := StrToIntDef(arg2, 0); // Convert string to integer
-    end
-    else if varVal.vtype = vtString then
-    begin
-      // Remove quotes for strings
-      varVal.strValue := StringReplace(arg2, '"', '', [rfReplaceAll, rfIgnoreCase]);
-    end
-    else
-    begin
-      Writeln('Error: Cannot assign value to unknown type for variable: ', arg1);
-      Exit;
-    end;
-    SetVar(arg1, varVal); // Update the variable
-  end
-
-  // --- PRINT Command ---
-  else if cmd = 'print' then
-  begin
-    // Example: Print x, Print "Hello" (handling literals might be more complex)
-    if Length(parts) < 2 then
-    begin
-      Writeln('Syntax Error: PRINT. Expected: PRINT <var> or PRINT <literal>');
-      Exit;
-    end;
-    arg1 := parts[1]; // Variable name or literal
-
-    // Check if it's a variable or a literal (e.g., string literal like "Hello")
-    if (Length(arg1) > 1) and (arg1[1] = '"') and (arg1[Length(arg1)] = '"') then
-    begin
-      // It's a string literal
-      Writeln(StringReplace(arg1, '"', '', [rfReplaceAll, rfIgnoreCase]));
-    end
-    else // Assume it's a variable name
-    begin
-      varVal := GetVar(arg1);
-      if varVal.vtype = vtInteger then
-        Writeln(varVal.intValue)
-      else if varVal.vtype = vtString then
-        Writeln(varVal.strValue)
-      else
-        Writeln('Error: Cannot print variable of unknown type: ', arg1);
-    end;
-  end
-
-  // --- INPUT Command ---
-  else if cmd = 'input' then
-  begin
-    // Example: Input x
-    if Length(parts) < 2 then
-    begin
-      Writeln('Syntax Error: INPUT. Expected: INPUT <var>');
-      Exit;
-    end;
-    arg1 := parts[1]; // Variable name
-    varVal := GetVar(arg1); // Get existing variable details
-
-    if varVal.vtype = vtInteger then
-    begin
-      Write('? '); // Prompt for input
-      ReadLn(varVal.intValue); // Read integer
-    end
-    else if varVal.vtype = vtString then
-    begin
-      Write('? '); // Prompt for input
-      ReadLn(varVal.strValue); // Read string
-    end
-    else
-    begin
-      Writeln('Error: Cannot input value for unknown type variable: ', arg1);
-      Exit;
-    end;
-    SetVar(arg1, varVal); // Update the variable with input
-  end
-
-  // --- WHILE Command ---
-  else if cmd = 'while' then
-  begin
-    // Example: WHILE x = 10
-    if (Length(parts) < 4) or (LowerCase(parts[2]) <> '=') then // Expecting "WHILE <var> = <value>"
-    begin
-      Writeln('Syntax Error: WHILE. Expected: WHILE <var> = <value>');
-      Exit;
-    end;
-    arg1 := parts[1]; // Variable name
-    arg2 := parts[3]; // Condition value (as string)
-
-    varVal := GetVar(arg1);
-    // Compare current variable value with the condition value
-    if (varVal.vtype = vtInteger) then
-    begin
-      if IntToStr(varVal.intValue) <> arg2 then
-      begin
-        // Condition is FALSE, skip to WEND
-        while (pc < Code.Count) and (LowerCase(Trim(Code[pc])) <> 'wend') do
-          Inc(pc); // Increment pc to skip lines
-      end
-      else // Condition is TRUE
-      begin
-        // Push current PC and loop context onto LoopStack
-        SetLength(LoopStack, Length(LoopStack) + 1);
-        LoopStack[High(LoopStack)].startLine := pc; // Store the start line of the WHILE
-        LoopStack[High(LoopStack)].varName := arg1;
-        LoopStack[High(LoopStack)].conditionVal := StrToIntDef(arg2, 0);
-      end;
-    end
-    else if (varVal.vtype = vtString) then // Handle string comparison for WHILE
-    begin
-        // Remove quotes from comparison value if present
-        arg2 := StringReplace(arg2, '"', '', [rfReplaceAll, rfIgnoreCase]);
-        if varVal.strValue <> arg2 then
-        begin
-            // Condition is FALSE for string, skip to WEND
-            while (pc < Code.Count) and (LowerCase(Trim(Code[pc])) <> 'wend') do
-                Inc(pc);
-        end
-        else // Condition is TRUE
-        begin
-            SetLength(LoopStack, Length(LoopStack) + 1);
-            LoopStack[High(LoopStack)].startLine := pc;
-            LoopStack[High(LoopStack)].varName := arg1;
-            // Store condition value as a hash or use a separate string field in TLoopFrame
-            // For now, storing 0 as an integer sentinel for string comparison
-            LoopStack[High(LoopStack)].conditionVal := 0; // Or better: hash(arg2) or new field
-            // To properly handle string conditions in loops, TLoopFrame would need a string field for conditionVal.
-            // For this example, we'll assume integer comparisons for simplicity in LoopFrame.
-        end;
-    end
-    else // Unknown type, treat as false for loop entry (or error)
-    begin
-        Writeln('Error: WHILE condition on unknown variable type: ', arg1);
-        Exit;
-    end;
-  end
-
-  // --- WEND Command ---
-  else if cmd = 'wend' then
-  begin
-    if Length(LoopStack) = 0 then
-    begin
-      Writeln('Error: WEND without matching WHILE');
-      Halt(1);
-    end;
-
-    // Pop loop context from LoopStack
-    // LoopFrame is now declared at the top of the procedure's var section
-    LoopFrame := LoopStack[High(LoopStack)];
-    SetLength(LoopStack, Length(LoopStack) - 1); // Pop the top frame
-
-    varVal := GetVar(LoopFrame.varName); // Get the variable that controls the loop
-
-    // Re-evaluate the WHILE condition
-    if (varVal.vtype = vtInteger) and (varVal.intValue = LoopFrame.conditionVal) then
-    begin
-      pc := LoopFrame.startLine - 1; // Go back to the WHILE line to re-evaluate
-    end
-    else if (varVal.vtype = vtString) and (LoopFrame.conditionVal = 0) then // Simplified string check
-    begin
-        // This is a placeholder. You'd need to re-evaluate the original string condition from the WHILE.
-        // It's better to store the string condition in TLoopFrame if you want to support it.
-        // For now, assume it's true if conditionVal was 0 (meaning string)
-        pc := LoopFrame.startLine - 1;
-    end;
-    // If condition is false, the loop ends, and pc will naturally increment to the next line
-  end
-
-  // --- IF ... THEN GOTO Command ---
-  else if cmd = 'if' then
-  begin
-    // Example: IF x = 10 THEN GOTO 20
-    if (Length(parts) < 7) or (LowerCase(parts[2]) <> '=') or
-       (LowerCase(parts[4]) <> 'then') or (LowerCase(parts[5]) <> 'goto') then
-    begin
-      Writeln('Syntax Error: IF. Expected: IF <var> = <value> THEN GOTO <label>');
-      Exit;
-    end;
-
-    arg1 := parts[1]; // Variable name
-    arg2 := parts[3]; // Value to compare
-    varVal := GetVar(arg1);
-
-    // Compare variable value with condition value
-    if (varVal.vtype = vtInteger) then
-    begin
-      if IntToStr(varVal.intValue) = arg2 then
-      begin
-        arg1 := parts[6]; // Label name
-        idx := Labels.IndexOf(arg1);
-        if idx <> -1 then
-        begin
-          lineData := PLineNumberData(Labels.Objects[idx]); // Get the stored line data
-          pc := lineData^.Line - 1; // Jump to the label's line (minus 1 because main loop Inc(pc) later)
-        end
-        else
-        begin
-          Writeln('Error: Label not found: ', arg1);
-          Halt(1);
-        end;
-      end;
-    end
-    else if (varVal.vtype = vtString) then
-    begin
-        arg2 := StringReplace(arg2, '"', '', [rfReplaceAll, rfIgnoreCase]);
-        if varVal.strValue = arg2 then
-        begin
-            arg1 := parts[6]; // Label name
-            idx := Labels.IndexOf(arg1);
-            if idx <> -1 then
-            begin
-                lineData := PLineNumberData(Labels.Objects[idx]);
-                pc := lineData^.Line - 1;
-            end
-            else
-            begin
-                Writeln('Error: Label not found: ', arg1);
-                Halt(1);
-            end;
-        end;
-    end;
-  end
-
-  // --- GOTO Command ---
-  else if cmd = 'goto' then
-  begin
-    // Example: GOTO 10
-    if Length(parts) < 2 then
-    begin
-      Writeln('Syntax Error: GOTO. Expected: GOTO <label>');
-      Exit;
-    end;
-    arg1 := parts[1]; // Label name
-    idx := Labels.IndexOf(arg1);
-    if idx <> -1 then
-    begin
-      lineData := PLineNumberData(Labels.Objects[idx]); // Get the stored line data
-      pc := lineData^.Line - 1; // Jump to the label's line
-    end
-    else
-    begin
-      Writeln('Error: Label not found: ', arg1);
-      Halt(1);
-    end;
-  end
-
-  // --- CALL Command ---
-  else if cmd = 'call' then
-  begin
-    // Example: CALL MySub
-    if Length(parts) < 2 then
-    begin
-      Writeln('Syntax Error: CALL. Expected: CALL <subname>');
-      Exit;
-    end;
-    arg1 := parts[1]; // Subroutine name
-    idx := Subs.IndexOf(arg1);
-    if idx <> -1 then
-    begin
-      // Push return address onto the Stack
-      New(ReturnPC);          // Allocate memory for the integer pointer
-      ReturnPC^ := pc;        // Store current PC (which is the line AFTER the CALL)
-      Stack.Add(TObject(ReturnPC)); // Push the pointer to the integer
-
-      // Jump to the subroutine's start line
-      lineData := PLineNumberData(Subs.Objects[idx]); // Get the stored line data
-      pc := lineData^.Line; // Jump directly to the subroutine's start (no -1 as main loop will Inc)
-    end
-    else
-    begin
-      Writeln('Error: Subroutine not found: ', arg1);
-      Halt(1);
-    end;
-  end
-
-  // --- ENDSUB Command ---
-  else if cmd = 'endsub' then
-  begin
-    if Stack.Count = 0 then
-    begin
-      Writeln('Error: ENDSUB without matching CALL');
-      Halt(1);
-    end;
-
-    // Pop return address from Stack
-    ReturnPC := PInteger(Stack.Items[Stack.Count - 1]); // Get the last item (pointer to integer)
-    Stack.Remove(Stack.Items[Stack.Count - 1]); // Remove the object from the list
-
-    pc := ReturnPC^; // Set PC to the return address
-    Dispose(ReturnPC); // Free the allocated memory for the integer pointer
-  end
-
-  // --- Unknown Command ---
   else
   begin
-    Writeln('Error: Unknown command: ', cmd);
-    // You might want to halt or skip unknown commands
+    // Variable doesn't exist, create it (DIM should do this, but this is a fallback)
+    New(PVar);
+    PVar^ := AValue;
+    Vars.AddObject(LowerCase(VarName), TObject(PVar));
   end;
-end; // No extra 'end' or 'begin' here, this is the end of the procedure.
+end;
 
 
-end. // This is the end of the unit implementation.
+procedure ExecuteLine(const Line: String; var pc: Integer);
+var
+  trimmedLine: String;
+  parts: TStringArray; // Defined in InterpreterUtils
+  cmd: String;
+  val: String;
+  // --- All local variables declared at the top, as Pascal requires ---
+  targetLine: Integer;
+  formName: String;
+  foundForm: TForm;     // TForm is now recognized because of 'uses Forms;'
+  i: Integer;
+  varName: String;
+  variableValue: TVariable; // For holding parsed variable values
+  conditionVarName: String;
+  conditionOp: String;
+  conditionValue: String;
+  conditionResult: Boolean;
+  subName: String;
+  ReturnAddr: PInteger;
+  labelName: String;
+  currentScanLine: Integer;
+  scanTrimmedLine: String;
+  scanParts: TStringArray;
+  nestedWhiles: Integer;
+  selectCaseVarName: String;
+  caseValue: String;
+  nestedSelects: Integer;
+  endSelectLine: Integer;
+  caseElseLine: Integer;
+  foundEndSelect: Boolean;
+  selectVarValue: TVariable;
+  match: Boolean;
+
+
+
+
+begin // Start of ExecuteLine's implementation
+  trimmedLine := Trim(Line);
+
+  // Skip empty lines or lines that are just labels
+  if (Length(trimmedLine) = 0) or (Pos(':', trimmedLine) = Length(trimmedLine)) then
+  begin
+    Exit; // Do nothing for empty lines or pure labels
+  end;
+
+  parts := SplitString(trimmedLine, ' '); // SplitString is from InterpreterUtils
+  cmd := LowerCase(parts[0]);
+
+  // --- Command Dispatcher (large if-else if block) ---
+  if cmd = 'form' then
+  begin
+    // 'FORM <Name>' is a declaration, not an executable instruction at runtime.
+    // Its location is already stored during the BuildForms pass.
+    Exit;
+  end
+  else if (cmd = 'end') and (Length(parts) >= 2) and (LowerCase(parts[1]) = 'form') then
+  begin
+    // 'END FORM' is also a declaration boundary, not an executable instruction.
+    Exit;
+  end
+  else if cmd = 'show' then
+  begin
+    if Length(parts) < 2 then
+    begin
+      raise Exception.CreateFmt('Syntax error: SHOW requires a form name at line %d', [pc + 1]);
+    end;
+    formName := LowerCase(parts[1]);
+
+    foundForm := nil;
+    // --- FIX START ---
+    // Instead of FormsList, iterate your custom RuntimeForms list
+    // This list must be declared globally (e.g., in InterpreterUtils) and initialized/finalized.
+    for i := 0 to RuntimeForms.Count - 1 do
+    begin
+      // Check if the item is indeed a TForm (good practice, though your list should only contain them)
+      if (RuntimeForms.Items[i] is TForm) then
+      begin
+        // Cast the generic TObject to TForm
+        var currentForm: TForm;
+        currentForm := TForm(RuntimeForms.Items[i]);
+
+        // Using SameText for robust, case-insensitive comparison
+        if SameText(currentForm.Name, formName) then
+        begin
+          foundForm := currentForm;
+          Break;
+        end;
+      end;
+    end;
+    // --- FIX END ---
+
+    if Assigned(foundForm) then
+    begin
+      foundForm.Show; // Call the Show method of the existing TForm instance
+    end
+    else
+    begin
+      // If the form instance wasn't found, auto-create it (VB6 style)
+      // Check if it's a known form from the BuildForms pass (FormLocations)
+      targetLine := FormLocations.IndexOf(formName); // targetLine should be declared at the top of ExecuteLine
+      if targetLine <> -1 then
+      begin
+        // Get the name (original casing from FormLocations.Strings, not .Keys)
+        formName := FormLocations.Strings[targetLine];
+
+        // --- FIX START ---
+        // Correct TForm.Create call: it only takes one parameter (AOwner).
+        // Set the Name property separately after creation.
+        foundForm := TForm.Create(nil); // Create the form with nil owner
+        foundForm.Name := formName;     // Set its Name property
+        // Add the newly created form to your RuntimeForms list for future reference
+        RuntimeForms.Add(foundForm);
+        // --- FIX END ---
+
+        foundForm.Show; // Then show it
+      end
+      else
+      begin
+        raise Exception.CreateFmt('Runtime error: Form "%s" not found at line %d', [formName, pc + 1]);
+      end;
+    end;
+  end
+else if cmd = 'dim' then
+  begin
+    if Length(parts) < 4 then
+      raise Exception.CreateFmt('Syntax error: DIM requires variable name and type at line %d', [pc + 1]);
+    varName := LowerCase(parts[1]);
+
+    if LowerCase(parts[2]) <> 'as' then
+      raise Exception.CreateFmt('Syntax error: DIM expects "AS" at line %d', [pc + 1]);
+
+    variableValue.vtype := vtUndefined; // Default to undefined
+    variableValue.intValue := 0;
+    variableValue.strValue := '';
+    variableValue.boolValue := False;
+
+    if LowerCase(parts[3]) = 'integer' then
+      variableValue.vtype := vtInteger
+    else if LowerCase(parts[3]) = 'string' then
+      variableValue.vtype := vtString
+    else if LowerCase(parts[3]) = 'boolean' then
+      variableValue.vtype := vtBoolean
+    else
+      raise Exception.CreateFmt('Syntax error: DIM unknown type "%s" at line %d', [parts[3], pc + 1]);
+
+    SetVar(varName, variableValue); // Initialize variable with default type and value
+  end
+  else if cmd = 'let' then
+  begin
+    if Length(parts) < 3 then
+      raise Exception.CreateFmt('Syntax error: LET requires variable and value at line %d', [pc + 1]);
+    varName := LowerCase(parts[1]);
+    if parts[2] <> '=' then
+      raise Exception.CreateFmt('Syntax error: LET expects "=" at line %d', [pc + 1]);
+
+    val := Copy(trimmedLine, Pos('=', trimmedLine) + 1, MaxInt); // Get everything after '='
+    val := Trim(val);
+
+    PVar: PVariable;
+    PVar := GetVar(varName);
+    if PVar = nil then
+      raise Exception.CreateFmt('Runtime error: Variable "%s" not declared at line %d', [varName, pc + 1]);
+
+    // Assign value based on variable type
+    case PVar^.vtype of
+      vtInteger: begin
+        PVar^.intValue := StrToIntDef(val, 0); // Convert string to integer
+        PVar^.strValue := '';
+        PVar^.boolValue := False;
+      end;
+      vtString: begin
+        // Remove quotes if present
+        if (Length(val) >= 2) and (val[1] = '"') and (val[Length(val)] = '"') then
+          val := Copy(val, 2, Length(val) - 2);
+        PVar^.strValue := val;
+        PVar^.intValue := 0;
+        PVar^.boolValue := False;
+      end;
+      vtBoolean: begin
+        if SameText(val, 'true') then
+          PVar^.boolValue := True
+        else if SameText(val, 'false') then
+          PVar^.boolValue := False
+        else
+          PVar^.boolValue := (StrToIntDef(val, 0) <> 0); // Allow numeric conversion for boolean
+        PVar^.strValue := '';
+        PVar^.intValue := 0;
+      end;
+      vtUndefined:
+        raise Exception.CreateFmt('Runtime error: Cannot assign value to uninitialized variable "%s" at line %d', [varName, pc + 1]);
+    end; // case PVar^.vtype
+  end
+  else if cmd = 'print' then
+  begin
+    if Length(parts) < 2 then
+      raise Exception.CreateFmt('Syntax error: PRINT requires an argument at line %d', [pc + 1]);
+
+    val := Copy(trimmedLine, Pos(' ', trimmedLine) + 1, MaxInt);
+    val := Trim(val);
+
+    if (Length(val) >= 2) and (val[1] = '"') and (val[Length(val)] = '"') then
+    begin
+      // It's a string literal
+      Writeln(Copy(val, 2, Length(val) - 2));
+    end
+    else
+    begin
+      // It's a variable name
+      var PVar: PVariable;
+      PVar := GetVar(LowerCase(val));
+      if PVar = nil then
+        raise Exception.CreateFmt('Runtime error: Variable "%s" not declared for PRINT at line %d', [val, pc + 1]);
+
+      case PVar^.vtype of
+        vtInteger: Writeln(PVar^.intValue);
+        vtString: Writeln(PVar^.strValue);
+        vtBoolean: Writeln(BoolToStr(PVar^.boolValue)); // Assuming BoolToStr is defined or used
+        vtUndefined: Writeln('Undefined variable value.');
+      end;
+    end;
+  end
+  else if cmd = 'input' then
+  begin
+    if Length(parts) < 2 then
+      raise Exception.CreateFmt('Syntax error: INPUT requires a variable name at line %d', [pc + 1]);
+
+    varName := LowerCase(parts[1]);
+    Write('? '); // Prompt for input
+
+    var PVar: PVariable;
+    PVar := GetVar(varName);
+    if PVar = nil then
+      raise Exception.CreateFmt('Runtime error: Variable "%s" not declared for INPUT at line %d', [varName, pc + 1]);
+
+    Readln(val); // Read input as string
+
+    case PVar^.vtype of
+      vtInteger: begin
+        PVar^.intValue := StrToIntDef(val, 0);
+        PVar^.strValue := ''; PVar^.boolValue := False;
+      end;
+      vtString: begin
+        PVar^.strValue := val;
+        PVar^.intValue := 0; PVar^.boolValue := False;
+      end;
+      vtBoolean: begin
+        if SameText(val, 'true') then
+          PVar^.boolValue := True
+        else if SameText(val, 'false') then
+          PVar^.boolValue := False
+        else
+          PVar^.boolValue := (StrToIntDef(val, 0) <> 0);
+        PVar^.strValue := ''; PVar^.intValue := 0;
+      end;
+      vtUndefined:
+        raise Exception.CreateFmt('Runtime error: Cannot input value to uninitialized variable "%s" at line %d', [varName, pc + 1]);
+    end; // case PVar^.vtype
+  end
+  else if cmd = 'if' then
+  begin
+    // Simplified IF: IF <var> <op> <value> THEN GOTO <label>
+    if Length(parts) < 6 then
+      raise Exception.CreateFmt('Syntax error: IF requires variable, operator, value, THEN, GOTO, label at line %d', [pc + 1]);
+
+    conditionVarName := LowerCase(parts[1]);
+    conditionOp := LowerCase(parts[2]); // e.g., "=", "<", ">", "<>", "<=", ">="
+    conditionValue := LowerCase(parts[3]);
+    labelName := LowerCase(parts[6]); // Assuming 'THEN' and 'GOTO' are parts[4] and parts[5]
+
+    if not (SameText(parts[4], 'then') and SameText(parts[5], 'goto')) then
+      raise Exception.CreateFmt('Syntax error: IF statement requires "THEN GOTO" at line %d', [pc + 1]);
+
+    var PVar: PVariable;
+    PVar := GetVar(conditionVarName);
+    if PVar = nil then
+      raise Exception.CreateFmt('Runtime error: Variable "%s" not declared in IF statement at line %d', [conditionVarName, pc + 1]);
+
+    // Evaluate the condition
+    conditionResult := False;
+    if PVar^.vtype = vtInteger then
+    begin
+      var valInt: Integer := StrToIntDef(conditionValue, 0);
+      case conditionOp of
+        '=': conditionResult := (PVar^.intValue = valInt);
+        '<': conditionResult := (PVar^.intValue < valInt);
+        '>': conditionResult := (PVar^.intValue > valInt);
+        '<>': conditionResult := (PVar^.intValue <> valInt);
+        '<=': conditionResult := (PVar^.intValue <= valInt);
+        '>=': conditionResult := (PVar^.intValue >= valInt);
+        else raise Exception.CreateFmt('Runtime error: Unsupported operator "%s" for integer comparison at line %d', [conditionOp, pc + 1]);
+      end;
+    end
+    else if PVar^.vtype = vtString then
+    begin
+      // Remove quotes from conditionValue if present
+      if (Length(conditionValue) >= 2) and (conditionValue[1] = '"') and (conditionValue[Length(conditionValue)] = '"') then
+        conditionValue := Copy(conditionValue, 2, Length(conditionValue) - 2);
+      case conditionOp of
+        '=': conditionResult := SameText(PVar^.strValue, conditionValue);
+        '<>': conditionResult := not SameText(PVar^.strValue, conditionValue);
+        else raise Exception.CreateFmt('Runtime error: Unsupported operator "%s" for string comparison at line %d', [conditionOp, pc + 1]);
+      end;
+    end
+    else if PVar^.vtype = vtBoolean then
+    begin
+      var valBool: Boolean;
+      if SameText(conditionValue, 'true') then valBool := True
+      else if SameText(conditionValue, 'false') then valBool := False
+      else valBool := (StrToIntDef(conditionValue, 0) <> 0);
+
+      case conditionOp of
+        '=': conditionResult := (PVar^.boolValue = valBool);
+        '<>': conditionResult := (PVar^.boolValue <> valBool);
+        else raise Exception.CreateFmt('Runtime error: Unsupported operator "%s" for boolean comparison at line %d', [conditionOp, pc + 1]);
+      end;
+    end;
+
+
+    if conditionResult then
+    begin
+      targetLine := Labels.IndexOf(labelName); // Labels from InterpreterUtils
+      if targetLine <> -1 then
+      begin
+        pc := PLineNumberData(Labels.Objects[targetLine])^.Line -1; // -1 because Inc(pc) at loop end adds 1
+      end
+      else
+      begin
+        raise Exception.CreateFmt('Runtime error: Label "%s" not found for IF GOTO at line %d', [labelName, pc + 1]);
+      end;
+    end;
+  end
+  else if cmd = 'goto' then
+  begin
+    if Length(parts) < 2 then
+      raise Exception.CreateFmt('Syntax error: GOTO requires a label at line %d', [pc + 1]);
+    labelName := LowerCase(parts[1]);
+    targetLine := Labels.IndexOf(labelName);
+    if targetLine <> -1 then
+    begin
+      pc := PLineNumberData(Labels.Objects[targetLine])^.Line -1; // -1 because Inc(pc) at loop end adds 1
+    end
+    else
+    begin
+      raise Exception.CreateFmt('Runtime error: Label "%s" not found for GOTO at line %d', [labelName, pc + 1]);
+    end;
+  end
+  else if cmd = 'call' then
+  begin
+    if Length(parts) < 2 then
+      raise Exception.CreateFmt('Syntax error: CALL requires a subroutine name at line %d', [pc + 1]);
+    subName := LowerCase(parts[1]);
+    targetLine := Subs.IndexOf(subName); // Subs from InterpreterUtils
+    if targetLine <> -1 then
+    begin
+      // Push return address onto the stack (current pc + 1 for next line)
+      New(ReturnAddr);
+      ReturnAddr^ := pc + 1;
+      Stack.Add(TObject(ReturnAddr));
+
+      pc := PLineNumberData(Subs.Objects[targetLine])^.Line -1; // Jump to subroutine start (pc will be incremented)
+    end
+    else
+    begin
+      raise Exception.CreateFmt('Runtime error: Subroutine "%s" not found for CALL at line %d', [subName, pc + 1]);
+    end;
+  end
+  else if cmd = 'endsub' then
+  begin
+    if Stack.Count > 0 then
+    begin
+      // Pop return address from stack
+      ReturnAddr := PInteger(Stack.Last);
+      Stack.Remove(Stack.Last);
+      pc := ReturnAddr^ -1; // Jump back to stored return address (pc will be incremented)
+      Dispose(ReturnAddr); // Free the allocated PInteger
+    end
+    else
+    begin
+      raise Exception.Create('Runtime error: END SUB without matching CALL at line ' + IntToStr(pc + 1));
+    end;
+  end
+  else if cmd = 'while' then
+  begin
+    // Simplified WHILE: WHILE <var> <op> <value>
+    if Length(parts) < 4 then
+      raise Exception.CreateFmt('Syntax error: WHILE requires variable, operator, value at line %d', [pc + 1]);
+
+    conditionVarName := LowerCase(parts[1]);
+    conditionOp := LowerCase(parts[2]); // e.g., "=", "<", ">", "<>", "<=", ">="
+    conditionValue := LowerCase(parts[3]);
+
+    var PVar: PVariable;
+    PVar := GetVar(conditionVarName);
+    if PVar = nil then
+      raise Exception.CreateFmt('Runtime error: Variable "%s" not declared in WHILE statement at line %d', [conditionVarName, pc + 1]);
+
+    // Evaluate the condition (same logic as IF for now)
+    conditionResult := False;
+    if PVar^.vtype = vtInteger then
+    begin
+      var valInt: Integer := StrToIntDef(conditionValue, 0);
+      case conditionOp of
+        '=': conditionResult := (PVar^.intValue = valInt);
+        '<': conditionResult := (PVar^.intValue < valInt);
+        '>': conditionResult := (PVar^.intValue > valInt);
+        '<>': conditionResult := (PVar^.intValue <> valInt);
+        '<=': conditionResult := (PVar^.intValue <= valInt);
+        '>=': conditionResult := (PVar^.intValue >= valInt);
+        else raise Exception.CreateFmt('Runtime error: Unsupported operator "%s" for integer comparison at line %d', [conditionOp, pc + 1]);
+      end;
+    end
+    else if PVar^.vtype = vtString then
+    begin
+      if (Length(conditionValue) >= 2) and (conditionValue[1] = '"') and (conditionValue[Length(conditionValue)] = '"') then
+        conditionValue := Copy(conditionValue, 2, Length(conditionValue) - 2);
+      case conditionOp of
+        '=': conditionResult := SameText(PVar^.strValue, conditionValue);
+        '<>': conditionResult := not SameText(PVar^.strValue, conditionValue);
+        else raise Exception.CreateFmt('Runtime error: Unsupported operator "%s" for string comparison at line %d', [conditionOp, pc + 1]);
+      end;
+    end
+    else if PVar^.vtype = vtBoolean then
+    begin
+      var valBool: Boolean;
+      if SameText(conditionValue, 'true') then valBool := True
+      else if SameText(conditionValue, 'false') then valBool := False
+      else valBool := (StrToIntDef(conditionValue, 0) <> 0);
+
+      case conditionOp of
+        '=': conditionResult := (PVar^.boolValue = valBool);
+        '<>': conditionResult := (PVar^.boolValue <> valBool);
+        else raise Exception.CreateFmt('Runtime error: Unsupported operator "%s" for boolean comparison at line %d', [conditionOp, pc + 1]);
+      end;
+    end;
+
+    if not conditionResult then
+    begin
+      // Condition is false, skip to WEND
+      nestedWhiles := 0;
+      currentScanLine := pc + 1; // Start scanning from next line
+
+      while currentScanLine < Code.Count do
+      begin
+        scanTrimmedLine := LowerCase(Trim(Code[currentScanLine]));
+        scanParts := SplitString(scanTrimmedLine, ' ');
+
+        if (Length(scanParts) > 0) then
+        begin
+          if scanParts[0] = 'while' then
+            Inc(nestedWhiles)
+          else if scanParts[0] = 'wend' then
+          begin
+            if nestedWhiles = 0 then
+            begin
+              pc := currentScanLine; // Jump to WEND
+              Exit; // Exit ExecuteLine; main loop will increment pc
+            end
+            else
+              Dec(nestedWhiles);
+          end;
+        end;
+        Inc(currentScanLine);
+      end;
+      raise Exception.CreateFmt('Runtime error: WEND not found for WHILE at line %d', [pc + 1]);
+    end
+    else
+    begin
+      // Condition is true, proceed. For proper nesting, you'd push loop frame here.
+      // E.g., Push(TLoopFrame.Create(pc, ...))
+    end;
+  end
+  else if cmd = 'wend' then
+  begin
+    // For proper nesting, you'd pop from a loop stack to find the corresponding WHILE.
+    // E.g., If LoopStack.Count > 0 Then Pop and set pc back to the WHILE line - 1
+    Exit; // For now, just exit as the WHILE block handles jumping if condition false
+  end
+  else if (cmd = 'select') and (Length(parts) >= 2) and (LowerCase(parts[1]) = 'case') then
+  begin
+    if Length(parts) < 3 then
+      raise Exception.CreateFmt('Syntax error: SELECT CASE requires an expression at line %d', [pc + 1]);
+
+    selectCaseVarName := LowerCase(parts[2]);
+    var PVar: PVariable;
+    PVar := GetVar(selectCaseVarName);
+    if PVar = nil then
+      raise Exception.CreateFmt('Runtime error: Variable "%s" not declared in SELECT CASE at line %d', [selectCaseVarName, pc + 1]);
+
+    selectVarValue := PVar^; // Get the value of the variable being selected
+
+    // --- Find End Select and Case Else (simplified scan at runtime) ---
+    endSelectLine := -1;
+    caseElseLine := -1;
+    nestedSelects := 0;
+    foundEndSelect := False;
+    currentScanLine := pc + 1; // Start scanning from the line after SELECT CASE
+
+    while currentScanLine < Code.Count do
+    begin
+      scanTrimmedLine := LowerCase(Trim(Code[currentScanLine]));
+      scanParts := SplitString(scanTrimmedLine, ' ');
+
+      if (Length(scanParts) > 0) then
+      begin
+        if (scanParts[0] = 'select') and (Length(scanParts) >= 2) and (scanParts[1] = 'case') then
+          Inc(nestedSelects)
+        else if (scanParts[0] = 'end') and (Length(scanParts) >= 2) and (scanParts[1] = 'select') then
+        begin
+          if nestedSelects = 0 then
+          begin
+            endSelectLine := currentScanLine;
+            foundEndSelect := True;
+            Break; // Found the matching END SELECT
+          end
+          else
+            Dec(nestedSelects);
+        end
+        else if (scanParts[0] = 'case') and (Length(scanParts) >= 2) and (LowerCase(scanParts[1]) = 'else') and (nestedSelects = 0) then
+        begin
+          if caseElseLine = -1 then // Only set the first one found
+            caseElseLine := currentScanLine;
+        end;
+      end;
+      Inc(currentScanLine);
+    end;
+    if not foundEndSelect then
+      raise Exception.CreateFmt('Runtime error: END SELECT not found for SELECT CASE at line %d', [pc + 1]);
+    // --- End simplified Find End Select and Case Else ---
+
+    // Now, go through the CASE statements to find a match
+    currentScanLine := pc + 1; // Start from line after SELECT CASE
+    caseFound := False;
+    nestedSelects := 0; // Reset for actual case jumping
+
+    while currentScanLine < endSelectLine do // Only scan up to END SELECT
+    begin
+      scanTrimmedLine := LowerCase(Trim(Code[currentScanLine]));
+      scanParts := SplitString(scanTrimmedLine, ' ');
+
+      if (Length(scanParts) > 0) then
+      begin
+        if (scanParts[0] = 'select') and (Length(scanParts) >= 2) and (scanParts[1] = 'case') then
+          Inc(nestedSelects) // Handle nested selects, skip their cases
+        else if (scanParts[0] = 'end') and (Length(scanParts) >= 2) and (scanParts[1] = 'select') then
+          Dec(nestedSelects) // Exiting a nested select
+        else if (scanParts[0] = 'case') and (nestedSelects = 0) then // Only process top-level cases
+        begin
+          if (Length(scanParts) >= 2) and (LowerCase(scanParts[1]) = 'else') then
+          begin
+            // This is CASE ELSE. If no other case matched yet, this is the one.
+            if not caseFound then
+            begin
+              pc := currentScanLine - 1; // Jump to CASE ELSE (pc will be incremented)
+              Exit;
+            end;
+          end
+          else if Length(scanParts) >= 2 then
+          begin
+            // Standard CASE value (can be multiple values, or "To" ranges; simplified to single value here)
+            caseValue := scanParts[1];
+            // Remove quotes if string literal
+            if (Length(caseValue) >= 2) and (caseValue[1] = '"') and (caseValue[Length(caseValue)] = '"') then
+              caseValue := Copy(caseValue, 2, Length(caseValue) - 2);
+
+            // Compare selectVarValue with caseValue
+            match := False;
+            case selectVarValue.vtype of
+              vtInteger: match := (selectVarValue.intValue = StrToIntDef(caseValue, 0));
+              vtString:  match := SameText(selectVarValue.strValue, caseValue);
+              vtBoolean:
+                begin
+                  var valBool: Boolean;
+                  if SameText(caseValue, 'true') then valBool := True
+                  else if SameText(caseValue, 'false') then valBool := False
+                  else valBool := (StrToIntDef(caseValue, 0) <> 0);
+                  match := (selectVarValue.boolValue = valBool);
+                end;
+            end; // case selectVarValue.vtype
+
+            if match then
+            begin
+              pc := currentScanLine - 1; // Jump to matching CASE (pc will be incremented)
+              caseFound := True; // Mark that a case has been found
+              Exit; // Exit ExecuteLine; main loop will continue from this point
+            end;
+          end;
+        end;
+      end;
+      Inc(currentScanLine); // Move to next line to scan
+    end;
+
+    // If no case matched and no CASE ELSE was executed, jump to END SELECT
+    pc := endSelectLine - 1;
+
+  end
+  else if cmd = 'case' then
+  begin
+    // If we've executed a CASE (which jumped here), we must skip subsequent CASE
+    // statements until we hit the END SELECT or the next CASE ELSE.
+    // This requires proper `SelectCaseFrame` on a stack to track if a match occurred.
+    // For now, if the `SELECT CASE` block didn't jump, it means no previous CASE matched.
+    // If the interpreter logic jumped *into* a CASE, we should now jump *out* of subsequent cases.
+    // This requires a more complex state management with a `SelectCaseStack`.
+    Exit; // Proceed line by line for now. If a jump occurred, the pc is already set.
+  end
+  else if (cmd = 'end') and (Length(parts) >= 2) and (LowerCase(parts[1]) = 'select') then
+  begin
+    // If reached, simply exit this block
+    Exit;
+  end
+  else
+  begin
+    raise Exception.CreateFmt('Syntax error: Unknown command "%s" at line %d', [cmd, pc + 1]);
+  end; // <--- This 'end;' correctly closes the entire main IF-ELSE IF-ELSE block for commands.
+end; // End of ExecuteLine procedure
+
+initialization
+  // --- ADD THESE INITIALIZATIONS ---
+  Code := TStringList.Create;
+  Vars := TStringList.Create;
+  Labels := TStringList.Create;
+  Subs := TStringList.Create;
+  Stack := TObjectList.Create;
+  FormLocations := TStringList.Create;
+
+  // Initialize RuntimeForms here
+  RuntimeForms := TObjectList.Create;
+  RuntimeForms.OwnsObjects := True; // Crucial: Makes TObjectList responsible for freeing the TForm instances it contains
+
+finalization
+  // --- ADD THESE FINALIZATIONS ---
+  FreeAndNil(Code);
+  FreeAndNil(Vars);
+  FreeAndNil(Labels);
+  FreeAndNil(Subs);
+  FreeAndNil(Stack);
+  FreeAndNil(FormLocations);
+
+  // Free RuntimeForms here
+  FreeAndNil(RuntimeForms);
+end.// End of unit InterpreterCore

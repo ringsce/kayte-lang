@@ -5,8 +5,8 @@ program vb6interpreter;
 uses
   SysUtils, Classes, StrUtils, Contnrs, // <- Contnrs gives you TStack,
   InterpreterUtils, InterpreterCore,
-  dhtml, fgl, VBCompiler, SynVBHighlighter;
-
+  fgl, VBCompiler, Forms; //, SynVBHighlighter;
+   // dhtml enable when its right, dhtml is webasm technology not ready
 type
   TSubroutineMap = specialize TFPGMap<String, Integer>;
 

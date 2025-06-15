@@ -7,48 +7,46 @@
       <Unit>
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="87"/>
-        <CursorPos X="15" Y="104"/>
-        <UsageCount Value="21"/>
+        <CursorPos X="37" Y="8"/>
+        <UsageCount Value="204"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/interpreterutils.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="5"/>
-        <TopLine Value="83"/>
-        <CursorPos Y="109"/>
-        <UsageCount Value="21"/>
+        <UnitName Value="InterpreterUtils"/>
+        <EditorIndex Value="8"/>
+        <TopLine Value="14"/>
+        <CursorPos X="3" Y="19"/>
+        <UsageCount Value="204"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/interpretercore.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="InterpreterCore"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="116"/>
-        <CursorPos X="5" Y="142"/>
-        <UsageCount Value="21"/>
+        <TopLine Value="27"/>
+        <CursorPos X="7" Y="44"/>
+        <UsageCount Value="204"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/dhtml.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="4"/>
-        <TopLine Value="94"/>
-        <CursorPos X="50" Y="118"/>
-        <UsageCount Value="21"/>
+        <EditorIndex Value="6"/>
+        <CursorPos X="30" Y="6"/>
+        <UsageCount Value="204"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/vbcompiler.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VBCompiler"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="222"/>
-        <CursorPos X="13" Y="230"/>
-        <UsageCount Value="21"/>
+        <CursorPos X="54"/>
+        <UsageCount Value="204"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -56,8 +54,18 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="SynVBHighlighter"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="22" Y="8"/>
-        <UsageCount Value="21"/>
+        <TopLine Value="154"/>
+        <CursorPos X="13" Y="171"/>
+        <UsageCount Value="204"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/jsbindings.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="JSBindings"/>
+        <EditorIndex Value="7"/>
+        <CursorPos X="11" Y="17"/>
+        <UsageCount Value="169"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -66,129 +74,147 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="25"/>
         <CursorPos X="11" Y="42"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="1"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/wincominterop.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="WinComInterop"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="115"/>
+        <CursorPos X="5" Y="149"/>
+        <UsageCount Value="107"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/frm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <ResourceBaseClass Value="Form"/>
+        <EditorIndex Value="4"/>
+        <UsageCount Value="62"/>
+        <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="39" Column="3" TopLine="17"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="127" Column="24" TopLine="94"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="85" TopLine="72"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="7" Column="13"/>
+        <Filename Value="../source/interpreterutils.pas"/>
+        <Caret Line="247" Column="5" TopLine="213"/>
       </Position>
       <Position>
         <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="44" TopLine="21"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="104" TopLine="70"/>
+        <Caret Line="241" Column="26" TopLine="213"/>
       </Position>
       <Position>
         <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="143" Column="3" TopLine="117"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="37" Column="3" TopLine="12"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="11" Column="3"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="13" Column="7"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="14" Column="5"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="37" Column="23" TopLine="9"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="40" TopLine="23"/>
+        <Caret Line="235" Column="26" TopLine="213"/>
       </Position>
       <Position>
         <Filename Value="../source/interpreterutils.pas"/>
-        <Caret Line="109" TopLine="83"/>
+        <Caret Line="249" Column="5" TopLine="215"/>
       </Position>
       <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="120" TopLine="76"/>
+        <Filename Value="../source/interpreterutils.pas"/>
+        <Caret Line="19" Column="3" TopLine="14"/>
       </Position>
       <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="90" Column="5"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="7" Column="17"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/vbcompiler.pas"/>
-        <Caret Line="60" Column="21" TopLine="36"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="7" Column="3"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/vbcompiler.pas"/>
-        <Caret Line="155" Column="3" TopLine="138"/>
+        <Filename Value="../source/frm.pas"/>
       </Position>
       <Position>
         <Filename Value="../source/synvbhighlighter.pas"/>
-        <Caret Line="8" Column="22"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/synvbhighlighter.pas"/>
-        <Caret Line="411" Column="5" TopLine="377"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/synvbhighlighter.pas"/>
-        <Caret Line="402" Column="34" TopLine="377"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/synvbhighlighter.pas"/>
-        <Caret Line="411" Column="5" TopLine="377"/>
+        <Caret Line="171" Column="13" TopLine="154"/>
       </Position>
       <Position>
         <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="8" Column="25"/>
+        <Caret Line="8" Column="37"/>
       </Position>
       <Position>
-        <Filename Value="../source/dhtml.pas"/>
-        <Caret Line="121" Column="39" TopLine="94"/>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="9" Column="19"/>
       </Position>
       <Position>
-        <Filename Value="../source/vbcompiler.pas"/>
-        <Caret Line="226" Column="5" TopLine="202"/>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="8" Column="37"/>
       </Position>
       <Position>
-        <Filename Value="../source/vbcompiler.pas"/>
-        <Caret Line="232" Column="2" TopLine="202"/>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="231" Column="8" TopLine="226"/>
       </Position>
       <Position>
-        <Filename Value="../source/vbcompiler.pas"/>
-        <Caret Line="332" Column="5" TopLine="298"/>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="146" Column="9" TopLine="143"/>
       </Position>
       <Position>
-        <Filename Value="../source/vbcompiler.pas"/>
-        <Caret Line="241" Column="18" TopLine="225"/>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="153" Column="14" TopLine="162"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="147" TopLine="144"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="161" Column="3" TopLine="140"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="157" Column="3" TopLine="140"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="160" Column="3" TopLine="143"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="179" Column="3" TopLine="147"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="172" Column="27" TopLine="142"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="685" Column="36" TopLine="651"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="189" Column="34" TopLine="158"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="650" Column="5" TopLine="616"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="201" Column="18" TopLine="184"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="556" Column="92" TopLine="549"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="227" Column="5" TopLine="219"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="208" TopLine="175"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="120" Column="3" TopLine="94"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="44" Column="3" TopLine="21"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="53" TopLine="36"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/interpretercore.pas"/>
+        <Caret Line="740" Column="5" TopLine="706"/>
       </Position>
     </JumpHistory>
     <RunParams>
