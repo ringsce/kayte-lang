@@ -4,8 +4,10 @@ program vb6interpreter;
 
 uses
   SysUtils, Classes, StrUtils, Contnrs, // <- Contnrs gives you TStack,
-  InterpreterUtils, InterpreterCore,
-  fgl, VBCompiler, Forms; //, SynVBHighlighter;
+  InterpreterUtils, InterpreterCore, fgl, VBCompiler, Forms, Interfaces,
+  BytecodeTypes, BytecodeVM, Lexer,         // Your new lexer unit
+  Parser, dhtml;        // Your new parser unit;
+//, SynVBHighlighter;
    // dhtml enable when its right, dhtml is webasm technology not ready
 type
   TSubroutineMap = specialize TFPGMap<String, Integer>;
@@ -88,8 +90,12 @@ begin
   Code := TStringList.Create;
   Labels := TStringList.Create;
   Vars := TStringList.Create;
-  //Subs := TSubroutineMap.Create;
+  Subs := TSubroutineMap.Create;
   Stack := TStack.Create;
+  // NEW: Lexer and Parser instances
+  MyLexer: TLexer;
+  MyParser: TParser;
+
 
   try
     // Load the source code
@@ -97,7 +103,7 @@ begin
 
     // Build labels and subroutines
     BuildLabels(Code, Labels);
-    //BuildSubs(Code, Subs);
+    BuildSubs(Code, Subs);
 
     pc := 0;
     while pc < Code.Count do
@@ -114,8 +120,11 @@ begin
     Vars.Free;
     Subs.Free;
     Stack.Free;
+    MyParser.Free; // Free the parser (which doesn't own lexer)
+    MyLexer.Free;  // Free the lexer
+    RuntimeForms.Free; // Free runtime forms
   end;
 
-  ReadLn;
+  ReadLn; // Keep console open
 end.
 

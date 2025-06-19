@@ -8,7 +8,7 @@ uses
   Classes,
   SysUtils,           // For string functions like Trim, LowerCase, SameText, IntToStr, StrToIntDef, FileExists, Exceptions
   InterpreterUtils,   // Your utility unit for Code, Vars, Labels, Subs, SplitString, FormLocations
-  Forms;              // <--- CRUCIAL FIX: Added this unit to make TForm and FormsList visible
+  Forms, Contnrs; // <--- CRUCIAL FIX: Added this unit to make TForm and FormsList visible
 
 // Define TVarType and TVariable if not already defined elsewhere (e.g., in InterpreterUtils
 // or a dedicated Types unit). For this example, I'll include basic definitions.
@@ -39,17 +39,17 @@ type
   end;
 
 
-  // Your existing global variables will be here
-  // For example:
+ var
   Code: TStringList;
   Vars: TStringList;
   Labels: TStringList;
   Subs: TStringList;
   Stack: TObjectList;
-  FormLocations: TStringList; // Your list of declared form names and their code lines
+  FormLocations: TStringList;
+  RuntimeForms: TObjectList; // This will now be recognized
+  PVar: PVariable;
 
-  // --- ADD THIS GLOBAL DECLARATION ---
-  RuntimeForms: TObjectList;
+
 
 // Helper to get a variable's value pointer (you'll need to implement this fully)
 function GetVar(const VarName: String): PVariable;
@@ -99,6 +99,41 @@ end;
 
 procedure ExecuteLine(const Line: String; var pc: Integer);
 var
+  (*trimmedLine: String;
+  parts: TStringArray; // Defined in InterpreterUtils
+  cmd: String;
+  val: String;
+  // --- All local variables declared at the top, as Pascal requires ---
+  targetLine: Integer;
+  formName: String;
+  foundForm: TForm;     // TForm is now recognized because of 'uses Forms;'
+  i: Integer;
+  varName: String;
+  variableValue: TVariable; // For holding parsed variable values
+  conditionVarName: String;
+  conditionOp: String;
+  conditionValue: String;
+  conditionResult: Boolean;
+  subName: String;
+  ReturnAddr: PInteger;
+  labelName: String;
+  currentScanLine: Integer;
+  scanTrimmedLine: String;
+  scanParts: TStringArray;
+  nestedWhiles: Integer;
+  selectCaseVarName: String;
+  caseValue: String;
+  nestedSelects: Integer;
+  endSelectLine: Integer;
+  caseElseLine: Integer;
+  foundEndSelect: Boolean;
+  selectVarValue: TVariable;
+  match: Boolean;
+  valInt: Integer; // <--- DECLARE IT HERE WITHOUT INITIALIZATION
+  //conditionValue: String; // Assuming conditionValue is also a local variable
+  valBool : Boolean;
+  currentForm: TForm; // <--- ADD THIS DECLARATION HERE    *)
+
   trimmedLine: String;
   parts: TStringArray; // Defined in InterpreterUtils
   cmd: String;
@@ -129,6 +164,38 @@ var
   foundEndSelect: Boolean;
   selectVarValue: TVariable;
   match: Boolean;
+  valInt: Integer; // <--- DECLARE IT HERE WITHOUT INITIALIZATION
+  //conditionValue: String; // Assuming conditionValue is also a local variable
+  valBool : Boolean;
+  currentForm: TForm; // <--- ADD THIS DECLARATION HERE  trimmedLine: String;
+  parts: TStringArray; // Assuming TStringArray is defined elsewhere
+  cmd: String;
+
+  // Variables for 'SHOW' command (from previous fixes)
+  formName: String;
+  foundForm: TForm;
+  currentForm: TForm;
+  targetLine: Integer; // used in SHOW command (and potentially elsewhere)
+
+  // Variables for 'IF' command (from previous fix for valInt/conditionValue)
+  PVar: PVariable;
+  conditionValue: String;
+  valInt: Integer;
+
+  // Variables for 'SELECT CASE' command (NEWLY ADDED/CONFIRMED)
+  currentScanLine: Integer; // For scanning lines within SELECT CASE
+  endSelectLine: Integer;   // To mark the end of the SELECT CASE block
+  caseFound: Boolean;       // To track if a case has already matched
+  nestedSelects: Integer;   // To handle nested SELECT CASE statements
+  scanTrimmedLine: String;  // For parsing lines within SELECT CASE
+  scanParts: TStringArray;  // For parsing lines within SELECT CASE
+  caseValue: String;        // The value from the CASE statement
+  match: Boolean;           // Result of comparison between selectVarValue and caseValue
+  valBool: Boolean;         // For boolean comparisons in CASE statement
+  // You also need 'selectVarValue' to be declared, it's a PVariable
+  // (or whatever type holds your interpreter's variable values)
+  //selectVarValue: TVariableValue; // Assuming this is the type of selectVarValue
+  //i: Integer; // Loop counter, typically used in several places
 
 
 
@@ -144,6 +211,9 @@ begin // Start of ExecuteLine's implementation
 
   parts := SplitString(trimmedLine, ' '); // SplitString is from InterpreterUtils
   cmd := LowerCase(parts[0]);
+
+  // valint
+  valInt := StrToIntDef(conditionValue, 0); // <--- INITIALIZE IT HERE IN THE EXECUTABLE CODE
 
   // --- Command Dispatcher (large if-else if block) ---
   if cmd = 'form' then
@@ -166,19 +236,39 @@ begin // Start of ExecuteLine's implementation
     formName := LowerCase(parts[1]);
 
     foundForm := nil;
+    // --- Command Dispatcher (large if-else if block) ---
+  if cmd = 'form' then
+  begin
+    // 'FORM <Name>' is a declaration, not an executable instruction at runtime.
+    // Its location is already stored during the BuildForms pass.
+    Exit;
+  end
+  else if (cmd = 'end') and (Length(parts) >= 2) and (LowerCase(parts[1]) = 'form') then
+  begin
+    // 'END FORM' is also a declaration boundary, not an executable instruction.
+    Exit;
+  end
+  else if cmd = 'show' then
+  begin
+    if Length(parts) < 2 then
+    begin
+      raise Exception.CreateFmt('Syntax error: SHOW requires a form name at line %d', [pc + 1]);
+    end;
+    formName := LowerCase(parts[1]);
+
+    // Find the 'show' command block:
+    // ... (previous error checks) ...
+
+    foundForm := nil;
+
+
     // --- FIX START ---
-    // Instead of FormsList, iterate your custom RuntimeForms list
-    // This list must be declared globally (e.g., in InterpreterUtils) and initialized/finalized.
     for i := 0 to RuntimeForms.Count - 1 do
     begin
-      // Check if the item is indeed a TForm (good practice, though your list should only contain them)
       if (RuntimeForms.Items[i] is TForm) then
       begin
-        // Cast the generic TObject to TForm
-        var currentForm: TForm;
-        currentForm := TForm(RuntimeForms.Items[i]);
+        currentForm := TForm(RuntimeForms.Items[i]); // This line will now correctly use the declared variable
 
-        // Using SameText for robust, case-insensitive comparison
         if SameText(currentForm.Name, formName) then
         begin
           foundForm := currentForm;
@@ -187,7 +277,6 @@ begin // Start of ExecuteLine's implementation
       end;
     end;
     // --- FIX END ---
-
     if Assigned(foundForm) then
     begin
       foundForm.Show; // Call the Show method of the existing TForm instance
@@ -218,6 +307,7 @@ begin // Start of ExecuteLine's implementation
         raise Exception.CreateFmt('Runtime error: Form "%s" not found at line %d', [formName, pc + 1]);
       end;
     end;
+  end; // End of 'show' cmd block
   end
 else if cmd = 'dim' then
   begin
@@ -255,10 +345,9 @@ else if cmd = 'dim' then
     val := Copy(trimmedLine, Pos('=', trimmedLine) + 1, MaxInt); // Get everything after '='
     val := Trim(val);
 
-    PVar: PVariable;
-    PVar := GetVar(varName);
-    if PVar = nil then
-      raise Exception.CreateFmt('Runtime error: Variable "%s" not declared at line %d', [varName, pc + 1]);
+    PVar := GetVar(varName); // This line will now correctly use the declared PVar
+      if PVar = nil then
+    raise Exception.CreateFmt('Runtime error: Variable "%s" not declared at line %d', [varName, pc + 1]);
 
     // Assign value based on variable type
     case PVar^.vtype of
@@ -305,7 +394,6 @@ else if cmd = 'dim' then
     else
     begin
       // It's a variable name
-      var PVar: PVariable;
       PVar := GetVar(LowerCase(val));
       if PVar = nil then
         raise Exception.CreateFmt('Runtime error: Variable "%s" not declared for PRINT at line %d', [val, pc + 1]);
@@ -326,7 +414,6 @@ else if cmd = 'dim' then
     varName := LowerCase(parts[1]);
     Write('? '); // Prompt for input
 
-    var PVar: PVariable;
     PVar := GetVar(varName);
     if PVar = nil then
       raise Exception.CreateFmt('Runtime error: Variable "%s" not declared for INPUT at line %d', [varName, pc + 1]);
@@ -369,7 +456,6 @@ else if cmd = 'dim' then
     if not (SameText(parts[4], 'then') and SameText(parts[5], 'goto')) then
       raise Exception.CreateFmt('Syntax error: IF statement requires "THEN GOTO" at line %d', [pc + 1]);
 
-    var PVar: PVariable;
     PVar := GetVar(conditionVarName);
     if PVar = nil then
       raise Exception.CreateFmt('Runtime error: Variable "%s" not declared in IF statement at line %d', [conditionVarName, pc + 1]);
@@ -378,7 +464,6 @@ else if cmd = 'dim' then
     conditionResult := False;
     if PVar^.vtype = vtInteger then
     begin
-      var valInt: Integer := StrToIntDef(conditionValue, 0);
       case conditionOp of
         '=': conditionResult := (PVar^.intValue = valInt);
         '<': conditionResult := (PVar^.intValue < valInt);
@@ -402,7 +487,7 @@ else if cmd = 'dim' then
     end
     else if PVar^.vtype = vtBoolean then
     begin
-      var valBool: Boolean;
+      //var valBool: Boolean;
       if SameText(conditionValue, 'true') then valBool := True
       else if SameText(conditionValue, 'false') then valBool := False
       else valBool := (StrToIntDef(conditionValue, 0) <> 0);
@@ -488,7 +573,6 @@ else if cmd = 'dim' then
     conditionOp := LowerCase(parts[2]); // e.g., "=", "<", ">", "<>", "<=", ">="
     conditionValue := LowerCase(parts[3]);
 
-    var PVar: PVariable;
     PVar := GetVar(conditionVarName);
     if PVar = nil then
       raise Exception.CreateFmt('Runtime error: Variable "%s" not declared in WHILE statement at line %d', [conditionVarName, pc + 1]);
@@ -497,7 +581,7 @@ else if cmd = 'dim' then
     conditionResult := False;
     if PVar^.vtype = vtInteger then
     begin
-      var valInt: Integer := StrToIntDef(conditionValue, 0);
+      //var valInt: Integer := StrToIntDef(conditionValue, 0);
       case conditionOp of
         '=': conditionResult := (PVar^.intValue = valInt);
         '<': conditionResult := (PVar^.intValue < valInt);
@@ -520,7 +604,7 @@ else if cmd = 'dim' then
     end
     else if PVar^.vtype = vtBoolean then
     begin
-      var valBool: Boolean;
+      //var valBool: Boolean;
       if SameText(conditionValue, 'true') then valBool := True
       else if SameText(conditionValue, 'false') then valBool := False
       else valBool := (StrToIntDef(conditionValue, 0) <> 0);
@@ -580,7 +664,6 @@ else if cmd = 'dim' then
       raise Exception.CreateFmt('Syntax error: SELECT CASE requires an expression at line %d', [pc + 1]);
 
     selectCaseVarName := LowerCase(parts[2]);
-    var PVar: PVariable;
     PVar := GetVar(selectCaseVarName);
     if PVar = nil then
       raise Exception.CreateFmt('Runtime error: Variable "%s" not declared in SELECT CASE at line %d', [selectCaseVarName, pc + 1]);
@@ -668,7 +751,6 @@ else if cmd = 'dim' then
               vtString:  match := SameText(selectVarValue.strValue, caseValue);
               vtBoolean:
                 begin
-                  var valBool: Boolean;
                   if SameText(caseValue, 'true') then valBool := True
                   else if SameText(caseValue, 'false') then valBool := False
                   else valBool := (StrToIntDef(caseValue, 0) <> 0);
@@ -713,4 +795,28 @@ else if cmd = 'dim' then
   end; // <--- This 'end;' correctly closes the entire main IF-ELSE IF-ELSE block for commands.
 end; // End of ExecuteLine procedure
 
-end. // End of unit InterpreterCore
+initialization
+  // --- ADD THESE INITIALIZATIONS ---
+  Code := TStringList.Create;
+  Vars := TStringList.Create;
+  Labels := TStringList.Create;
+  Subs := TStringList.Create;
+  Stack := TObjectList.Create;
+  FormLocations := TStringList.Create;
+
+  // Initialize RuntimeForms here
+  RuntimeForms := TObjectList.Create;
+  RuntimeForms.OwnsObjects := True; // Crucial: Makes TObjectList responsible for freeing the TForm instances it contains
+
+finalization
+  // --- ADD THESE FINALIZATIONS ---
+  FreeAndNil(Code);
+  FreeAndNil(Vars);
+  FreeAndNil(Labels);
+  FreeAndNil(Subs);
+  FreeAndNil(Stack);
+  FreeAndNil(FormLocations);
+
+  // Free RuntimeForms here
+  FreeAndNil(RuntimeForms);
+end.// End of unit InterpreterCore

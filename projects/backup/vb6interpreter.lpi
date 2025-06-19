@@ -73,6 +73,41 @@
         <ComponentName Value="Form1"/>
         <ResourceBaseClass Value="Form"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/bytecodetypes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="BytecodeTypes"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/bytecodevm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="BytecodeVM"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/lexer.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Lexer"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/parser.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Parser"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/vmui.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="VMUI"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/formgenerator.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="FormGenerator"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/tokendefs.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="tokenDefs"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

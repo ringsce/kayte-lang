@@ -1,4 +1,0 @@
-[KayteIDE]
-MainFile=KayteIDE.lpr
-SourceFiles=Main.pas,Main.lfm
-CompilerOptions=-O2

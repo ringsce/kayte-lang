@@ -1,0 +1,19 @@
+[FORM:Form1]
+[CONTROL:Form1:vctForm]
+  Caption="My First VM Form"
+  Width=400
+  Height=300
+  Top=100
+  Left=100
+[CONTROL:Button1:vctButton]
+  Caption="Click Me!"
+  Left=50
+  Top=50
+  Width=100
+  Height=25
+[CONTROL:Label1:vctLabel]
+  Caption="Initial Text"
+  Left=50
+  Top=100
+  Width=200
+  Height=20
