@@ -1,210 +1,192 @@
-// Jenkinsfile for Kayte Project on macOS, Linux (multi-architecture)
+// Jenkinsfile for Kayte Project on macOS, Linux (multi-architecture with Lazarus)
 
 pipeline {
-    // 'agent any' allows Jenkins to select the appropriate agent based on the matrix axis.
-    // Ensure you have agents with the necessary OS and architecture capabilities, and labels if you use specific ones.
-    agent any
+    agent any // Jenkins will select agents based on labels used in stages.
 
-    // Environment variables that are global to the entire pipeline execution.
     environment {
-        APP_NAME_BASE = 'KayteApp' // Base name for your executable (e.g., KayteApp-macos-amd64)
-        BUILD_DIR = '.'            // Relative path to your Makefile (e.g., '.' for repository root)
-        // No FPC_TARGET here, it will be set dynamically in the matrix stage.
+        APP_NAME_MAIN = 'Kayte'          // Main executable from Kayte.lpr
+        APP_NAME_INTERPRETER = 'vb6interpreter' // Executable from vb6interpreter.lpr
+        BUILD_DIR = '.'                     // Adjust if your .lpr files are in a subfolder
+        // FPC_TARGET is derived from OS/ARCH for lazbuild flags
+        UNIVERSAL_APP_NAME = "${APP_NAME_MAIN}-macos-universal" // Name for the combined universal binary
     }
 
     stages {
         stage('Checkout Source Code') {
             steps {
-                echo 'Checking out source code...'
-                // Replace 'your-git-credentials-id' and 'https://github.com/your-org/kayte.git'
-                git branch: 'main', credentialsId: 'your-git-credentials-id', url: 'https://github.com/your-org/kayte.git'
+                echo 'Checking out source code…'
+                git branch: 'main', url: 'https://github.com/ringsce/kayte-lang.git'
                 echo 'Source code checkout complete.'
             }
         }
 
-        stage('Build and Test Matrix') {
+        // Dedicated stage for building the macOS Universal Binary using lazbuild and lipo
+        stage('Build macOS Universal Binary') {
+            // This stage requires a macOS agent. An Intel Mac can cross-compile to ARM64.
+            agent { label 'macos-x86_64' } // Replace with your macOS Intel agent label
+
+            steps {
+                script {
+                    echo "Building macOS Universal Binary for ${APP_NAME_MAIN}..."
+
+                    dir("${BUILD_DIR}") {
+                        // Clean previous Lazarus builds
+                        echo "Cleaning previous Lazarus builds for macOS..."
+                        sh "lazbuild --clean Kayte.lpr"
+
+                        // Build for x86_64
+                        echo "Building ${APP_NAME_MAIN} for macOS x86_64..."
+                        sh "lazbuild Kayte.lpr --build-mode=Release --os=darwin --cpu=x86_64"
+                        // Lazbuild outputs to 'lib/<project_name>/<os>-<cpu>/<project_name>'
+                        // Example path: 'lib/Kayte/darwin-x86_64/KayteApp'
+                        String x86_64_binary_path = "lib/Kayte/darwin-x86_64/${APP_NAME_MAIN}"
+                        if (!fileExists(x86_64_binary_path)) {
+                            error "macOS x86_64 binary not found at ${x86_64_binary_path}"
+                        }
+
+                        // Build for arm64
+                        echo "Building ${APP_NAME_MAIN} for macOS arm64..."
+                        sh "lazbuild Kayte.lpr --build-mode=Release --os=darwin --cpu=aarch64"
+                        // Example path: 'lib/Kayte/darwin-aarch64/KayteApp'
+                        String arm64_binary_path = "lib/Kayte/darwin-aarch64/${APP_NAME_MAIN}"
+                        if (!fileExists(arm64_binary_path)) {
+                            error "macOS arm64 binary not found at ${arm64_binary_path}"
+                        }
+
+                        // Create Universal Binary using lipo
+                        echo "Creating universal binary: ${UNIVERSAL_APP_NAME}..."
+                        sh "lipo -create -output \"${UNIVERSAL_APP_NAME}\" \"${x86_64_binary_path}\" \"${arm64_binary_path}\""
+
+                        // Make the universal binary executable
+                        sh "chmod +x \"${UNIVERSAL_APP_NAME}\""
+
+                        echo "macOS Universal Binary build completed: ${UNIVERSAL_APP_NAME}"
+                    }
+                }
+            }
+            post {
+                success { steps { echo "macOS Universal Binary build succeeded!" } }
+                failure { steps { echo "macOS Universal Binary build failed." } }
+            }
+        }
+
+        // Matrix build stage for individual OS/ARCH combinations (Linux, and potentially macOS if not universal)
+        stage('Build & Test Matrix (Linux + Individual macOS)') {
             matrix {
                 axes {
-                    // Define the OS axis
-                    axis {
-                        name 'OS'
-                        values 'macos', 'linux'
-                    }
-                    // Define the ARCH (architecture) axis
-                    axis {
-                        name 'ARCH'
-                        values 'amd64', 'arm64'
-                    }
+                    axis { name 'OS'; values 'macos', 'linux' }
+                    axis { name 'ARCH'; values 'amd64', 'arm64' }
                 }
-                // Exclude invalid or currently unsupported combinations.
-                // Adjust these 'when' conditions based on your actual agents and FPC cross-compilation capabilities.
                 exclude {
-                    // Example: Exclude if you don't have a macOS ARM64 agent OR FPC cannot cross-compile to it.
-                    // This is for illustration; you'll need working agents for each combo.
-                    // When selecting agents for specific OS/ARCH, ensure the agent's label matches.
-                    // For instance, an agent for macOS ARM64 might have label 'macos-arm64'.
-                    // You might need to set 'agent { label "${OS}-${ARCH}" }' inside the matrix stages for specific agents.
-                    // Or, if your agent can cross-compile, 'agent any' and FPC_TARGET handling is enough.
-                    // For now, let's assume 'agent any' is sufficient and FPC handles targets.
-
-                    // If a specific OS/ARCH combination is not buildable or testable, exclude it here.
-                    // Example:
-                    // axis { name 'OS'; values 'macos' }
-                    // axis { name 'ARCH'; values 'arm64' }
-                    // agent { label 'your-x86-linux-agent' } // If this agent can't build macos-arm64
+                    // Exclude macOS builds from this matrix if the 'Build macOS Universal Binary' stage covers all macOS needs.
+                    // This prevents redundant builds. If you want separate macos-amd64 and macos-arm64
+                    // *individual* binaries (not universal) from lazbuild, then don't exclude macos here.
+                    axis { name 'OS'; values 'macos' }
+                    axis { name 'ARCH'; values 'arm64' } // Keep this if your macOS agent is Intel only for this matrix.
                 }
 
-                // Stages that will run for each combination in the matrix
                 stages {
-                    stage('Configure Target') {
+                    stage('Configure Target for Matrix Build') {
                         steps {
                             script {
-                                // Dynamically set FPC_TARGET based on current OS and ARCH combination
-                                if (env.OS == 'macos') {
-                                    if (env.ARCH == 'amd64') {
-                                        env.FPC_TARGET = 'x86_64-darwin'
-                                    } else if (env.ARCH == 'arm64') {
-                                        env.FPC_TARGET = 'aarch64-darwin' // Or 'arm64-darwin' depending on FPC version
-                                    }
-                                } else if (env.OS == 'linux') {
-                                    if (env.ARCH == 'amd64') {
-                                        env.FPC_TARGET = 'x86_64-linux'
-                                    } else if (env.ARCH == 'arm64') {
-                                        env.FPC_TARGET = 'aarch64-linux' // Or 'arm-linux' depending on FPC version
-                                    }
-                                }
-                                // Construct the final executable name for this specific build
-                                env.CURRENT_APP_NAME = "${APP_NAME_BASE}-${env.OS}-${env.ARCH}"
+                                // Map matrix axes to lazbuild --os and --cpu flags
+                                String targetOS = env.OS == 'macos' ? 'darwin' : env.OS
+                                String targetCPU = env.ARCH == 'amd64' ? 'x86_64' : 'aarch64'
 
-                                echo "Configuring build for OS: ${env.OS}, ARCH: ${env.ARCH}, FPC_TARGET: ${env.FPC_TARGET}"
-                                echo "Final executable name will be: ${env.CURRENT_APP_NAME}"
+                                env.LAZBUILD_OS_FLAG = targetOS
+                                env.LAZBUILD_CPU_FLAG = targetCPU
+
+                                env.CURRENT_MAIN_APP_NAME = "${APP_NAME_MAIN}-${env.OS}-${env.ARCH}"
+                                env.CURRENT_INTERPRETER_APP_NAME = "${APP_NAME_INTERPRETER}-${env.OS}-${env.ARCH}"
+
+                                echo "Configured → OS=${env.OS} ARCH=${env.ARCH} LAZBUILD_OS=${env.LAZBUILD_OS_FLAG} LAZBUILD_CPU=${env.LAZBUILD_CPU_FLAG}"
                             }
                         }
                     }
 
-                    stage('Build') {
+                    stage('Build Individual Binaries') {
+                        // Agent selection for matrix. Recommended to use specific agents for each combination.
+                        // Example: agent { label "${env.OS}-${env.ARCH}" }
+                        // For simplicity, keeping 'agent any' from global, but this relies on Jenkins correctly assigning agents.
+                        agent any // Ensure agents with relevant OS/ARCH and Lazarus are available
+
                         steps {
                             dir("${BUILD_DIR}") {
-                                echo "Building ${APP_NAME_BASE} for ${env.OS}-${env.ARCH}..."
-                                // Pass FPC_TARGET to make. Your Makefile must be set up to use this variable.
-                                // E.g., in Makefile: $(FPC) -T$(FPC_TARGET) ...
-                                sh "make all FPC_TARGET=${env.FPC_TARGET}"
-                                // Rename the compiled binary to include its OS and ARCH for archiving later
-                                sh "mv ${APP_NAME_BASE} ${env.CURRENT_APP_NAME}"
-                                echo 'Build completed.'
+                                echo "Building ${APP_NAME_MAIN} for ${env.OS}-${env.ARCH}..."
+                                sh "lazbuild ${APP_NAME_MAIN}.lpr --build-mode=Release --os=${LAZBUILD_OS_FLAG} --cpu=${LAZBUILD_CPU_FLAG}"
+                                sh "mv lib/${APP_NAME_MAIN}/${LAZBUILD_OS_FLAG}-${LAZBUILD_CPU_FLAG}/${APP_NAME_MAIN} ${CURRENT_MAIN_APP_NAME}"
+                                sh "chmod +x ${CURRENT_MAIN_APP_NAME}"
+                                echo "${APP_NAME_MAIN} build completed."
+
+                                echo "Building ${APP_NAME_INTERPRETER} for ${env.OS}-${env.ARCH}..."
+                                sh "lazbuild ${APP_NAME_INTERPRETER}.lpr --build-mode=Release --os=${LAZBUILD_OS_FLAG} --cpu=${LAZBUILD_CPU_FLAG}"
+                                sh "mv lib/${APP_NAME_INTERPRETER}/${LAZBUILD_OS_FLAG}-${LAZBUILD_CPU_FLAG}/${APP_NAME_INTERPRETER} ${CURRENT_INTERPRETER_APP_NAME}"
+                                sh "chmod +x ${CURRENT_INTERPRETER_APP_NAME}"
+                                echo "${APP_NAME_INTERPRETER} build completed."
+
+                                // If you have a separate Makefile for other components:
+                                // echo "Running additional 'make' steps (if any)..."
+                                // sh "make all" // Adjust this if your Makefile needs specific FPC_TARGET
                             }
                         }
                     }
 
-                    stage('Test') {
-                        // This stage will only run if your Makefile has a 'test:' target.
+                    stage('Test Individual Binaries') {
                         when {
                             expression {
+                                // Assuming 'make test' can run the tests for the current OS/ARCH or you have a test script
                                 return fileExists('Makefile') && sh(returnStatus: true, script: 'grep -q "^test:" Makefile') == 0
                             }
                         }
                         steps {
                             echo "Running tests for ${env.OS}-${env.ARCH}..."
-                            // Assuming 'make test' is universal and runs tests for the current FPC_TARGET.
-                            // If tests need to be run natively on the target architecture (e.g., ARM64 tests on an ARM64 machine),
-                            // you might need a more complex setup with dedicated test agents or remote execution.
-                            sh 'make test'
-                            echo 'Tests finished.'
+                            sh 'make test' // Adjust if you have a specific test runner for Lazarus projects
                         }
                         post {
                             always {
                                 steps {
                                     echo "Tests finished for ${env.OS}-${env.ARCH} (regardless of result)."
-                                    // Uncomment if you output JUnit-compatible results
-                                    // junit "test-results/${env.OS}-${env.ARCH}/**/*.xml"
+                                    // junit "test-results/${env.OS}-${env.ARCH}/**/*.xml" // Uncomment for JUnit reports
                                 }
                             }
                         }
                     }
-                } // <-- This 'stages' block ends here
-            } // <-- This 'matrix' block ends here
-        }
-
-        // The duplicate stage starts below here. Remove it.
-        // stage('Build and Test Matrix') {
-        //     matrix {
-        //         axes { // <-- This 'axes' block starts here
-        //             // Define the OS axis
-        //             axis {
-        //                 name 'OS'
-        //                 values 'macos', 'linux'
-        //             }
-        //             // Define the ARCH (architecture) axis
-        //             axis {
-        //                 name 'ARCH'
-        //                 values 'amd64', 'arm64'
-        //             }
-        //         } // <-- This 'axes' block ends here
-        //         exclude {
-        //             // ... exclusions ...
-        //         }
-        //         stages {
-        //             // ... configure target ...
-        //             // ... build ...
-        //             // ... test ...
-        //         }
-        //     }
-        // }
-
+                } // End of inner 'stages' for matrix
+            } // End of 'matrix' block
+        } // End of 'Build & Test Matrix' stage
 
         stage('Archive All Built Artifacts') {
-            // This stage runs once after all matrix combinations have completed.
             steps {
-                echo 'Archiving all built executables from the matrix...'
-                // Archive all binaries created by the matrix builds.
-                // The pattern uses wildcards to match the renamed executables (e.g., KayteApp-macos-amd64).
-                archiveArtifacts artifacts: "${APP_NAME_BASE}-*-*", onlyIfSuccessful: true
+                echo 'Archiving all built executables...'
+                // Archive all binaries created by the matrix builds and the universal macOS binary.
+                archiveArtifacts artifacts: "${APP_NAME_MAIN}-*-*, ${APP_NAME_INTERPRETER}-*-*, ${UNIVERSAL_APP_NAME}", onlyIfSuccessful: true
+                // If the universal build is a .app bundle:
+                // archiveArtifacts artifacts: "${APP_NAME_MAIN}-*-*, ${APP_NAME_INTERPRETER}-*-*, ${UNIVERSAL_APP_NAME}.app", onlyIfSuccessful: true
                 echo 'Artifacts archived.'
             }
         }
 
         stage('Clean Workspace') {
-            // This stage ensures the workspace is clean after archiving.
             steps {
                 echo 'Cleaning up the Jenkins workspace...'
-                // cleanWs() is a built-in Jenkins step to clean the entire workspace.
-                cleanWs()
+                cleanWs() // Cleans the entire Jenkins workspace
                 echo 'Workspace cleaned.'
             }
         }
     }
 
-    post {
-        // Post-build actions: These run once for the entire pipeline, after all stages (including matrix) complete.
-        always {
-            steps {
-                echo 'Pipeline execution completed.'
-            }
-        }
-        success {
-            steps {
-                echo 'Overall pipeline: SUCCESS!'
-                // Add global success notifications here if needed (e.g., email to team)
-            }
-        }
+    post { // Global post-build actions for the entire pipeline
+        always  { steps { echo 'Pipeline finished (always).' } }
+        success { steps { echo 'Pipeline SUCCESS.' } }
         failure {
             steps {
-                echo 'Overall pipeline: FAILED! Check console output for details.'
-                // Add global failure notifications here (e.g., email, Slack, Teams)
+                echo 'Pipeline FAILED — see console.'
                 // mail to: 'your-email@example.com',
                 //      subject: "Kayte CI Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 //      body: "The Jenkins CI build for Kayte project failed. View details at: ${env.BUILD_URL}"
             }
         }
-        unstable {
-            steps {
-                echo 'Overall pipeline: UNSTABLE (e.g., some tests failed, or warnings occurred).'
-            }
-        }
-        // aborted {
-        //     steps {
-        //         echo 'Overall pipeline: ABORTED!'
-        //     }
-        // }
+        unstable{ steps { echo 'Pipeline UNSTABLE.' } }
+        // aborted { steps { echo 'Pipeline ABORTED!' } }
     }
 }
