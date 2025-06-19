@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<CONFIG>
-  <Compiler Value="/usr/local/bin/fpc" Date="1747753109"/>
-  <Params Value="-MObjFPC -Scghi -O1 -gw -gl -l -vewnhibq -Fi/Users/pedro/Projects/kayte-lang/projects/lib/aarch64-darwin -Fu/Users/pedro/Projects/kayte-lang/projects/ -Fu/Users/pedro/Projects/kayte-lang/source -FU/Users/pedro/Projects/kayte-lang/projects/lib/aarch64-darwin/ -FE/Users/pedro/Projects/kayte-lang/projects/ -o/Users/pedro/Projects/kayte-lang/projects/kayte kayte.lpr"/>
-</CONFIG>

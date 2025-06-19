@@ -1,0 +1,212 @@
+# .github/workflows/build.yml
+
+name: Kayte Project CI Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Job to build the macOS Universal Binary (x86_64 + arm64)
+  build_macos_universal:
+    name: Build macOS Universal (Intel + ARM)
+    runs-on: macos-13 # macos-13 runs on Intel for now, allowing cross-compilation
+
+    env:
+      APP_NAME_MAIN: KayteApp
+      APP_NAME_INTERPRETER: vb6interpreter
+      BUILD_DIR: . # Directory containing your .lpr files relative to repository root
+      UNIVERSAL_APP_NAME: KayteApp-macos-universal # Name for the combined universal binary
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Free Pascal and Lazarus (macOS)
+        run: |
+          # FPC and Lazarus DMG/PKGs are common for macOS.
+          # Adjust URLs and versions as needed.
+          FPC_VERSION="3.2.2" # Example FPC version
+          LAZ_VERSION="2.2.4" # Example Lazarus version
+
+          # Download FPC
+          FPC_PKG="fpc-${FPC_VERSION}.intel-macosx.dmg"
+          curl -LO "https://sourceforge.net/projects/freepascal/files/Source/3.2.2/${FPC_PKG}/download"
+          sudo hdiutil attach ${FPC_PKG}
+          sudo installer -pkg /Volumes/FPC\ ${FPC_VERSION}/fpc-${FPC_VERSION}.pkg -target /
+          sudo hdiutil detach /Volumes/FPC\ ${FPC_VERSION}
+
+          # Download Lazarus
+          LAZ_PKG="lazarus-${LAZ_VERSION}-macos-x86_64.pkg"
+          curl -LO "https://sourceforge.net/projects/lazarus/files/Lazarus%20IDE%20macOS/Lazarus%20${LAZ_VERSION}/${LAZ_PKG}/download"
+          sudo hdiutil attach ${LAZ_PKG}
+          sudo installer -pkg /Volumes/Lazarus\ ${LAZ_VERSION}/lazarus-${LAZ_VERSION}-macos-x86_64.pkg -target /
+          sudo hdiutil detach /Volumes/Lazarus\ ${LAZ_VERSION}
+
+          # Ensure lazbuild and fpc are in PATH
+          echo "/usr/local/bin" >> $GITHUB_PATH # Lazarus installs lazbuild here by default
+
+      - name: Build macOS x86_64 Binary (${{ env.APP_NAME_MAIN }})
+        run: |
+          cd ${{ env.BUILD_DIR }}
+          lazbuild "${{ env.APP_NAME_MAIN }}.lpr" --build-mode=Release --os=darwin --cpu=x86_64
+          # Lazbuild outputs to lib/<ProjectName>/<OS>-<CPU>/<ProjectName>
+          # Example: lib/Kayte/darwin-x86_64/KayteApp
+          mv "lib/${{ env.APP_NAME_MAIN }}/darwin-x86_64/${{ env.APP_NAME_MAIN }}" "${{ env.APP_NAME_MAIN }}-x86_64"
+
+      - name: Build macOS arm64 Binary (${{ env.APP_NAME_MAIN }})
+        run: |
+          cd ${{ env.BUILD_DIR }}
+          lazbuild "${{ env.APP_NAME_MAIN }}.lpr" --build-mode=Release --os=darwin --cpu=aarch64
+          # Example: lib/Kayte/darwin-aarch64/KayteApp
+          mv "lib/${{ env.APP_NAME_MAIN }}/darwin-aarch64/${{ env.APP_NAME_MAIN }}" "${{ env.APP_NAME_MAIN }}-arm64"
+
+      - name: Create macOS Universal Binary (${{ env.UNIVERSAL_APP_NAME }})
+        run: |
+          cd ${{ env.BUILD_DIR }}
+          lipo -create -output "${{ env.UNIVERSAL_APP_NAME }}" "${{ env.APP_NAME_MAIN }}-x86_64" "${{ env.APP_NAME_MAIN }}-arm64"
+          chmod +x "${{ env.UNIVERSAL_APP_NAME }}"
+
+      - name: Upload macOS Universal Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.UNIVERSAL_APP_NAME }}
+          path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/${{ env.UNIVERSAL_APP_NAME }}
+          retention-days: 7
+
+
+  # Matrix job for building and testing individual binaries (Linux + potentially separate macOS builds)
+  build_matrix:
+    name: Build Matrix - ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner_os }}
+    strategy:
+      fail-fast: false # Allows other matrix jobs to complete even if one fails
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner_os: ubuntu-latest
+            lazbuild_os: linux
+            lazbuild_cpu: x86_64
+          - os: linux
+            arch: arm64
+            runner_os: ubuntu-latest
+            architecture: arm64 # Specify ARM64 runner for Linux
+            lazbuild_os: linux
+            lazbuild_cpu: aarch64
+          # If you also want individual macOS binaries built via lazbuild in the matrix:
+          # - os: macos
+          #   arch: amd64
+          #   runner_os: macos-13
+          #   lazbuild_os: darwin
+          #   lazbuild_cpu: x86_64
+          # - os: macos
+          #   arch: arm64
+          #   runner_os: macos-14 # macOS 14 is ARM64 by default. For cross-compilation on Intel, use build_macos_universal job.
+          #   lazbuild_os: darwin
+          #   lazbuild_cpu: aarch64
+
+    env:
+      APP_NAME_MAIN: KayteApp
+      APP_NAME_INTERPRETER: vb6interpreter
+      BUILD_DIR: . # Directory containing your .lpr files relative to repository root
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Free Pascal and Lazarus (${{ matrix.os }})
+        run: |
+          if [ "${{ matrix.os }}" == "linux" ]; then
+            sudo apt-get update
+            # Example for Linux. Lazarus often depends on specific FPC versions.
+            # You might need to add PPA or download .deb packages.
+            # This is a very basic install; consider downloading official .deb/.tar.gz if issues arise.
+            sudo apt-get install -y freebasic # FreeBASIC might pull FPC dependencies, or search for 'fpc' and 'lazarus' packages.
+            sudo apt-get install -y fpc fpc-src lazarus
+            # If using custom tar.gz downloads, extract and add to PATH.
+            # Example: curl -LO http://ftp.freepascal.org/fpc/dist/${FPC_VERSION}/Linux/${{ matrix.arch }}/fpc-${FPC_VERSION}.linux-${{ matrix.arch }}.tar
+            #          sudo tar -xvf fpc-*.tar -C /usr/local
+            #          echo "/usr/local/bin" >> $GITHUB_PATH
+          elif [ "${{ matrix.os }}" == "macos" ]; then
+            # macOS installation logic is complex for matrix, often better to use a dedicated job like 'build_macos_universal'
+            # Or use explicit versioned runners that are known to be Intel if cross-compiling.
+            # See comments in 'build_macos_universal' for macOS FPC/Lazarus install steps.
+            echo "Mac OS installation via this matrix path is currently not configured or recommended. Use dedicated job."
+            exit 1
+          fi
+          # Verify installation
+          fpc -i
+          lazbuild --version
+
+      - name: Build ${{ env.APP_NAME_MAIN }}
+        run: |
+          cd ${{ env.BUILD_DIR }}
+          lazbuild "${{ env.APP_NAME_MAIN }}.lpr" --build-mode=Release --os=${{ matrix.lazbuild_os }} --cpu=${{ matrix.lazbuild_cpu }}
+          mv "lib/${{ env.APP_NAME_MAIN }}/${{ matrix.lazbuild_os }}-${{ matrix.lazbuild_cpu }}/${{ env.APP_NAME_MAIN }}" "${{ env.APP_NAME_MAIN }}-${{ matrix.os }}-${{ matrix.arch }}"
+          chmod +x "${{ env.APP_NAME_MAIN }}-${{ matrix.os }}-${{ matrix.arch }}"
+
+      - name: Build ${{ env.APP_NAME_INTERPRETER }}
+        run: |
+          cd ${{ env.BUILD_DIR }}
+          lazbuild "${{ env.APP_NAME_INTERPRETER }}.lpr" --build-mode=Release --os=${{ matrix.lazbuild_os }} --cpu=${{ matrix.lazbuild_cpu }}
+          mv "lib/${{ env.APP_NAME_INTERPRETER }}/${{ matrix.lazbuild_os }}-${{ matrix.lazbuild_cpu }}/${{ env.APP_NAME_INTERPRETER }}" "${{ env.APP_NAME_INTERPRETER }}-${{ matrix.os }}-${{ matrix.arch }}"
+          chmod +x "${{ env.APP_NAME_INTERPRETER }}-${{ matrix.os }}-${{ matrix.arch }}"
+
+      - name: Run Tests (if Makefile has 'test' target)
+        run: |
+          cd ${{ env.BUILD_DIR }}
+          if grep -q "^test:" Makefile; then
+            echo "Running tests..."
+            make test
+          else
+            echo "No 'test' target found in Makefile. Skipping tests."
+          fi
+        continue-on-error: true # Allow build to continue even if tests fail, but mark as unstable
+
+      - name: Upload ${{ matrix.os }}-${{ matrix.arch }} Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            ${{ github.workspace }}/${{ env.BUILD_DIR }}/${{ env.APP_NAME_MAIN }}-${{ matrix.os }}-${{ matrix.arch }}
+            ${{ github.workspace }}/${{ env.BUILD_DIR }}/${{ env.APP_NAME_INTERPRETER }}-${{ matrix.os }}-${{ matrix.arch }}
+          retention-days: 7
+
+  # Final job to aggregate artifacts, if needed (or combine with other jobs)
+  # This job could be used for releases, notifications, etc.
+  # For this example, artifacts are uploaded in their respective build jobs.
+  # If you need all artifacts in one place (e.g., for zipping), you'd download them here.
+  # For now, this is kept minimal as upload is in each job.
+  finalize_build:
+    name: Finalize Build
+    runs-on: ubuntu-latest
+    needs: [build_macos_universal, build_matrix] # Depends on all build jobs
+    steps:
+      - name: Echo Completion
+        run: echo "All builds completed. Artifacts uploaded to workflow run."
+
+      # Example: Download all artifacts if you want to zip them together or process them.
+      # - name: Download All Artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     path: artifacts
+
+      # - name: Zip and Prepare for Release (example)
+      #   if: success() && github.ref == 'refs/heads/main'
+      #   run: |
+      #     # Create release archives here
+      #     ls -R artifacts
+      #     zip -r all_binaries.zip artifacts/binaries-* artifacts/KayteApp-macos-universal
+      # - name: Upload Release Asset (example)
+      #   if: success() && github.ref == 'refs/heads/main'
+      #   uses: actions/upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: ./all_binaries.zip
+      #     asset_name: all_binaries.zip
+      #     asset_content_type: application/zip
