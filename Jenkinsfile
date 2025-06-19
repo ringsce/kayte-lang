@@ -1,122 +1,210 @@
-// Jenkinsfile for the Kayte Project
+// Jenkinsfile for Kayte Project on macOS, Linux (multi-architecture)
 
 pipeline {
-    // Agent: Define where the pipeline will run.
-    // 'any' runs on any available agent. For dedicated environments, use a label.
-    agent { label 'linux-fpc' } // Example: Assuming you have an agent with 'linux-fpc' label and FPC/Make installed
+    // 'agent any' allows Jenkins to select the appropriate agent based on the matrix axis.
+    // Ensure you have agents with the necessary OS and architecture capabilities, and labels if you use specific ones.
+    agent any
 
-    // Tools: Automatically install tools configured in Jenkins' 'Global Tool Configuration'.
-    // Ensure you have tools named 'DefaultMake' and 'FPC_Compiler_Latest' (or similar) set up in Jenkins.
-    tools {
-        make 'DefaultMake'        // Name of your Make installation in Jenkins
-        fpc 'FPC_Compiler_Latest' // Name of your Free Pascal installation in Jenkins
-    }
-
-    // Environment variables: Define variables accessible throughout the pipeline.
-    // Useful for build flags, paths, etc.
+    // Environment variables that are global to the entire pipeline execution.
     environment {
-        // Example: Define the name of your main executable for clarity and reusability
-        APP_NAME = 'KayteApp'
-        // Example: If you need to specify a Free Pascal target (adjust as needed)
-        // FPC_TARGET = 'x86_64-linux'
+        APP_NAME_BASE = 'KayteApp' // Base name for your executable (e.g., KayteApp-macos-amd64)
+        BUILD_DIR = '.'            // Relative path to your Makefile (e.g., '.' for repository root)
+        // No FPC_TARGET here, it will be set dynamically in the matrix stage.
     }
 
     stages {
         stage('Checkout Source Code') {
             steps {
                 echo 'Checking out source code...'
-                // Fetch code from your Git repository.
-                // Replace placeholders with your actual Git details.
+                // Replace 'your-git-credentials-id' and 'https://github.com/your-org/kayte.git'
                 git branch: 'main', credentialsId: 'your-git-credentials-id', url: 'https://github.com/your-org/kayte.git'
-                echo 'Source code checked out.'
+                echo 'Source code checkout complete.'
             }
         }
 
-        stage('Build Project') {
-            steps {
-                script {
-                    echo 'Starting project build with Make...'
-                    // Use 'dir' step if your Makefile is in a subdirectory (e.g., 'src' or 'build')
-                    // dir('src') { // Uncomment and adjust if your Makefile is not in the repository root
-                        sh 'make all' // Executes the 'all' target in your Makefile
-                    // }
-                    echo 'Project build complete.'
+        stage('Build and Test Matrix') {
+            matrix {
+                axes {
+                    // Define the OS axis
+                    axis {
+                        name 'OS'
+                        values 'macos', 'linux'
+                    }
+                    // Define the ARCH (architecture) axis
+                    axis {
+                        name 'ARCH'
+                        values 'amd64', 'arm64'
+                    }
                 }
+                // Exclude invalid or currently unsupported combinations.
+                // Adjust these 'when' conditions based on your actual agents and FPC cross-compilation capabilities.
+                exclude {
+                    // Example: Exclude if you don't have a macOS ARM64 agent OR FPC cannot cross-compile to it.
+                    // This is for illustration; you'll need working agents for each combo.
+                    // When selecting agents for specific OS/ARCH, ensure the agent's label matches.
+                    // For instance, an agent for macOS ARM64 might have label 'macos-arm64'.
+                    // You might need to set 'agent { label "${OS}-${ARCH}" }' inside the matrix stages for specific agents.
+                    // Or, if your agent can cross-compile, 'agent any' and FPC_TARGET handling is enough.
+                    // For now, let's assume 'agent any' is sufficient and FPC handles targets.
+
+                    // If a specific OS/ARCH combination is not buildable or testable, exclude it here.
+                    // Example:
+                    // axis { name 'OS'; values 'macos' }
+                    // axis { name 'ARCH'; values 'arm64' }
+                    // agent { label 'your-x86-linux-agent' } // If this agent can't build macos-arm64
+                }
+
+                // Stages that will run for each combination in the matrix
+                stages {
+                    stage('Configure Target') {
+                        steps {
+                            script {
+                                // Dynamically set FPC_TARGET based on current OS and ARCH combination
+                                if (env.OS == 'macos') {
+                                    if (env.ARCH == 'amd64') {
+                                        env.FPC_TARGET = 'x86_64-darwin'
+                                    } else if (env.ARCH == 'arm64') {
+                                        env.FPC_TARGET = 'aarch64-darwin' // Or 'arm64-darwin' depending on FPC version
+                                    }
+                                } else if (env.OS == 'linux') {
+                                    if (env.ARCH == 'amd64') {
+                                        env.FPC_TARGET = 'x86_64-linux'
+                                    } else if (env.ARCH == 'arm64') {
+                                        env.FPC_TARGET = 'aarch64-linux' // Or 'arm-linux' depending on FPC version
+                                    }
+                                }
+                                // Construct the final executable name for this specific build
+                                env.CURRENT_APP_NAME = "${APP_NAME_BASE}-${env.OS}-${env.ARCH}"
+
+                                echo "Configuring build for OS: ${env.OS}, ARCH: ${env.ARCH}, FPC_TARGET: ${env.FPC_TARGET}"
+                                echo "Final executable name will be: ${env.CURRENT_APP_NAME}"
+                            }
+                        }
+                    }
+
+                    stage('Build') {
+                        steps {
+                            dir("${BUILD_DIR}") {
+                                echo "Building ${APP_NAME_BASE} for ${env.OS}-${env.ARCH}..."
+                                // Pass FPC_TARGET to make. Your Makefile must be set up to use this variable.
+                                // E.g., in Makefile: $(FPC) -T$(FPC_TARGET) ...
+                                sh "make all FPC_TARGET=${env.FPC_TARGET}"
+                                // Rename the compiled binary to include its OS and ARCH for archiving later
+                                sh "mv ${APP_NAME_BASE} ${env.CURRENT_APP_NAME}"
+                                echo 'Build completed.'
+                            }
+                        }
+                    }
+
+                    stage('Test') {
+                        // This stage will only run if your Makefile has a 'test:' target.
+                        when {
+                            expression {
+                                return fileExists('Makefile') && sh(returnStatus: true, script: 'grep -q "^test:" Makefile') == 0
+                            }
+                        }
+                        steps {
+                            echo "Running tests for ${env.OS}-${env.ARCH}..."
+                            // Assuming 'make test' is universal and runs tests for the current FPC_TARGET.
+                            // If tests need to be run natively on the target architecture (e.g., ARM64 tests on an ARM64 machine),
+                            // you might need a more complex setup with dedicated test agents or remote execution.
+                            sh 'make test'
+                            echo 'Tests finished.'
+                        }
+                        post {
+                            always {
+                                steps {
+                                    echo "Tests finished for ${env.OS}-${env.ARCH} (regardless of result)."
+                                    // Uncomment if you output JUnit-compatible results
+                                    // junit "test-results/${env.OS}-${env.ARCH}/**/*.xml"
+                                }
+                            }
+                        }
+                    }
+                } // <-- This 'stages' block ends here
+            } // <-- This 'matrix' block ends here
+        }
+
+        // The duplicate stage starts below here. Remove it.
+        // stage('Build and Test Matrix') {
+        //     matrix {
+        //         axes { // <-- This 'axes' block starts here
+        //             // Define the OS axis
+        //             axis {
+        //                 name 'OS'
+        //                 values 'macos', 'linux'
+        //             }
+        //             // Define the ARCH (architecture) axis
+        //             axis {
+        //                 name 'ARCH'
+        //                 values 'amd64', 'arm64'
+        //             }
+        //         } // <-- This 'axes' block ends here
+        //         exclude {
+        //             // ... exclusions ...
+        //         }
+        //         stages {
+        //             // ... configure target ...
+        //             // ... build ...
+        //             // ... test ...
+        //         }
+        //     }
+        // }
+
+
+        stage('Archive All Built Artifacts') {
+            // This stage runs once after all matrix combinations have completed.
+            steps {
+                echo 'Archiving all built executables from the matrix...'
+                // Archive all binaries created by the matrix builds.
+                // The pattern uses wildcards to match the renamed executables (e.g., KayteApp-macos-amd64).
+                archiveArtifacts artifacts: "${APP_NAME_BASE}-*-*", onlyIfSuccessful: true
+                echo 'Artifacts archived.'
             }
         }
 
-        stage('Run Tests') {
-            // Optional: Add this stage if you have unit tests for your Free Pascal project (e.g., using FPCUnit).
-            // Modify 'make test' or './YourTestsApp' based on how you run your tests.
-            when {
-                expression { return fileExists('Makefile') && sh(returnStatus: true, script: 'grep -q "^test:" Makefile') == 0 }
-            }
+        stage('Clean Workspace') {
+            // This stage ensures the workspace is clean after archiving.
             steps {
-                script {
-                    echo 'Running tests...'
-                    sh 'make test' // Assuming a 'test' target in your Makefile
-                    // Or, if you have a dedicated test executable:
-                    // sh './bin/YourTestsApp'
-                    echo 'Tests finished.'
-                }
-            }
-            post {
-                // Publish test results if your test runner generates reports (e.g., JUnit XML)
-                always {
-                    // Assuming your tests output JUnit XML reports in 'test-results/' directory
-                    // junit 'test-results/**/*.xml'
-                }
-            }
-        }
-
-        stage('Execute Main Application') {
-            steps {
-                script {
-                    echo "Executing main application: ${APP_NAME}..."
-                    // Run your compiled application. Adjust path if not in root.
-                    sh "./${APP_NAME}"
-                    echo 'Main application execution finished.'
-                }
-            }
-        }
-
-        stage('Clean Build Artifacts') {
-            steps {
-                script {
-                    echo 'Cleaning build artifacts...'
-                    sh 'make clean' // Executes the 'clean' target in your Makefile
-                    echo 'Build artifacts cleaned.'
-                }
+                echo 'Cleaning up the Jenkins workspace...'
+                // cleanWs() is a built-in Jenkins step to clean the entire workspace.
+                cleanWs()
+                echo 'Workspace cleaned.'
             }
         }
     }
 
     post {
-        // Post-build actions: These steps always execute at the end of the pipeline, regardless of stage success/failure.
+        // Post-build actions: These run once for the entire pipeline, after all stages (including matrix) complete.
         always {
-            echo 'Build pipeline finished.'
-            // Clean the entire Jenkins workspace (more aggressive than 'make clean')
-            cleanWs()
+            steps {
+                echo 'Pipeline execution completed.'
+            }
         }
         success {
-            echo 'Build successful! Archiving artifacts...'
-            // Archive the main executable and any other important build outputs.
-            // Adjust the pattern to match where your compiled binaries are located.
-            archiveArtifacts artifacts: "${APP_NAME}" // Archives the main application executable
-            // archiveArtifacts artifacts: 'bin/**/*, logs/**/*.log' // Example for multiple artifacts
+            steps {
+                echo 'Overall pipeline: SUCCESS!'
+                // Add global success notifications here if needed (e.g., email to team)
+            }
         }
         failure {
-            echo 'Build failed! Sending notification...'
-            // Add notification steps here (e.g., email, Slack, Teams)
-            // mail to: 'your-email@example.com',
-            //      subject: "Kayte Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            //      body: "The Kayte CI build has failed. Check console output: ${env.BUILD_URL}"
+            steps {
+                echo 'Overall pipeline: FAILED! Check console output for details.'
+                // Add global failure notifications here (e.g., email, Slack, Teams)
+                // mail to: 'your-email@example.com',
+                //      subject: "Kayte CI Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                //      body: "The Jenkins CI build for Kayte project failed. View details at: ${env.BUILD_URL}"
+            }
         }
         unstable {
-            echo 'Build was unstable (e.g., tests passed but static analysis warnings occurred)!'
+            steps {
+                echo 'Overall pipeline: UNSTABLE (e.g., some tests failed, or warnings occurred).'
+            }
         }
         // aborted {
-        //     echo 'Build was aborted!'
+        //     steps {
+        //         echo 'Overall pipeline: ABORTED!'
+        //     }
         // }
     }
 }
