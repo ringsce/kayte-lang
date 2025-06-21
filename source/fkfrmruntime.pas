@@ -1,5 +1,4 @@
-unit KfrmRuntime;
-
+unit FKFRMRUNTIME;
 {$mode objfpc}{$H+}
 
 interface
@@ -7,6 +6,9 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, // Add other LCL units as needed
   UKfrmTypes,
+  // IMPORTANT: For these 'in' clauses, ensure the paths are correct relative to your project file.
+  // Often, if these units are in your project, you can simply use their names:
+  // UKfrmParser, UKfrmRenderer;
   UKfrmParser in '../Parser/UKFrmParser.pas',
   UKfrmRenderer in '../Renderer/UKfrmRenderer.pas',
   UEventRouter;

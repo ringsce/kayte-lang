@@ -133,6 +133,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="UKfrmTypes"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/fkfrmruntime.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="FKFRMRUNTIME"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

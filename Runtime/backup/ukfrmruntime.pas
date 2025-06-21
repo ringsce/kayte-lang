@@ -1,20 +1,20 @@
-unit UKfrmRuntime;
-
+// UKfrmRuntime.pas -- NOTE: This unit's *filename* is typically UKfrmRuntime.pas.
+// The unit name 'FKFRMRUNTIME' below is used to satisfy a specific compiler error
+// in your current project setup, indicating the compiler expects this name.
+unit FKfrmRuntime; // <--- CHANGED TO FKFRMRUNTIME TO MATCH COMPILER'S EXPECTATION
 {$mode objfpc}{$H+}
 
 interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, // Add other LCL units as needed
-  UKfrmTypes,
-  // IMPORTANT: For these 'in' clauses, ensure the paths are correct relative to your project file.
-  // Often, if these units are in your project, you can simply use their names:
-  // UKfrmParser, UKfrmRenderer;
+  UKfrmTypes, // This unit name remains UKfrmTypes as it's a different file
   UKfrmParser in '../Parser/UKFrmParser.pas',
   UKfrmRenderer in '../Renderer/UKfrmRenderer.pas',
-  UEventRouter;
+  UEventRouter in '../VM/UEventRouter.pas'; // Corrected path to UEventRouter based on typical structure
 
 type
+  // The class name can remain TKfrmRuntime, as it's separate from the unit name.
   TKfrmRuntime = class
   private
     FKfrmParser: TKfrmParser;
@@ -140,3 +140,13 @@ begin
   begin
     for I := 0 to AForm.ControlCount - 1 do
     begin
+      if SameText(AForm.Controls[I].Name, AControlName) then
+      begin
+        Result := AForm.Controls[I];
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+end.

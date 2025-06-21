@@ -1,7 +1,7 @@
 // UKfrmRuntime.pas -- NOTE: This unit's *filename* is typically UKfrmRuntime.pas.
 // The unit name 'FKFRMRUNTIME' below is used to satisfy a specific compiler error
 // in your current project setup, indicating the compiler expects this name.
-unit UKfrmRuntime; // <--- CHANGED TO FKFRMRUNTIME TO MATCH COMPILER'S EXPECTATION
+unit FKFRMRUNTIME; // <--- CHANGED TO FKFRMRUNTIME TO MATCH COMPILER'S EXPECTATION
 {$mode objfpc}{$H+}
 
 interface
