@@ -7,19 +7,32 @@ uses
   TokenDefs,     // <--- Correctly uses for TToken, TTokenType
   Lexer,         // For TLexer
   BytecodeTypes, // <--- Correctly uses for TBCValue and CreateBCValue* functions
-  TypInfo;       // For GetEnumName
+  TypInfo, fgl, Forms, StdCtrls,
+  FKfrmRuntime in '../Runtime/UKfrmRuntime.pas';       // For GetEnumName
 
 // Remove 'Forms' unless you actually need it in the interface for GUI elements.
 // Remove the explicit declarations of CreateBCValue* functions here. They are in BytecodeTypes.pas
 
 type
+  IInterpreterCallback = interface
+    procedure Log(const Msg: String);
+  end;
+
+  TVM = class
+  private
+    FCallback: IInterpreterCallback;
+
+  public
+    destructor Destroy; override;
+    constructor Create(ACallback: IInterpreterCallback);
+    procedure ExecuteInterpretedFunction(const AFunctionName: String);
+  end;
+
   TParser = class
   private
-    // --- ALL FIELDS MUST BE DECLARED FIRST IN THIS SECTION ---
     FLexer: TLexer;
-    FCurrentToken: TToken; // <--- Make sure this line is here, AT THE TOP OF 'private'
+    FCurrentToken: TToken;
 
-    // --- THEN ALL METHODS AND PROPERTIES ---
     procedure ConsumeToken(ExpectedType: TTokenType);
     function PeekToken: TToken;
 
@@ -28,18 +41,83 @@ type
     procedure ParseLetStatement(const VarName: String);
     procedure ParseIfStatement;
 
-    function ParseExpression: TBCValue; forward; // Forward declarations are fine here
-    function ParseTerm: TBCValue; forward;
-    function ParseFactor: TBCValue; forward;
+    function ParseExpression: TBCValue;
+    function ParseTerm: TBCValue;
+    function ParseFactor: TBCValue;
 
-  public // Public methods are fine after private methods, but public fields would also go at the top of 'public'
+  public
     constructor Create(ALexer: TLexer);
     destructor Destroy; override;
     procedure ParseProgram;
   end;
 
+  implementation
 
-implementation
+{ TVM }
+
+  constructor TVM.Create(ACallback: IInterpreterCallback);
+  begin
+    inherited Create;
+    FCallback := ACallback;
+    if Assigned(FCallback) then
+      FCallback.Log('VM: Virtual Machine created and initialized.');
+  end;
+
+  destructor TVM.Destroy;
+  begin
+    if Assigned(FCallback) then
+      FCallback.Log('VM: Virtual Machine destroyed.');
+    inherited Destroy;
+  end;
+
+  procedure TVM.ExecuteInterpretedFunction(const AFunctionName: String);
+  var
+    LoadedLoginForm: TForm;
+    UsernameEdit: TEdit;
+    PasswordEdit: TEdit;
+  begin
+    if Assigned(FCallback) then
+      FCallback.Log(SysUtils.Format('VM: Attempting to execute interpreted function: %s', [AFunctionName]));
+
+    if AFunctionName = 'HandleLoginButton' then
+    begin
+      if Assigned(FCallback) then
+      begin
+        FCallback.Log('VM: Executing interpreted HandleLoginButton logic.');
+
+        LoadedLoginForm := FKfrmRuntime.GetLoadedForm('LoginForm');
+        if Assigned(LoadedLoginForm) then
+        begin
+          UsernameEdit := TEdit(FKfrmRuntime.GetControlFromForm(LoadedLoginForm, 'EditUsername'));
+          PasswordEdit := TEdit(FKfrmRuntime.GetControlFromForm(LoadedLoginForm, 'EditPassword'));
+
+          if Assigned(UsernameEdit) and Assigned(PasswordEdit) then
+          begin
+            FCallback.Log(SysUtils.Format('Interpreted Login - Username: "%s", Password: "%s"', [UsernameEdit.Text, PasswordEdit.Text]));
+
+            if (UsernameEdit.Text = 'admin') and (PasswordEdit.Text = 'password') then
+              FCallback.Log('VM: Login Successful (interpreted)')
+            else
+              FCallback.Log('VM: Login Failed (interpreted)');
+          end;
+        end;
+      end;
+    end
+    else if AFunctionName = 'HandleCancelButton' then
+    begin
+      if Assigned(FCallback) then
+      begin
+        FCallback.Log('VM: Executing interpreted HandleCancelButton logic. Closing form.');
+        FKfrmRuntime.CloseKfrmForm('LoginForm');
+      end;
+    end
+    else
+    begin
+      if Assigned(FCallback) then
+        FCallback.Log(SysUtils.Format('VM: Interpreted function "%s" not found or not handled by VM.', [AFunctionName]));
+    end;
+  end;
+
 
 { TParser }
 

@@ -5,7 +5,8 @@ unit CLI;
 interface
 
 uses
-  SysUtils, Bytecode,
+  SysUtils,
+  Bytecode in '../source/ByteCode.pas',
   KayteParser in '../source/kayteparser.pas',
   VirtualMachine in '../source/virtualmachine.pas';
 

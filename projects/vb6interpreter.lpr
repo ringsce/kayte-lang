@@ -6,7 +6,7 @@ uses
   SysUtils, Classes, StrUtils, Contnrs, // <- Contnrs gives you TStack,
   InterpreterUtils, InterpreterCore, fgl, VBCompiler, Forms, Interfaces,
   BytecodeTypes, BytecodeVM, Lexer,         // Your new lexer unit
-  Parser, dhtml, tokenDefs;        // Your new parser unit;
+  Parser, dhtml, tokenDefs,StdCtrls, Unit1;        // Your new parser unit;
 //, SynVBHighlighter;
    // dhtml enable when its right, dhtml is webasm technology not ready
 type
@@ -19,6 +19,7 @@ type
     intValue: Integer;
     strValue: String;
   end;
+
   PVariable = ^TVariable;
 
   TLoop = record

@@ -7,8 +7,7 @@
       <Unit>
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="2"/>
-        <CursorPos X="30" Y="8"/>
+        <CursorPos X="16" Y="9"/>
         <UsageCount Value="204"/>
         <Loaded Value="True"/>
       </Unit>
@@ -16,7 +15,7 @@
         <Filename Value="../source/interpreterutils.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="InterpreterUtils"/>
-        <EditorIndex Value="14"/>
+        <EditorIndex Value="19"/>
         <TopLine Value="82"/>
         <CursorPos X="11" Y="99"/>
         <UsageCount Value="204"/>
@@ -26,7 +25,7 @@
         <Filename Value="../source/interpretercore.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="InterpreterCore"/>
-        <EditorIndex Value="9"/>
+        <EditorIndex Value="14"/>
         <CursorPos X="36" Y="784"/>
         <UsageCount Value="204"/>
         <Loaded Value="True"/>
@@ -34,7 +33,7 @@
       <Unit>
         <Filename Value="../source/dhtml.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="12"/>
+        <EditorIndex Value="17"/>
         <CursorPos X="30" Y="6"/>
         <UsageCount Value="204"/>
         <Loaded Value="True"/>
@@ -43,7 +42,7 @@
         <Filename Value="../source/vbcompiler.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VBCompiler"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="13"/>
         <CursorPos X="54"/>
         <UsageCount Value="204"/>
         <Loaded Value="True"/>
@@ -52,7 +51,7 @@
         <Filename Value="../source/synvbhighlighter.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="SynVBHighlighter"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="12"/>
         <TopLine Value="472"/>
         <CursorPos X="5" Y="505"/>
         <UsageCount Value="204"/>
@@ -62,7 +61,7 @@
         <Filename Value="../source/jsbindings.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="JSBindings"/>
-        <EditorIndex Value="13"/>
+        <EditorIndex Value="18"/>
         <CursorPos X="11" Y="17"/>
         <UsageCount Value="214"/>
         <Loaded Value="True"/>
@@ -71,7 +70,7 @@
         <Filename Value="../source/wincominterop.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="WinComInterop"/>
-        <EditorIndex Value="11"/>
+        <EditorIndex Value="16"/>
         <TopLine Value="115"/>
         <CursorPos X="5" Y="149"/>
         <UsageCount Value="221"/>
@@ -90,50 +89,47 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="BytecodeTypes"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="60"/>
-        <CursorPos X="43" Y="80"/>
-        <UsageCount Value="143"/>
+        <CursorPos X="6"/>
+        <UsageCount Value="147"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/bytecodevm.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="BytecodeVM"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="11"/>
         <TopLine Value="397"/>
         <CursorPos Y="424"/>
-        <UsageCount Value="143"/>
+        <UsageCount Value="147"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/lexer.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Lexer"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="9"/>
         <TopLine Value="26"/>
         <CursorPos Y="10"/>
-        <UsageCount Value="143"/>
+        <UsageCount Value="147"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/parser.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Parser"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="14"/>
-        <CursorPos X="3" Y="41"/>
-        <UsageCount Value="143"/>
+        <CursorPos X="31" Y="11"/>
+        <UsageCount Value="147"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/vmui.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VMUI"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="15"/>
         <TopLine Value="74"/>
         <CursorPos X="5" Y="107"/>
-        <UsageCount Value="142"/>
+        <UsageCount Value="146"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -142,104 +138,102 @@
         <UnitName Value="FormGenerator"/>
         <EditorIndex Value="2"/>
         <CursorPos Y="3"/>
-        <UsageCount Value="140"/>
+        <UsageCount Value="144"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/tokendefs.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="tokenDefs"/>
-        <EditorIndex Value="5"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="10"/>
         <TopLine Value="45"/>
         <CursorPos Y="78"/>
-        <UsageCount Value="67"/>
+        <UsageCount Value="71"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/umaininterpreterform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UMainInterpreterForm"/>
+        <EditorIndex Value="8"/>
+        <UsageCount Value="24"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/umaininterpreterform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UMainInterpreterForm"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="5"/>
+        <UsageCount Value="21"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/uvm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UVM"/>
+        <EditorIndex Value="7"/>
+        <TopLine Value="198"/>
+        <CursorPos X="5" Y="231"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/uparsertypes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UParserTypes"/>
+        <EditorIndex Value="4"/>
+        <CursorPos X="5"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../Runtime/kfrmruntime.pas"/>
+        <UnitName Value="KfrmRuntime"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="116"/>
+        <CursorPos X="76" Y="148"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../Runtime/UKfrmRuntime.pas"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="119"/>
+        <CursorPos X="17" Y="152"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/ukfrmtypes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UKfrmTypes"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="9"/>
+        <CursorPos X="22" Y="26"/>
+        <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="29">
+    <JumpHistory HistoryIndex="26">
       <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="76" Column="3" TopLine="47"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="40" Column="6" TopLine="19"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="9" TopLine="4"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="76" Column="12" TopLine="59"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="83" TopLine="50"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="65" Column="5" TopLine="54"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="90" TopLine="88"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="59" Column="7" TopLine="44"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="61" Column="3" TopLine="58"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="15"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="9"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="4"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="76" Column="44" TopLine="60"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="77" Column="10" TopLine="60"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="80" Column="43" TopLine="60"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/tokendefs.pas"/>
-        <Caret Line="42" Column="88" TopLine="25"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/tokendefs.pas"/>
-        <Caret Line="39" Column="15" TopLine="25"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/tokendefs.pas"/>
-        <Caret Line="78" TopLine="45"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="22" Column="3" TopLine="13"/>
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
-        <Caret Line="39" TopLine="12"/>
+        <Caret Line="15" TopLine="12"/>
       </Position>
       <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="38" TopLine="12"/>
+        <Filename Value="../source/formgenerator.pas"/>
+        <Caret Line="32" TopLine="16"/>
       </Position>
       <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="19" Column="5" TopLine="12"/>
+        <Filename Value="../source/uvm.pas"/>
+        <Caret Line="231" Column="5" TopLine="198"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/formgenerator.pas"/>
+        <Caret Line="3"/>
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
@@ -247,35 +241,86 @@
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
-        <Caret Line="41" Column="3" TopLine="12"/>
+        <Caret Line="33" Column="5" TopLine="26"/>
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
-        <Caret Line="31" Column="7" TopLine="14"/>
+        <Caret Line="81" Column="42" TopLine="50"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/uparsertypes.pas"/>
+        <Caret Line="404" Column="5" TopLine="371"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/formgenerator.pas"/>
+        <Caret Line="3"/>
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
-        <Caret Line="33" Column="7" TopLine="15"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/lexer.pas"/>
-        <Caret Line="10" TopLine="26"/>
+        <Caret Line="19" Column="3" TopLine="12"/>
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
-        <Caret Line="33" Column="5" TopLine="5"/>
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
-        <Caret Line="31" Column="41" TopLine="14"/>
+        <Caret Line="71" TopLine="40"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/bytecodetypes.pas"/>
+        <Caret Line="80" Column="43" TopLine="60"/>
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
-        <Caret Line="40" TopLine="14"/>
+        <Caret Line="10" Column="32"/>
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
-        <Caret Line="31" Column="41" TopLine="14"/>
+        <Caret Line="120" Column="3" TopLine="87"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="11" Column="31"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/uparsertypes.pas"/>
+        <Caret Column="5"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/ukfrmtypes.pas"/>
+        <Caret Line="174" Column="111" TopLine="141"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/formgenerator.pas"/>
+        <Caret Line="3"/>
+      </Position>
+      <Position>
+        <Filename Value="../Runtime/UKfrmRuntime.pas"/>
+        <Caret Column="7"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/ukfrmtypes.pas"/>
+        <Caret Line="26" Column="22" TopLine="9"/>
+      </Position>
+      <Position>
+        <Filename Value="../Runtime/UKfrmRuntime.pas"/>
+        <Caret Column="18"/>
+      </Position>
+      <Position>
+        <Filename Value="../Runtime/UKfrmRuntime.pas"/>
+        <Caret Line="149" Column="5" TopLine="116"/>
+      </Position>
+      <Position>
+        <Filename Value="../Runtime/UKfrmRuntime.pas"/>
+        <Caret Line="30" Column="51"/>
+      </Position>
+      <Position>
+        <Filename Value="../Runtime/UKfrmRuntime.pas"/>
+        <Caret Line="136" Column="40" TopLine="109"/>
+      </Position>
+      <Position>
+        <Filename Value="../Runtime/UKfrmRuntime.pas"/>
+        <Caret Line="152" Column="5" TopLine="119"/>
       </Position>
     </JumpHistory>
     <RunParams>

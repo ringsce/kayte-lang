@@ -1,0 +1,56 @@
+[Form]
+Name=LoginForm
+Caption=Login to System
+Width=400
+Height=300
+Position=poScreenCenter ; Lazarus LCL property for centering a form
+
+[Controls.LabelUsername]
+Type=TLabel
+Caption=Username:
+Left=50
+Top=50
+Width=100
+Height=25
+
+[Controls.EditUsername]
+Type=TEdit
+Text=
+Left=160
+Top=50
+Width=180
+Height=28
+
+[Controls.LabelPassword]
+Type=TLabel
+Caption=Password:
+Left=50
+Top=100
+Width=100
+Height=25
+
+[Controls.EditPassword]
+Type=TEdit
+PasswordChar=*
+Left=160
+Top=100
+Width=180
+Height=28
+
+[Controls.ButtonLogin]
+Type=TButton
+Caption=Login
+Left=160
+Top=150
+Width=100
+Height=35
+OnClick=HandleLoginButton ; This references a function in your *interpreted Kayte code*
+
+[Controls.ButtonCancel]
+Type=TButton
+Caption=Cancel
+Left=270
+Top=150
+Width=100
+Height=35
+OnClick=HandleCancelButton ; This references another function in your *interpreted Kayte code*

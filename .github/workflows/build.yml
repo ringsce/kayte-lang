@@ -17,7 +17,7 @@ jobs:
     runs-on: macos-13 # macos-13 runs on Intel for now, allowing cross-compilation for ARM64
 
     env:
-      APP_NAME_MAIN: KayteApp          # Main executable from Kayte.lpr
+      APP_NAME_MAIN: Kayte          # Main executable from Kayte.lpr
       APP_NAME_INTERPRETER: vb6interpreter # Executable from vb6interpreter.lpr
       BUILD_DIR: .                     # Directory containing your .pas/.lpr files relative to repository root
       UNIVERSAL_APP_NAME: KayteApp-macos-universal # Name for the combined universal binary

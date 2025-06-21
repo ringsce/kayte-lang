@@ -108,6 +108,31 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="tokenDefs"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/umaininterpreterform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UMainInterpreterForm"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/umaininterpreterform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UMainInterpreterForm"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/uvm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UVM"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/uparsertypes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UParserTypes"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/ukfrmtypes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UKfrmTypes"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

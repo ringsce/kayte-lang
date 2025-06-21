@@ -4,6 +4,7 @@ uses
   SysUtils, Classes,
   VMUI; // Your new unit with form/control definitions
 
+interface
 procedure SaveVMFormDefinition(const FormDef: TVMFormDefinition; const FileName: String);
 var
   SL: TStringList;

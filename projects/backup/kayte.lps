@@ -7,9 +7,7 @@
       <Unit>
         <Filename Value="kayte.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="24"/>
-        <CursorPos X="5" Y="37"/>
+        <CursorPos X="39" Y="36"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
       </Unit>
@@ -108,8 +106,9 @@
         <Filename Value="../source/cli.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="CLI"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="10"/>
-        <CursorPos X="7" Y="23"/>
+        <CursorPos X="39" Y="9"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -189,7 +188,7 @@
         <EditorIndex Value="11"/>
         <TopLine Value="104"/>
         <CursorPos X="12" Y="122"/>
-        <UsageCount Value="121"/>
+        <UsageCount Value="122"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -198,7 +197,7 @@
         <EditorIndex Value="12"/>
         <TopLine Value="20"/>
         <CursorPos X="29" Y="37"/>
-        <UsageCount Value="75"/>
+        <UsageCount Value="76"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -206,7 +205,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="18"/>
-        <UsageCount Value="70"/>
+        <UsageCount Value="71"/>
       </Unit>
       <Unit>
         <Filename Value="kayte_compiler.pas"/>
@@ -214,7 +213,7 @@
         <EditorIndex Value="5"/>
         <TopLine Value="27"/>
         <CursorPos X="35" Y="43"/>
-        <UsageCount Value="69"/>
+        <UsageCount Value="70"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -223,7 +222,7 @@
         <EditorIndex Value="6"/>
         <TopLine Value="4"/>
         <CursorPos Y="38"/>
-        <UsageCount Value="69"/>
+        <UsageCount Value="70"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -231,7 +230,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="2"/>
         <CursorPos X="17"/>
-        <UsageCount Value="69"/>
+        <UsageCount Value="70"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -239,7 +238,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="4"/>
         <CursorPos Y="41"/>
-        <UsageCount Value="68"/>
+        <UsageCount Value="69"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -247,7 +246,16 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="BuildKayte"/>
         <EditorIndex Value="3"/>
-        <UsageCount Value="67"/>
+        <UsageCount Value="68"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/kaytesyntax.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KayteSyntax"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="17"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -285,16 +293,7 @@
         <EditorIndex Value="7"/>
         <TopLine Value="25"/>
         <CursorPos Y="44"/>
-        <UsageCount Value="66"/>
-        <Loaded Value="True"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/kaytesyntax.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="KayteSyntax"/>
-        <EditorIndex Value="1"/>
-        <CursorPos X="17"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="67"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
@@ -417,7 +416,7 @@
       </Position>
       <Position>
         <Filename Value="kayte.lpr"/>
-        <Caret Line="37" Column="36" TopLine="24"/>
+        <Caret Line="37" Column="5" TopLine="24"/>
       </Position>
     </JumpHistory>
     <RunParams>

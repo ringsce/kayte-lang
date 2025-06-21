@@ -1,5 +1,4 @@
 unit FormGenerator;
-// Add to your Bytecode Compiler part (or a separate FormGenerator.pas)
 
 uses
   SysUtils, Classes,
