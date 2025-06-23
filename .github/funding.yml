@@ -2,14 +2,15 @@
 # You can add up to four entries for 'github' and 'custom'.
 # For other platforms, you can typically add a single username.
 
-github: [vic3t3chn0, ringsce] # Replace with your GitHub username(s) or organization name(s) that are set up for GitHub Sponsors. You can list up to 4.
+github: [vic3t3chn0, ringsce] # Correct: This is a list of GitHub usernames/organizations.
 
 # Other popular platforms:
-paypal: "https://paypal.me/pdvice?country.x=PT&locale.x=pt_PT"      # Replace with your PayPal.me username/link (e.g., yourname@example.com is not supported here directly)
-liberpay: pdvicente
+paypal: "https://paypal.me/pdvice?country.x=PT&locale.x=pt_PT" # Correct: When the URL contains a colon (like in https://), it must be enclosed in quotes. Your link is valid.
+
+liberpay: pdvicente # Correct: This platform expects just the username.
+
 # You can also add custom URLs for other funding methods.
 # You can list up to 4 custom URLs.
 # If a URL contains a colon (like in https://), you MUST wrap the URL in quotes.
 custom:
-  - "https://ringscejs.gleentech.com/donate" # Example custom donation page
-  
+  - "https://ringscejs.gleentech.com/donate" # Correct: This is a valid custom URL, and it's properly quoted because it contains colons.
