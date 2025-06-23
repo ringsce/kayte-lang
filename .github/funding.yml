@@ -5,7 +5,7 @@
 github: [vic3t3chn0, ringsce] # Replace with your GitHub username(s) or organization name(s) that are set up for GitHub Sponsors. You can list up to 4.
 
 # Other popular platforms:
-paypal:https://paypal.me/pdvice?country.x=PT&locale.x=pt_PT       # Replace with your PayPal.me username/link (e.g., yourname@example.com is not supported here directly)
+paypal: "https://paypal.me/pdvice?country.x=PT&locale.x=pt_PT"      # Replace with your PayPal.me username/link (e.g., yourname@example.com is not supported here directly)
 liberpay: pdvicente
 # You can also add custom URLs for other funding methods.
 # You can list up to 4 custom URLs.
