@@ -12,9 +12,8 @@ pipeline {
         PROJECT_NAME_KAYTE = 'Kayte'
         PROJECT_NAME_VB6_INTERPRETER = 'vb6interpreter'
 
-        // Define the common build directory relative to the workspace root
-        // This indicates your .lpr files are located in a 'projects' subfolder.
-        BUILD_DIR = 'projects' // This is the subdirectory containing your .lpr files
+        // Define the subdirectory where your .lpr files are located
+        LPR_DIR = 'projects' 
         
         // Define the output directory for consolidated binaries, relative to workspace root
         OUTPUT_BIN_DIR = "build_artifacts"
@@ -68,53 +67,56 @@ pipeline {
                     sh "mkdir -p ${vb6_arm64_fpc_out_dir}"
 
 
-                    // --- Build Kayte for x86_64 ---
-                    echo "Building ${PROJECT_NAME_KAYTE} for macOS x86_64..."
-                    // FPC command runs from workspace root (./), reads projects/Kayte.lpr, outputs to temp dir
-                    sh "fpc ${BUILD_DIR}/${PROJECT_NAME_KAYTE}.lpr -B -O3 -Tdarwin -Px86_64 -FE${kayte_x86_64_fpc_out_dir} -FU${kayte_x86_64_fpc_out_dir}"
-                    // Move compiled executable to final output directory
-                    sh "mv ${kayte_x86_64_fpc_out_dir}/${PROJECT_NAME_KAYTE} ${OUTPUT_BIN_DIR}/${PROJECT_NAME_KAYTE}-macos-x86_64"
-                    sh "chmod +x ${OUTPUT_BIN_DIR}/${PROJECT_NAME_KAYTE}-macos-x86_64"
+                    // Use 'dir' to change into the workspace root so FPC can find all relevant project files
+                    dir('.') { // Execute FPC commands from the repository root
+                        // --- Build Kayte for x86_64 ---
+                        echo "Building ${PROJECT_NAME_KAYTE} for macOS x86_64..."
+                        // Added -I./source to include the 'source' directory in FPC's search path for units
+                        sh "fpc ${LPR_DIR}/${PROJECT_NAME_KAYTE}.lpr -B -O3 -Tdarwin -Px86_64 -FE${kayte_x86_64_fpc_out_dir} -FU${kayte_x86_64_fpc_out_dir} -I. -I./source" 
+                        // Move compiled executable to final output directory
+                        sh "mv ${kayte_x86_64_fpc_out_dir}/${PROJECT_NAME_KAYTE} ${OUTPUT_BIN_DIR}/${PROJECT_NAME_KAYTE}-macos-x86_64"
+                        sh "chmod +x ${OUTPUT_BIN_DIR}/${PROJECT_NAME_KAYTE}-macos-x86_64"
 
 
-                    // --- Build Kayte for arm64 ---
-                    echo "Building ${PROJECT_NAME_KAYTE} for macOS arm64..."
-                    sh "fpc ${BUILD_DIR}/${PROJECT_NAME_KAYTE}.lpr -B -O3 -Tdarwin -Paarch64 -FE${kayte_arm64_fpc_out_dir} -FU${kayte_arm64_fpc_out_dir}"
-                    sh "mv ${kayte_arm64_fpc_out_dir}/${PROJECT_NAME_KAYTE} ${OUTPUT_BIN_DIR}/${PROJECT_NAME_KAYTE}-macos-arm64"
-                    sh "chmod +x ${OUTPUT_BIN_DIR}/${PROJECT_NAME_KAYTE}-macos-arm64"
+                        // --- Build Kayte for arm64 ---
+                        echo "Building ${PROJECT_NAME_KAYTE} for macOS arm64..."
+                        sh "fpc ${LPR_DIR}/${PROJECT_NAME_KAYTE}.lpr -B -O3 -Tdarwin -Paarch64 -FE${kayte_arm64_fpc_out_dir} -FU${kayte_arm64_fpc_out_dir} -I. -I./source"
+                        sh "mv ${kayte_arm64_fpc_out_dir}/${PROJECT_NAME_KAYTE} ${OUTPUT_BIN_DIR}/${PROJECT_NAME_KAYTE}-macos-arm64"
+                        sh "chmod +x ${OUTPUT_BIN_DIR}/${PROJECT_NAME_KAYTE}-macos-arm64"
 
 
-                    // --- Create Universal Binary for Kayte using lipo ---
-                    echo "Creating universal binary: ${UNIVERSAL_APP_NAME_KAYTE}..."
-                    sh "lipo -create -output \"${OUTPUT_BIN_DIR}/${UNIVERSAL_APP_NAME_KAYTE}\" " +
-                       "\"${kayte_x86_64_fpc_out_dir}/${PROJECT_NAME_KAYTE}\" " + 
-                       "\"${kayte_arm64_fpc_out_dir}/${PROJECT_NAME_KAYTE}\""
-                    sh "chmod +x \"${OUTPUT_BIN_DIR}/${UNIVERSAL_APP_NAME_KAYTE}\""
-                    echo "${UNIVERSAL_APP_NAME_KAYTE} build completed."
+                        // --- Create Universal Binary for Kayte using lipo ---
+                        echo "Creating universal binary: ${UNIVERSAL_APP_NAME_KAYTE}..."
+                        sh "lipo -create -output \"${OUTPUT_BIN_DIR}/${UNIVERSAL_APP_NAME_KAYTE}\" " +
+                           "\"${kayte_x86_64_fpc_out_dir}/${PROJECT_NAME_KAYTE}\" " + 
+                           "\"${kayte_arm64_fpc_out_dir}/${PROJECT_NAME_KAYTE}\""
+                        sh "chmod +x \"${OUTPUT_BIN_DIR}/${UNIVERSAL_APP_NAME_KAYTE}\""
+                        echo "${UNIVERSAL_APP_NAME_KAYTE} build completed."
 
 
-                    // --- Build vb6interpreter for x86_64 ---
-                    echo "Building ${PROJECT_NAME_VB6_INTERPRETER} for macOS x86_64..."
-                    sh "fpc ${BUILD_DIR}/${PROJECT_NAME_VB6_INTERPRETER}.lpr -B -O3 -Tdarwin -Px86_64 -FE${vb6_x86_64_fpc_out_dir} -FU${vb6_x86_64_fpc_out_dir}"
-                    sh "mv ${vb6_x86_64_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER} ${OUTPUT_BIN_DIR}/${PROJECT_NAME_VB6_INTERPRETER}-macos-x86_64"
-                    sh "chmod +x ${OUTPUT_BIN_DIR}/${PROJECT_NAME_VB6_INTERPRETER}-macos-x86_64"
+                        // --- Build vb6interpreter for x86_64 ---
+                        echo "Building ${PROJECT_NAME_VB6_INTERPRETER} for macOS x86_64..."
+                        sh "fpc ${LPR_DIR}/${PROJECT_NAME_VB6_INTERPRETER}.lpr -B -O3 -Tdarwin -Px86_64 -FE${vb6_x86_64_fpc_out_dir} -FU${vb6_x86_64_fpc_out_dir} -I. -I./source"
+                        sh "mv ${vb6_x86_64_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER} ${OUTPUT_BIN_DIR}/${PROJECT_NAME_VB6_INTERPRETER}-macos-x86_64"
+                        sh "chmod +x ${OUTPUT_BIN_DIR}/${PROJECT_NAME_VB6_INTERPRETER}-macos-x86_64"
 
 
-                    // --- Build vb6interpreter for arm64 ---
-                    echo "Building ${PROJECT_NAME_VB6_INTERPRETER} for macOS arm64..."
-                    sh "fpc ${BUILD_DIR}/${PROJECT_NAME_VB6_INTERPRETER}.lpr -B -O3 -Tdarwin -Paarch64 -FE${vb6_arm64_fpc_out_dir} -FU${vb6_arm64_fpc_out_dir}"
-                    sh "mv ${vb6_arm64_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER} ${OUTPUT_BIN_DIR}/${PROJECT_NAME_VB6_INTERPRETER}-macos-arm64"
-                    sh "chmod +x ${OUTPUT_BIN_DIR}/${PROJECT_NAME_VB6_INTERPRETER}-macos-arm64"
+                        // --- Build vb6interpreter for arm64 ---
+                        echo "Building ${PROJECT_NAME_VB6_INTERPRETER} for macOS arm64..."
+                        sh "fpc ${LPR_DIR}/${PROJECT_NAME_VB6_INTERPRETER}.lpr -B -O3 -Tdarwin -Paarch64 -FE${vb6_arm64_fpc_out_dir} -FU${vb6_arm64_fpc_out_dir} -I. -I./source"
+                        sh "mv ${vb6_arm64_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER} ${OUTPUT_BIN_DIR}/${PROJECT_NAME_VB6_INTERPRETER}-macos-arm64"
+                        sh "chmod +x ${OUTPUT_BIN_DIR}/${PROJECT_NAME_VB6_INTERPRETER}-macos-arm64"
 
-                    // If you also want a universal binary for vb6interpreter, uncomment and adjust this:
-                    // echo "Creating universal binary: ${UNIVERSAL_APP_NAME_VB6_INTERPRETER}..."
-                    // sh "lipo -create -output \"${OUTPUT_BIN_DIR}/${UNIVERSAL_APP_NAME_VB6_INTERPRETER}\" " +
-                    //    "\"${vb6_x86_64_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER}\" " +
-                    //    "\"${vb6_arm64_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER}\""
-                    // sh "chmod +x \"${OUTPUT_BIN_DIR}/${UNIVERSAL_APP_NAME_VB6_INTERPRETER}\""
-                    // echo "${UNIVERSAL_APP_NAME_VB6_INTERPRETER} build completed."
+                        // If you also want a universal binary for vb6interpreter, uncomment and adjust this:
+                        // echo "Creating universal binary: ${UNIVERSAL_APP_NAME_VB6_INTERPRETER}..."
+                        // sh "lipo -create -output \"${OUTPUT_BIN_DIR}/${UNIVERSAL_APP_NAME_VB6_INTERPRETER}\" " +
+                        //    "\"${vb6_x86_64_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER}\" " +
+                        //    "\"${vb6_arm64_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER}\""
+                        // sh "chmod +x \"${OUTPUT_BIN_DIR}/${UNIVERSAL_APP_NAME_VB6_INTERPRETER}\""
+                        // echo "${UNIVERSAL_APP_NAME_VB6_INTERPRETER} build completed."
 
-                    echo "macOS native and universal builds completed."
+                        echo "macOS native and universal builds completed."
+                    } // End of dir('.') block
                 }
             }
             post {
@@ -171,18 +173,20 @@ pipeline {
                                 sh "mkdir -p ${vb6_fpc_out_dir}"
                             }
 
+                            // Use 'dir' to change into the workspace root
+                            dir('.') { 
+                                echo "Building ${PROJECT_NAME_KAYTE} for ${env.FPC_OS_FLAG}-${env.FPC_CPU_FLAG}..."
+                                sh "fpc ${LPR_DIR}/${PROJECT_NAME_KAYTE}.lpr -B -O3 -T${FPC_OS_FLAG} -P${FPC_CPU_FLAG} -FE${kayte_fpc_out_dir} -FU${kayte_fpc_out_dir} -I. -I./source"
+                                sh "mv ${kayte_fpc_out_dir}/${PROJECT_NAME_KAYTE} ${OUTPUT_BIN_DIR}/${CURRENT_MAIN_APP_NAME}"
+                                sh "chmod +x ${OUTPUT_BIN_DIR}/${CURRENT_MAIN_APP_NAME}"
+                                echo "${PROJECT_NAME_KAYTE} build completed."
 
-                            echo "Building ${PROJECT_NAME_KAYTE} for ${env.FPC_OS_FLAG}-${env.FPC_CPU_FLAG}..."
-                            sh "fpc ${BUILD_DIR}/${PROJECT_NAME_KAYTE}.lpr -B -O3 -T${FPC_OS_FLAG} -P${FPC_CPU_FLAG} -FE${kayte_fpc_out_dir} -FU${kayte_fpc_out_dir}"
-                            sh "mv ${kayte_fpc_out_dir}/${PROJECT_NAME_KAYTE} ${OUTPUT_BIN_DIR}/${CURRENT_MAIN_APP_NAME}"
-                            sh "chmod +x ${OUTPUT_BIN_DIR}/${CURRENT_MAIN_APP_NAME}"
-                            echo "${PROJECT_NAME_KAYTE} build completed."
-
-                            echo "Building ${PROJECT_NAME_VB6_INTERPRETER} for ${env.FPC_OS_FLAG}-${env.FPC_CPU_FLAG}..."
-                            sh "fpc ${BUILD_DIR}/${PROJECT_NAME_VB6_INTERPRETER}.lpr -B -O3 -T${FPC_OS_FLAG} -P${FPC_CPU_FLAG} -FE${vb6_fpc_out_dir} -FU${vb6_fpc_out_dir}"
-                            sh "mv ${vb6_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER} ${OUTPUT_BIN_DIR}/${CURRENT_INTERPRETER_APP_NAME}"
-                            sh "chmod +x ${OUTPUT_BIN_DIR}/${CURRENT_INTERPRETER_APP_NAME}"
-                            echo "${PROJECT_NAME_VB6_INTERPRETER} build completed."
+                                echo "Building ${PROJECT_NAME_VB6_INTERPRETER} for ${env.FPC_OS_FLAG}-${env.FPC_CPU_FLAG}..."
+                                sh "fpc ${LPR_DIR}/${PROJECT_NAME_VB6_INTERPRETER}.lpr -B -O3 -T${FPC_OS_FLAG} -P${FPC_CPU_FLAG} -FE${vb6_fpc_out_dir} -FU${vb6_fpc_out_dir} -I. -I./source"
+                                sh "mv ${vb6_fpc_out_dir}/${PROJECT_NAME_VB6_INTERPRETER} ${OUTPUT_BIN_DIR}/${CURRENT_INTERPRETER_APP_NAME}"
+                                sh "chmod +x ${OUTPUT_BIN_DIR}/${CURRENT_INTERPRETER_APP_NAME}"
+                                echo "${PROJECT_NAME_VB6_INTERPRETER} build completed."
+                            } // End of dir('.') block
                         }
                     }
 
@@ -194,7 +198,7 @@ pipeline {
                             }
                         }
                         steps {
-                            echo "Running tests for ${env.FPC_OS_FLAG}-${env.FPC_CPU_FLAG}..."
+                            // Ensure the test script is run from the workspace root or handles paths correctly
                             sh "tests/run_linux_tests.sh ${OUTPUT_BIN_DIR}/${CURRENT_MAIN_APP_NAME} ${OUTPUT_BIN_DIR}/${CURRENT_INTERPRETER_APP_NAME}"
                         }
                         post {

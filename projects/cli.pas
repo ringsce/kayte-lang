@@ -5,7 +5,10 @@ unit CLI;
 interface
 
 uses
-  SysUtils, Bytecode, KayteParser, VirtualMachine;
+  SysUtils,
+  Bytecode in '../source/ByteCode.pas',
+  KayteParser in '../source/kayteparser.pas',
+  VirtualMachine in '../source/virtualmachine.pas';
 
 type
   TCLIOptions = record
