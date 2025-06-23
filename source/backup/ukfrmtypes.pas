@@ -271,6 +271,7 @@ begin
   FControlType := cktButton;
   FCaption := ACaption;
 end;
+
 implementation
 
 { TKfrmComponentDef }

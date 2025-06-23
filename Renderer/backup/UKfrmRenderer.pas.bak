@@ -6,8 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Buttons,
-  UKfrmTypes,
-  UEventRouter in '../Router/UEventRouter.pas';
+  UKfrmTypes;
 
 type
   TKfrmRenderer = class

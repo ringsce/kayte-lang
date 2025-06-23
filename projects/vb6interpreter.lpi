@@ -143,6 +143,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="UKfrmRuntime"/>
       </Unit>
+      <Unit>
+        <Filename Value="../Router/ueventrouter.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UEventRouter"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -152,7 +157,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../source;../Runtime"/>
+      <OtherUnitFiles Value="../source;../Runtime;../Router"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

@@ -1,23 +1,25 @@
-unit UKfrmRuntime;
+unit FKFRMRUNTIME;
 {$mode objfpc}{$H+}
 
 interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls, // Add other LCL units as needed
-  UKfrmTypes, // This unit name remains UKfrmTypes as it's a different file
-  UKfrmParser in '../Parser/UKFrmParser.pas',
+  UKfrmTypes,
+  // IMPORTANT: For these 'in' clauses, ensure the paths are correct relative to your project file.
+  // Often, if these units are in your project, you can simply use their names:
+  // UKfrmParser, UKfrmRenderer;
+  UKfrmParser in '../Parser/UKfrmParser.pas',
   UKfrmRenderer in '../Renderer/UKfrmRenderer.pas',
-  UEventRouter in '../VM/UEventRouter.pas'; // Corrected path to UEventRouter based on typical structure
+  UEventRouter;
 
 type
-  // The class name should remain TKfrmRuntime, following Pascal naming conventions.
-  TKfrmRuntime = class // <--- CHANGED BACK TO TKfrmRuntime
+  TKfrmRuntime = class
   private
-    FKfrmParser: TKfrmParser;   // <--- CHANGED BACK TO FKfrmParser
-    FKfrmRenderer: TKfrmRenderer; // <--- CHANGED BACK TO FKfrmRenderer
-    FEventRouter: TEventRouter; // <--- CHANGED BACK TO FEventRouter
-    FLoadedForms: TObjectList;  // <--- CHANGED BACK TO FLoadedForms
+    FKfrmParser: TKfrmParser;
+    FKfrmRenderer: TKfrmRenderer;
+    FEventRouter: TEventRouter; // Reference to your centralized event router
+    FLoadedForms: TObjectList; // Stores instances of dynamically created TForm (interpreted forms)
 
   public
     constructor Create(AEventRouter: TEventRouter);
@@ -32,16 +34,15 @@ type
 
 implementation
 
-// The implementation block header should match the class name defined in the interface.
-{ TKfrmRuntime } // <--- Matches the TKfrmRuntime class
+{ TKfrmRuntime }
 
 constructor TKfrmRuntime.Create(AEventRouter: TEventRouter);
 begin
   inherited Create;
-  FKfrmParser := TKfrmParser.Create; // Use FKfrmParser field
-  FKfrmRenderer := TKfrmRenderer.Create; // Use FKfrmRenderer field
-  FEventRouter := AEventRouter; // Use FEventRouter field
-  FLoadedForms := TObjectList.Create(True); // Use FLoadedForms field
+  FKfrmParser := TKfrmParser.Create;
+  FKfrmRenderer := TKfrmRenderer.Create;
+  FEventRouter := AEventRouter; // Assign the passed event router
+  FLoadedForms := TObjectList.Create(True); // TObjectList will own and free the TForm objects
 end;
 
 destructor TKfrmRuntime.Destroy;

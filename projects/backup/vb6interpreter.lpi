@@ -138,6 +138,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="FKFRMRUNTIME"/>
       </Unit>
+      <Unit>
+        <Filename Value="../Runtime/ukfrmruntime.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UKfrmRuntime"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -147,7 +152,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../source"/>
+      <OtherUnitFiles Value="../source;../Runtime"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

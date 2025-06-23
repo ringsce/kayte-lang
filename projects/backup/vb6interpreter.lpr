@@ -7,7 +7,7 @@ uses
   InterpreterUtils in '../source/InterpreterUtils.pas',
   InterpreterCore, fgl, VBCompiler, Forms, Interfaces,
   BytecodeTypes, BytecodeVM, Lexer,         // Your new lexer unit
-  Parser, dhtml, tokenDefs,StdCtrls, UKfrmRuntime in '../Runtime/UKfrmRuntime.pas;        // Your new parser unit;
+  Parser, dhtml, tokenDefs,StdCtrls;
 //, SynVBHighlighter;
    // dhtml enable when its right, dhtml is webasm technology not ready
 type
