@@ -51,7 +51,7 @@ $(eval $(call DEFINE_PROJECT,main_app)) # Assuming main_app has main_app.lpr/lpi
 # --- Phony Targets ---
 .PHONY: all clean _CREATE_DIRS \
         build_components build_bytecode \
-        macos linux macos-x86_64 macos-arm64 linux-amd64 linux-arm64 run
+        macos linux macos-x86_64 macos-arm64 linux-amd64 linux-arm64 run run-x86_64-on-arm64
 
 # Default target: Build everything
 all: macos linux
@@ -208,6 +208,13 @@ clean:
 run: $(main_app_MACOS_UNIVERSAL_TARGET) # Default to run the macOS universal app
 	@echo "Running $(main_app_MACOS_UNIVERSAL_TARGET)..."
 	./$(main_app_MACOS_UNIVERSAL_TARGET)
+
+# --- Run an x86_64 macOS binary on an Apple Silicon (ARM64) Mac via Rosetta 2 ---
+# This target is only useful when run on an ARM64 macOS machine.
+run-x86_64-on-arm64: $(main_app_MACOS_X86_64_TARGET)
+	@echo "Attempting to run x86_64 macOS app via Rosetta 2..."
+	@echo "This command will only work on an Apple Silicon Mac with Rosetta 2 installed."
+	arch -x86_64 ./$(main_app_MACOS_X86_64_TARGET)
 
 # If you want to run specific Linux builds, you'd define separate 'run-linux-amd64' etc.
 # run-linux-amd64: $(main_app_LINUX_AMD64_TARGET)
