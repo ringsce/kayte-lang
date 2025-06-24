@@ -1,5 +1,5 @@
 # Makefile for Kayte Projects
-# Builds kaytec, vb6interpreter, build_kayte, and a main app (KayteApp)
+# Builds kaytec, vb6interpreter, kayteide, build_kayte, and a main app (KayteApp)
 # Supports macOS (universal) and Linux (amd64, arm64) builds using FPC/Lazarus.
 
 # --- Global Project Settings ---
@@ -49,11 +49,9 @@ $(eval $(call DEFINE_PROJECT,build_kayte))
 $(eval $(call DEFINE_PROJECT,main_app)) # Assuming main_app has main_app.lpr/lpi
 
 # --- Phony Targets ---
-.PHONY: all clean \
-        kaytec_build vb6interpreter_build kayteide_build build_kayte_build main_app_build \
-        build_bytecode \
-        macos linux macos-x86_64 macos-arm64 linux-amd64 linux-arm64 run \
-        $(BIN_DIR) $(BUILD_DIR) # Explicitly declare directories as phony targets for creation actions
+.PHONY: all clean _CREATE_DIRS \
+        build_components build_bytecode \
+        macos linux macos-x86_64 macos-arm64 linux-amd64 linux-arm64 run
 
 # Default target: Build everything
 all: macos linux
@@ -61,7 +59,7 @@ all: macos linux
 # --- Build common components (produces .ppu and .o files in BUILD_DIR) ---
 # This target compiles all .pas files in COMPONENTS_DIR into .ppu/.o in BUILD_DIR.
 # Other projects will then find these compiled units via -Fu$(BUILD_DIR)
-build_components: $(BUILD_DIR) # Depends on the BUILD_DIRPHONY target for creation
+build_components: _CREATE_DIRS
 	@echo "Compiling components from $(COMPONENTS_DIR)..."
 	$(FPC) -Fu$(SRC_DIR) -Fu$(COMPONENTS_DIR) -FE$(BUILD_DIR) -B $(COMPONENTS_DIR)/*.pas $(COMMON_LDFLAGS)
 	@echo "Components compiled to $(BUILD_DIR)."
@@ -70,7 +68,7 @@ build_components: $(BUILD_DIR) # Depends on the BUILD_DIRPHONY target for creati
 
 # macOS x86_64 builds
 define MACOS_X86_64_BUILD_RULE
-$(1)_MACOS_X86_64_TARGET: $($(1)_LPI_FILE) build_components | $(BIN_DIR) $(BUILD_DIR)
+$(1)_MACOS_X86_64_TARGET: $($(1)_LPI_FILE) build_components | _CREATE_DIRS
 	@echo "Compiling $(1) for macOS x86_64..."
 	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=x86_64 $($(1)_LPI_FILE)
 	# lazbuild outputs to $(PROJECT_DIR)/lib/darwin-x86_64/$(1)_EXE_NAME
@@ -80,7 +78,7 @@ endef
 
 # macOS ARM64 builds
 define MACOS_ARM64_BUILD_RULE
-$(1)_MACOS_ARM64_TARGET: $($(1)_LPI_FILE) build_components | $(BIN_DIR) $(BUILD_DIR)
+$(1)_MACOS_ARM64_TARGET: $($(1)_LPI_FILE) build_components | _CREATE_DIRS
 	@echo "Compiling $(1) for macOS arm64..."
 	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=aarch64 $($(1)_LPI_FILE)
 	# lazbuild outputs to $(PROJECT_DIR)/lib/darwin-aarch64/$(1)_EXE_NAME
@@ -90,7 +88,7 @@ endef
 
 # Linux AMD64 builds (assumes running on an AMD64 Linux machine)
 define LINUX_AMD64_BUILD_RULE
-$(1)_LINUX_AMD64_TARGET: $($(1)_SOURCE_FILE) build_components | $(BIN_DIR) $(BUILD_DIR)
+$(1)_LINUX_AMD64_TARGET: $($(1)_SOURCE_FILE) build_components | _CREATE_DIRS
 	@echo "Compiling $(1) for Linux AMD64..."
 	$(FPC) $($(1)_SOURCE_FILE) -B -O3 -Tlinux -Px86_64 -FE$(BIN_DIR) -FU$(SRC_DIR) -FU$(COMPONENTS_DIR) -FU$(BUILD_DIR) -o$@ $(COMMON_LDFLAGS)
 	chmod +x $@
@@ -98,7 +96,7 @@ endef
 
 # Linux ARM64 builds (assumes running on an ARM64 Linux machine)
 define LINUX_ARM64_BUILD_RULE
-$(1)_LINUX_ARM64_TARGET: $($(1)_SOURCE_FILE) build_components | $(BIN_DIR) $(BUILD_DIR)
+$(1)_LINUX_ARM64_TARGET: $($(1)_SOURCE_FILE) build_components | _CREATE_DIRS
 	@echo "Compiling $(1) for Linux ARM64..."
 	$(FPC) $($(1)_SOURCE_FILE) -B -O3 -Tlinux -Paarch64 -FE$(BIN_DIR) -FU$(SRC_DIR) -FU$(COMPONENTS_DIR) -FU$(BUILD_DIR) -o$@ $(COMMON_LDFLAGS)
 	chmod +x $@
@@ -147,6 +145,10 @@ macos: macos-x86_64 macos-arm64
 	lipo -create -output $(vb6interpreter_MACOS_UNIVERSAL_TARGET) $(vb6interpreter_MACOS_X86_64_TARGET) $(vb6interpreter_MACOS_ARM64_TARGET)
 	chmod +x $(vb6interpreter_MACOS_UNIVERSAL_TARGET)
 
+	# Kayte IDE Universal
+	lipo -create -output $(kayteide_MACOS_UNIVERSAL_TARGET) $(kayteide_MACOS_X86_64_TARGET) $(kayteide_MACOS_ARM64_TARGET)
+	chmod +x $(kayteide_MACOS_UNIVERSAL_TARGET)
+
 	# build_kayte Universal
 	lipo -create -output $(build_kayte_MACOS_UNIVERSAL_TARGET) $(build_kayte_MACOS_X86_64_TARGET) $(build_kayte_MACOS_ARM64_TARGET)
 	chmod +x $(build_kayte_MACOS_UNIVERSAL_TARGET)
@@ -157,10 +159,10 @@ macos: macos-x86_64 macos-arm64
 
 	@echo "macOS universal binaries created."
 
-macos-x86_64: $(kaytec_MACOS_X86_64_TARGET) $(vb6interpreter_MACOS_X86_64_TARGET) $(build_kayte_MACOS_X86_64_TARGET) $(main_app_MACOS_X86_64_TARGET)
+macos-x86_64: $(kaytec_MACOS_X86_64_TARGET) $(vb6interpreter_MACOS_X86_64_TARGET) $(kayteide_MACOS_X86_64_TARGET) $(build_kayte_MACOS_X86_64_TARGET) $(main_app_MACOS_X86_64_TARGET)
 	@echo "All macOS x86_64 binaries built."
 
-macos-arm64: $(kaytec_MACOS_ARM64_TARGET) $(vb6interpreter_MACOS_ARM64_TARGET) $(build_kayte_MACOS_ARM64_TARGET) $(main_app_MACOS_ARM64_TARGET)
+macos-arm64: $(kaytec_MACOS_ARM64_TARGET) $(vb6interpreter_MACOS_ARM64_TARGET) $(kayteide_MACOS_ARM64_TARGET) $(build_kayte_MACOS_ARM64_TARGET) $(main_app_MACOS_ARM64_TARGET)
 	@echo "All macOS arm64 binaries built."
 
 linux: linux-amd64 linux-arm64
@@ -178,7 +180,7 @@ OBJ_FILES = $(patsubst kayte/%.kayte, $(BUILD_DIR)/bytecode_%.o, $(KAYTE_SOURCES
 # This rule depends on the macOS x86_64 kaytec to generate bytecode.
 # If you need to generate bytecode on a Linux agent, you would need a separate rule
 # that uses a Linux-built kaytec.
-$(BUILD_DIR)/bytecode_%.o: kayte/%.kayte $(kaytec_MACOS_X86_64_TARGET) | $(BIN_DIR) $(BUILD_DIR)
+$(BUILD_DIR)/bytecode_%.o: kayte/%.kayte $(kaytec_MACOS_X86_64_TARGET) | _CREATE_DIRS
 	@echo "Generating bytecode for $< and embedding into object file..."
 	$(kaytec_MACOS_X86_64_TARGET) $< -o $(BUILD_DIR)/bytecode_$*.bin
 	ld -r -b binary -o $@ $(BUILD_DIR)/bytecode_$*.bin
@@ -186,16 +188,12 @@ $(BUILD_DIR)/bytecode_%.o: kayte/%.kayte $(kaytec_MACOS_X86_64_TARGET) | $(BIN_D
 	@echo "Built bytecode object: $@"
 
 
-# --- Directory Creation Helper Targets ---
-# These targets just ensure the directories exist. They are phony because they don't
-# represent actual files to be built, but actions to create directories.
-$(BIN_DIR):
-	@echo "Creating $(BIN_DIR) directory..."
-	mkdir -p $(BIN_DIR)
-
-$(BUILD_DIR):
-	@echo "Creating $(BUILD_DIR) directory..."
-	mkdir -p $(BUILD_DIR)
+# --- Directory Creation Helper Target ---
+# This target just ensures the directories exist. It is phony because it doesn't
+# represent actual files to be built, but an action to create directories.
+_CREATE_DIRS:
+	@echo "Ensuring build directories exist ($(BIN_DIR) and $(BUILD_DIR))..."
+	mkdir -p $(BIN_DIR) $(BUILD_DIR)
 
 
 # --- Cleanup ---
