@@ -197,8 +197,8 @@
         <UnitName Value="UEventRouter"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="7"/>
-        <TopLine Value="106"/>
-        <CursorPos Y="138"/>
+        <TopLine Value="105"/>
+        <CursorPos X="16" Y="123"/>
         <UsageCount Value="53"/>
         <Loaded Value="True"/>
       </Unit>
@@ -227,18 +227,6 @@
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="../Router/ueventrouter.pas"/>
-        <Caret Line="73" Column="29" TopLine="56"/>
-      </Position>
-      <Position>
-        <Filename Value="../Router/ueventrouter.pas"/>
-        <Caret Line="121" TopLine="103"/>
-      </Position>
-      <Position>
-        <Filename Value="../Router/ueventrouter.pas"/>
-        <Caret Line="73" Column="29" TopLine="56"/>
-      </Position>
       <Position>
         <Filename Value="../Router/ueventrouter.pas"/>
         <Caret Column="12"/>
@@ -346,6 +334,18 @@
       <Position>
         <Filename Value="../Router/ueventrouter.pas"/>
         <Caret Line="92" TopLine="64"/>
+      </Position>
+      <Position>
+        <Filename Value="../Router/ueventrouter.pas"/>
+        <Caret Line="138" TopLine="106"/>
+      </Position>
+      <Position>
+        <Filename Value="../Router/ueventrouter.pas"/>
+        <Caret Line="20" Column="10"/>
+      </Position>
+      <Position>
+        <Filename Value="../Router/ueventrouter.pas"/>
+        <Caret Line="122" Column="42" TopLine="105"/>
       </Position>
     </JumpHistory>
     <RunParams>

@@ -1,128 +1,216 @@
+# Makefile for Kayte Projects
+# Builds kaytec, vb6interpreter, build_kayte, and a main app (KayteApp)
+# Supports macOS (universal) and Linux (amd64, arm64) builds using FPC/Lazarus.
+
 # --- Global Project Settings ---
 PROJECT_NAME := kayte
 SRC_DIR := source               # Pascal compiler/runtime source files (units)
-PROJECT_DIR := projects         # Contains main .lpr project files
-COMPONENTS_DIR := ../components # NEW: Path to your components folder
+PROJECT_DIR := projects         # Contains main .lpr project files (e.g., Kayte.lpr, vb6interpreter.lpr)
+COMPONENTS_DIR := components    # Path to your components folder (relative to Makefile root)
 BIN_DIR := bin                  # Where all compiled executables will go
 BUILD_DIR := build              # Where intermediate bytecode objects and .o/.ppu files go
 
 # Toolchain
 FPC := fpc
 
-# Detect platform (macOS or Linux)
+# Detect platform (macOS or Linux) and set common linker flags
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
   PLATFORM := darwin
   # Common linker flags for macOS. Adjust if needed.
-  COMMON_LDFLAGS := -macos_version_min=10.15
+  COMMON_LDFLAGS := -WM-macosx_version_min=10.15
+  # lazbuild specific path on macOS
+  LAZBUILD := /Applications/lazarus/lazbuild
+  LAZARUS_APP_DIR := /Applications/lazarus # Used for lazbuild --lazarusdir
 else
   PLATFORM := linux
   COMMON_LDFLAGS := # No specific common linker flags for Linux by default
+  # LAZBUILD is not used directly for Linux FPC builds
 endif
 
 # --- Executables and their Main Project Files ---
-KAYTEC_EXE_NAME := kaytec # Explicitly name the compiler executable 'kaytec'
-KAYTEC_SOURCE_FILE := $(PROJECT_DIR)/$(PROJECT_NAME).lpr
-KAYTEC_TARGET := $(BIN_DIR)/$(KAYTEC_EXE_NAME)
+# Define projects using a macro for reusability in individual build rules.
+# This does NOT define the build rules directly, but makes variables available.
+define DEFINE_PROJECT
+$(1)_EXE_NAME := $(1)
+$(1)_SOURCE_FILE := $(PROJECT_DIR)/$(1).lpr
+$(1)_LPI_FILE := $(PROJECT_DIR)/$(1).lpi
+$(1)_MACOS_X86_64_TARGET := $(BIN_DIR)/$(1)-macos-x86_64
+$(1)_MACOS_ARM64_TARGET := $(BIN_DIR)/$(1)-macos-arm64
+$(1)_LINUX_AMD64_TARGET := $(BIN_DIR)/$(1)-linux-amd64
+$(1)_LINUX_ARM64_TARGET := $(BIN_DIR)/$(1)-linux-arm64
+$(1)_MACOS_UNIVERSAL_TARGET := $(BIN_DIR)/$(1)-macos-universal
+endef
 
-VB6_INTERPRETER_EXE_NAME := vb6interpreter
-VB6_INTERPRETER_SOURCE_FILE := $(PROJECT_DIR)/vb6interpreter.lpr
-VB6_INTERPRETER_TARGET := $(BIN_DIR)/$(VB6_INTERPRETER_EXE_NAME)
+$(eval $(call DEFINE_PROJECT,kaytec))
+$(eval $(call DEFINE_PROJECT,vb6interpreter))
+$(eval $(call DEFINE_PROJECT,kayteide))
+$(eval $(call DEFINE_PROJECT,build_kayte))
+$(eval $(call DEFINE_PROJECT,main_app)) # Assuming main_app has main_app.lpr/lpi
 
-KAYTE_IDE_EXE_NAME := kayteide
-KAYTE_IDE_SOURCE_FILE := $(PROJECT_DIR)/kayteide.lpr
-KAYTE_IDE_TARGET := $(BIN_DIR)/$(KAYTE_IDE_EXE_NAME)
-
-BUILD_KAYTE_EXE_NAME := build_kayte
-BUILD_KAYTE_SOURCE_FILE := $(PROJECT_DIR)/build_kayte.lpr
-BUILD_KAYTE_TARGET := $(BIN_DIR)/$(BUILD_KAYTE_EXE_NAME)
-
-# --- Bytecode Generation (using KAYTEC_TARGET) ---
-KAYTE_SOURCES = kayte/hello.kayte kayte/world.kayte
-OBJ_FILES = $(patsubst kayte/%.kayte, $(BUILD_DIR)/bytecode_%.o, $(KAYTE_SOURCES))
-
-# --- Main Application (linking bytecode) ---
-MAIN_APP_SOURCE_FILE := main.pas
-MAIN_APP_TARGET := KayteApp # This creates KayteApp in the root directory
-
-# --- Common FPC Flags for all projects ---
-# -Fu: Unit search path (source dirs and output dir for compiled units)
-# -FE: Executable output directory
-# -FE$(BUILD_DIR) for units, -FE$(BIN_DIR) for executables
-COMMON_FPC_FLAGS := -Fu$(SRC_DIR) -Fu$(COMPONENTS_DIR) -FE$(BUILD_DIR)
-
-.PHONY: all build_components build_kaytec build_vb6_interpreter build_kayte_ide build_kayte \
-        build_bytecode main_app clean run
-
-# Define the directories as a list. These will be created if they don't exist.
-DIRS := $(BIN_DIR) $(BUILD_DIR)
+# --- Phony Targets ---
+.PHONY: all clean \
+        kaytec_build vb6interpreter_build kayteide_build build_kayte_build main_app_build \
+        build_bytecode \
+        macos linux macos-x86_64 macos-arm64 linux-amd64 linux-arm64 run \
+        $(BIN_DIR) $(BUILD_DIR) # Explicitly declare directories as phony targets for creation actions
 
 # Default target: Build everything
-all: build_components build_kaytec build_vb6_interpreter build_kayte_ide build_kayte build_bytecode main_app
+all: macos linux
 
 # --- Build common components (produces .ppu and .o files in BUILD_DIR) ---
 # This target compiles all .pas files in COMPONENTS_DIR into .ppu/.o in BUILD_DIR.
 # Other projects will then find these compiled units via -Fu$(BUILD_DIR)
-build_components: $(DIRS)
+build_components: $(BUILD_DIR) # Depends on the BUILD_DIRPHONY target for creation
 	@echo "Compiling components from $(COMPONENTS_DIR)..."
-	$(FPC) $(COMMON_FPC_FLAGS) -I$(COMPONENTS_DIR) $(COMPONENTS_DIR)/*.pas # Compiles all .pas in components
+	$(FPC) -Fu$(SRC_DIR) -Fu$(COMPONENTS_DIR) -FE$(BUILD_DIR) -B $(COMPONENTS_DIR)/*.pas $(COMMON_LDFLAGS)
 	@echo "Components compiled to $(BUILD_DIR)."
 
+# --- Build Rules for Individual Projects (Native Architectures) ---
 
-# --- Build the Kayte Compiler (kaytec) ---
-build_kaytec: $(KAYTEC_TARGET)
-$(KAYTEC_TARGET): $(KAYTEC_SOURCE_FILE) build_components | $(DIRS) # Depends on build_components
-	$(FPC) $(COMMON_FPC_FLAGS) -FE$(BIN_DIR) -o$(KAYTEC_TARGET) $(KAYTEC_SOURCE_FILE) $(COMMON_LDFLAGS)
-	@echo "Kayte compiler (kaytec) built at: $(KAYTEC_TARGET)"
+# macOS x86_64 builds
+define MACOS_X86_64_BUILD_RULE
+$(1)_MACOS_X86_64_TARGET: $($(1)_LPI_FILE) build_components | $(BIN_DIR) $(BUILD_DIR)
+	@echo "Compiling $(1) for macOS x86_64..."
+	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=x86_64 $($(1)_LPI_FILE)
+	# lazbuild outputs to $(PROJECT_DIR)/lib/darwin-x86_64/$(1)_EXE_NAME
+	mv $(PROJECT_DIR)/lib/darwin-x86_64/$(call __get_exe_name,$(1)) $@
+	chmod +x $@
+endef
 
-# --- Build the VB6 Interpreter ---
-build_vb6_interpreter: $(VB6_INTERPRETER_TARGET)
-$(VB6_INTERPRETER_TARGET): $(VB6_INTERPRETER_SOURCE_FILE) build_components | $(DIRS) # Depends on build_components
-	$(FPC) $(COMMON_FPC_FLAGS) -FE$(BIN_DIR) -o$(VB6_INTERPRETER_TARGET) $(VB6_INTERPRETER_SOURCE_FILE) $(COMMON_LDFLAGS)
-	@echo "VB6 Interpreter built at: $(VB6_INTERPRETER_TARGET)"
+# macOS ARM64 builds
+define MACOS_ARM64_BUILD_RULE
+$(1)_MACOS_ARM64_TARGET: $($(1)_LPI_FILE) build_components | $(BIN_DIR) $(BUILD_DIR)
+	@echo "Compiling $(1) for macOS arm64..."
+	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=aarch64 $($(1)_LPI_FILE)
+	# lazbuild outputs to $(PROJECT_DIR)/lib/darwin-aarch64/$(1)_EXE_NAME
+	mv $(PROJECT_DIR)/lib/darwin-aarch64/$(call __get_exe_name,$(1)) $@
+	chmod +x $@
+endef
 
-# --- Build the Kayte IDE ---
-build_kayte_ide: $(KAYTE_IDE_TARGET)
-$(KAYTE_IDE_TARGET): $(KAYTE_IDE_SOURCE_FILE) build_components | $(DIRS) # Depends on build_components
-	$(FPC) $(COMMON_FPC_FLAGS) -FE$(BIN_DIR) -o$(KAYTE_IDE_TARGET) $(KAYTE_IDE_SOURCE_FILE) $(COMMON_LDFLAGS)
-	@echo "Kayte IDE built at: $(KAYTE_IDE_TARGET)"
+# Linux AMD64 builds (assumes running on an AMD64 Linux machine)
+define LINUX_AMD64_BUILD_RULE
+$(1)_LINUX_AMD64_TARGET: $($(1)_SOURCE_FILE) build_components | $(BIN_DIR) $(BUILD_DIR)
+	@echo "Compiling $(1) for Linux AMD64..."
+	$(FPC) $($(1)_SOURCE_FILE) -B -O3 -Tlinux -Px86_64 -FE$(BIN_DIR) -FU$(SRC_DIR) -FU$(COMPONENTS_DIR) -FU$(BUILD_DIR) -o$@ $(COMMON_LDFLAGS)
+	chmod +x $@
+endef
 
-# --- Build the new build_kayte executable ---
-build_kayte: $(BUILD_KAYTE_TARGET)
-$(BUILD_KAYTE_TARGET): $(BUILD_KAYTE_SOURCE_FILE) build_components | $(DIRS) # Depends on build_components
-	$(FPC) $(COMMON_FPC_FLAGS) -FE$(BIN_DIR) -o$(BUILD_KAYTE_TARGET) $(BUILD_KAYTE_SOURCE_FILE) $(COMMON_LDFLAGS)
-	@echo "build_kayte executable built at: $(BUILD_KAYTE_TARGET)"
+# Linux ARM64 builds (assumes running on an ARM64 Linux machine)
+define LINUX_ARM64_BUILD_RULE
+$(1)_LINUX_ARM64_TARGET: $($(1)_SOURCE_FILE) build_components | $(BIN_DIR) $(BUILD_DIR)
+	@echo "Compiling $(1) for Linux ARM64..."
+	$(FPC) $($(1)_SOURCE_FILE) -B -O3 -Tlinux -Paarch64 -FE$(BIN_DIR) -FU$(SRC_DIR) -FU$(COMPONENTS_DIR) -FU$(BUILD_DIR) -o$@ $(COMMON_LDFLAGS)
+	chmod +x $@
+endef
 
-# --- Build the Kayte bytecode object files using the 'kaytec' compiler ---
-build_bytecode: $(OBJ_FILES)
-$(BUILD_DIR)/bytecode_%.o: kayte/%.kayte $(KAYTEC_TARGET) | $(DIRS)
-	# Use the full path to the built kaytec executable
-	$(KAYTEC_TARGET) $< -o $(BUILD_DIR)/bytecode_$*.bin
+# Helper to get the base executable name (e.g., "kaytec" from "kaytec_EXE_NAME")
+# lazbuild's mv needs this because it outputs the raw executable name
+__get_exe_name = $(value $(1)_EXE_NAME)
+
+
+# Apply the build rules for each project defined above
+$(eval $(call MACOS_X86_64_BUILD_RULE,kaytec))
+$(eval $(call MACOS_X86_64_BUILD_RULE,vb6interpreter))
+$(eval $(call MACOS_X86_64_BUILD_RULE,kayteide))
+$(eval $(call MACOS_X86_64_BUILD_RULE,build_kayte))
+$(eval $(call MACOS_X86_64_BUILD_RULE,main_app))
+
+$(eval $(call MACOS_ARM64_BUILD_RULE,kaytec))
+$(eval $(call MACOS_ARM64_BUILD_RULE,vb6interpreter))
+$(eval $(call MACOS_ARM64_BUILD_RULE,kayteide))
+$(eval $(call MACOS_ARM64_BUILD_RULE,build_kayte))
+$(eval $(call MACOS_ARM64_BUILD_RULE,main_app))
+
+$(eval $(call LINUX_AMD64_BUILD_RULE,kaytec))
+$(eval $(call LINUX_AMD64_BUILD_RULE,vb6interpreter))
+$(eval $(call LINUX_AMD64_BUILD_RULE,kayteide))
+$(eval $(call LINUX_AMD64_BUILD_RULE,build_kayte))
+$(eval $(call LINUX_AMD64_BUILD_RULE,main_app))
+
+$(eval $(call LINUX_ARM64_BUILD_RULE,kaytec))
+$(eval $(call LINUX_ARM64_BUILD_RULE,vb6interpreter))
+$(eval $(call LINUX_ARM64_BUILD_RULE,kayteide))
+$(eval $(call LINUX_ARM64_BUILD_RULE,build_kayte))
+$(eval $(call LINUX_ARM64_BUILD_RULE,main_app))
+
+
+# --- Build Targets by OS/Architecture ---
+
+macos: macos-x86_64 macos-arm64
+	@echo "All macOS native builds completed. Proceeding to universal linking..."
+	# Kayte Compiler Universal
+	lipo -create -output $(kaytec_MACOS_UNIVERSAL_TARGET) $(kaytec_MACOS_X86_64_TARGET) $(kaytec_MACOS_ARM64_TARGET)
+	chmod +x $(kaytec_MACOS_UNIVERSAL_TARGET)
+	
+	# VB6 Interpreter Universal
+	lipo -create -output $(vb6interpreter_MACOS_UNIVERSAL_TARGET) $(vb6interpreter_MACOS_X86_64_TARGET) $(vb6interpreter_MACOS_ARM64_TARGET)
+	chmod +x $(vb6interpreter_MACOS_UNIVERSAL_TARGET)
+
+	# build_kayte Universal
+	lipo -create -output $(build_kayte_MACOS_UNIVERSAL_TARGET) $(build_kayte_MACOS_X86_64_TARGET) $(build_kayte_MACOS_ARM64_TARGET)
+	chmod +x $(build_kayte_MACOS_UNIVERSAL_TARGET)
+
+	# main_app Universal
+	lipo -create -output $(main_app_MACOS_UNIVERSAL_TARGET) $(main_app_MACOS_X86_64_TARGET) $(main_app_MACOS_ARM64_TARGET)
+	chmod +x $(main_app_MACOS_UNIVERSAL_TARGET)
+
+	@echo "macOS universal binaries created."
+
+macos-x86_64: $(kaytec_MACOS_X86_64_TARGET) $(vb6interpreter_MACOS_X86_64_TARGET) $(build_kayte_MACOS_X86_64_TARGET) $(main_app_MACOS_X86_64_TARGET)
+	@echo "All macOS x86_64 binaries built."
+
+macos-arm64: $(kaytec_MACOS_ARM64_TARGET) $(vb6interpreter_MACOS_ARM64_TARGET) $(build_kayte_MACOS_ARM64_TARGET) $(main_app_MACOS_ARM64_TARGET)
+	@echo "All macOS arm64 binaries built."
+
+linux: linux-amd64 linux-arm64
+
+linux-amd64: $(kaytec_LINUX_AMD64_TARGET) $(vb6interpreter_LINUX_AMD64_TARGET) $(kayteide_LINUX_AMD64_TARGET) $(build_kayte_LINUX_AMD64_TARGET) $(main_app_LINUX_AMD64_TARGET)
+	@echo "All Linux AMD64 binaries built."
+
+linux-arm64: $(kaytec_LINUX_ARM64_TARGET) $(vb6interpreter_LINUX_ARM64_TARGET) $(kayteide_LINUX_ARM64_TARGET) $(build_kayte_LINUX_ARM64_TARGET) $(main_app_LINUX_ARM64_TARGET)
+	@echo "All Linux ARM64 binaries built."
+
+# --- Kayte Bytecode Generation ---
+KAYTE_SOURCES = kayte/hello.kayte kayte/world.kayte # Example Kayte source files
+OBJ_FILES = $(patsubst kayte/%.kayte, $(BUILD_DIR)/bytecode_%.o, $(KAYTE_SOURCES))
+
+# This rule depends on the macOS x86_64 kaytec to generate bytecode.
+# If you need to generate bytecode on a Linux agent, you would need a separate rule
+# that uses a Linux-built kaytec.
+$(BUILD_DIR)/bytecode_%.o: kayte/%.kayte $(kaytec_MACOS_X86_64_TARGET) | $(BIN_DIR) $(BUILD_DIR)
+	@echo "Generating bytecode for $< and embedding into object file..."
+	$(kaytec_MACOS_X86_64_TARGET) $< -o $(BUILD_DIR)/bytecode_$*.bin
 	ld -r -b binary -o $@ $(BUILD_DIR)/bytecode_$*.bin
 	rm -f $(BUILD_DIR)/bytecode_$*.bin
 	@echo "Built bytecode object: $@"
 
-# --- Build the main application that uses the bytecode ---
-# This target depends on the bytecode objects
-main_app: $(MAIN_APP_TARGET)
-$(MAIN_APP_TARGET): $(MAIN_APP_SOURCE_FILE) kayte_compiler.pas kayte_runtime.pas $(OBJ_FILES) build_components | $(DIRS) # Depends on build_components
-	$(FPC) $(COMMON_FPC_FLAGS) -o$(MAIN_APP_TARGET) $(MAIN_APP_SOURCE_FILE) $(COMMON_LDFLAGS)
-	@echo "Main application $(MAIN_APP_TARGET) built."
 
-# --- Directory Creation Rules ---
-# This special rule creates directories if they don't exist.
-# The '|' in other rules makes these order-only prerequisites.
-$(DIRS):
-	mkdir -p $@
+# --- Directory Creation Helper Targets ---
+# These targets just ensure the directories exist. They are phony because they don't
+# represent actual files to be built, but actions to create directories.
+$(BIN_DIR):
+	@echo "Creating $(BIN_DIR) directory..."
+	mkdir -p $(BIN_DIR)
+
+$(BUILD_DIR):
+	@echo "Creating $(BUILD_DIR) directory..."
+	mkdir -p $(BUILD_DIR)
+
 
 # --- Cleanup ---
 clean:
 	@echo "Cleaning up build artifacts and executables..."
 	rm -rf $(BIN_DIR)
 	rm -rf $(BUILD_DIR)
-	rm -f $(MAIN_APP_TARGET)
+	rm -rf $(PROJECT_DIR)/lib # Remove lazbuild temporary directories
 	@echo "Cleanup complete."
 
 # --- Run the Main Application ---
-run: main_app
-	./$(MAIN_APP_TARGET)
+run: $(main_app_MACOS_UNIVERSAL_TARGET) # Default to run the macOS universal app
+	@echo "Running $(main_app_MACOS_UNIVERSAL_TARGET)..."
+	./$(main_app_MACOS_UNIVERSAL_TARGET)
+
+# If you want to run specific Linux builds, you'd define separate 'run-linux-amd64' etc.
+# run-linux-amd64: $(main_app_LINUX_AMD64_TARGET)
+#	./$(main_app_LINUX_AMD64_TARGET)
