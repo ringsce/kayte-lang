@@ -35,7 +35,7 @@ type
 
   public
     constructor Create(ARouter: TEventRouter; const AFunctionName: String);
-    procedure HandleClick(Sender: TObject); // The actual method assigned to OnClick
+    //procedure HandleClick(Sender: TObject); // The actual method assigned to OnClick
 
     property KayteFunctionName: String read FKayteFunctionName;
   end;
@@ -70,14 +70,14 @@ end;
 
 { TUIEventHandler }
 
-constructor TUIEventHandler.Create(AEventRouter: TEventRouter; const AKayteFunctionName: String);
+(*constructor TUIEventHandler.Create(ARouter: TEventRouter; const AKayteFunctionName: String); // Corrected to match interface
 begin
   inherited Create;
-  FEventRouter := AEventRouter;
+  FEventRouter := ARouter; // This also needs to change
   FKayteFunctionName := AKayteFunctionName;
 end;
-
-procedure TUIEventHandler.HandleClick(Sender: TObject);
+  *)
+(*procedure TUIEventHandler.HandleClick(Sender: TObject);
 begin
   // When the LCL control is clicked, this method is called.
   // It then tells the EventRouter to execute the corresponding Kayte function.
@@ -87,7 +87,7 @@ begin
       [TControl(Sender).Name, FKayteFunctionName]));
     FEventRouter.FVM.ExecuteFunction(FKayteFunctionName);
   end;
-end;
+end;*)
 
 { TEventRouter }
 
@@ -104,6 +104,7 @@ begin
   FVM := nil; // Just nil the reference as it's owned externally
   inherited Destroy;
 end;
+
 
 procedure TEventRouter.RegisterOnClickHandler(AControl: TControl; const AKayteFunctionName: String);
 var

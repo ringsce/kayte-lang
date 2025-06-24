@@ -8,7 +8,7 @@ unit UEventRouter;
 interface
 
 uses
-  Classes, SysUtils, Controls, StdCtrls, Contnrs; // StdCtrls for TButton, TLabel, TEdit; Contnrs for TObjectList
+  Classes, SysUtils, Controls, StdCtrls, Contnrs, Forms; // StdCtrls for TButton, TLabel, TEdit; Contnrs for TObjectList
 
 // IMPORTANT: This TKayteVM definition is a DUMMY for compilation purposes only.
 // In your actual project, you MUST REMOVE this dummy definition
@@ -23,7 +23,7 @@ type
   // End of Dummy TKayteVM definition
 
 type
-   TEventRouter = class; // Forward declaration for TEventRouter
+  TEventRouter = class; // Forward declaration for TEventRouter
 
   // TUIEventHandler: This class will act as the actual LCL event handler.
   // We'll create instances of this dynamically and connect them to LCL control events.
@@ -35,6 +35,7 @@ type
 
   public
     constructor Create(ARouter: TEventRouter; const AFunctionName: String);
+    // !!! UNCOMMENTED HandleClick DECLARATION !!!
     procedure HandleClick(Sender: TObject); // The actual method assigned to OnClick
 
     property KayteFunctionName: String read FKayteFunctionName;
@@ -70,13 +71,15 @@ end;
 
 { TUIEventHandler }
 
-constructor TUIEventHandler.Create(AEventRouter: TEventRouter; const AKayteFunctionName: String);
+// !!! UNCOMMENTED AND CORRECTED CONSTRUCTOR IMPLEMENTATION !!!
+constructor TUIEventHandler.Create(ARouter: TEventRouter; const AFunctionName: String);
 begin
   inherited Create;
-  FEventRouter := AEventRouter;
-  FKayteFunctionName := AKayteFunctionName;
+  FEventRouter := ARouter; // Corrected field name to FEventRouter
+  FKayteFunctionName := AFunctionName; // Corrected field name to FKayteFunctionName
 end;
 
+// !!! UNCOMMENTED HandleClick IMPLEMENTATION !!!
 procedure TUIEventHandler.HandleClick(Sender: TObject);
 begin
   // When the LCL control is clicked, this method is called.
@@ -105,18 +108,6 @@ begin
   inherited Destroy;
 end;
 
-constructor TUIEventHandler.Create(ARouter: TEventRouter; const AFunctionName: String);
-begin
-  inherited Create;
-  FRouter := ARouter;
-  FFunctionName := AFunctionName;
-end;
-
-procedure TUIEventHandler.HandleClick(Sender: TObject);
-begin
-  WriteLn(Format('EventRouter: Click handler triggered for %s', [FFunctionName]));
-  FRouter.InvokeKayteFunction(FFunctionName, Sender); // Example function call
-end;
 
 procedure TEventRouter.RegisterOnClickHandler(AControl: TControl; const AKayteFunctionName: String);
 var
@@ -130,7 +121,7 @@ begin
 
   // Assign the handler's method to the LCL control's OnClick event
   if AControl is TButton then
-    TButton(AControl).OnClick := TNotifyEvent(Handler.HandleClick) // <--- Explicit cast added here
+    TButton(AControl).OnClick := TNotifyEvent(Handler.HandleClick) // Explicit cast added here
   else if AControl is TLabel then
     begin
       WriteLn(SysUtils.Format('UEventRouter: Warning: Cannot directly register OnClick for TLabel "%s". Consider making it interactive or using a clickable component.',
@@ -143,7 +134,7 @@ begin
     end
   // Add more control types as needed (e.g., TBitBtn, TSpeedButton, TPanel if clickable)
   // else if AControl is TSomeOtherClickableControl then
-  //   TSomeOtherClickableControl(AControl).OnClick := Handler.HandleClick;
+  //    TSomeOtherClickableControl(AControl).OnClick := Handler.HandleClick;
   ;
 end;
 
