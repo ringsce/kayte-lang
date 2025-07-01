@@ -14,6 +14,7 @@ uses
   UEventRouter; // For TEventRouter
 
 type
+type
   TKfrmRenderer = class(TObject)
   private
     // Helper function to apply properties to an LCL control based on TKfrmComponentDef data

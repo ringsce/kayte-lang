@@ -1,6 +1,3 @@
-// UKfrmTypes.pas
-// Defines the data structures for representing Kayte UI (.kfrm) forms and controls.
-
 unit UKfrmTypes;
 
 {$mode objfpc}{$H+}
@@ -21,19 +18,17 @@ type
   );
 
   // Forward declarations for classes that might reference each other
-  // TKfrmControlList = class; // <-- REMOVE THIS LINE
   TKfrmComponentDef = class;
   TKfrmFormDef = class;
 
-  // TEventBinding: Represents a binding between a UI event (e.g., OnClick)
+  // TEventBinding: NOW A CLASS!
+  // Represents a binding between a UI event (e.g., OnClick)
   // and a Kayte script function name.
-  // NOTE: If using TObjectList, it's better for this to be a class,
-  // or use a TList<PEventBinding> and manage memory manually.
-  // For now, let's keep it as a record but acknowledge TObjectList's expectation of objects.
-  PEventBinding = ^TEventBinding; // Pointer to the record for TObjectList
-  TEventBinding = record
+  TEventBinding = class(TObject) // <--- CHANGED FROM RECORD TO CLASS(TOBJECT)
+  public // Properties for a class are usually public or published
     EventName: String;    // e.g., 'OnClick'
     FunctionName: String; // The name of the Kayte function to call
+    constructor Create(const AEventName, AFunctionName: String);
   end;
 
 
@@ -49,7 +44,7 @@ type
     FCaption: String; // Common for many visual controls
     FVisible: Boolean;
     FEnabled: Boolean;
-    FEventBindings: TObjectList; // List of PEventBinding (pointers to TEventBinding records)
+    FEventBindings: TObjectList; // List of TEventBinding (now actual TObject instances)
 
   public
     constructor Create; overload;
@@ -66,7 +61,7 @@ type
     property Caption: String read FCaption write FCaption;
     property Visible: Boolean read FVisible write FVisible;
     property Enabled: Boolean read FEnabled write FEnabled;
-    property EventBindings: TObjectList read FEventBindings; // Contains PEventBinding
+    property EventBindings: TObjectList read FEventBindings; // Contains TEventBinding objects
   end;
 
   // TKfrmFormDef: Represents a Kayte Form definition.
@@ -143,6 +138,16 @@ type
 
 implementation
 
+{ TEventBinding }
+
+constructor TEventBinding.Create(const AEventName, AFunctionName: String);
+begin
+  inherited Create;
+  EventName := AEventName;
+  FunctionName := AFunctionName;
+end;
+
+
 { TKfrmComponentDef }
 
 constructor TKfrmComponentDef.Create;
@@ -156,7 +161,8 @@ begin
   FCaption := '';
   FVisible := True;
   FEnabled := True;
-  FEventBindings := TObjectList.Create(True); // Owns records (pointers to records)
+  // TObjectList.Create(True) will now automatically call .Free on TEventBinding objects when it's destroyed.
+  FEventBindings := TObjectList.Create(True);
 end;
 
 constructor TKfrmComponentDef.Create(const AName: String; ALeft, ATop, AWidth, AHeight: Integer);
@@ -171,20 +177,17 @@ end;
 
 destructor TKfrmComponentDef.Destroy;
 begin
-  // For TObjectList to properly free the PEventBinding, they must be allocated with New.
-  // The AddEventBinding procedure uses New(Binding), so TObjectList(True) will call FreeMem for us.
+  // FEventBindings will now correctly free its TEventBinding objects because they are classes.
   FreeAndNil(FEventBindings);
   inherited Destroy;
 end;
 
 procedure TKfrmComponentDef.AddEventBinding(const AEventName, AFunctionName: String);
 var
-  Binding: PEventBinding; // Pointer to a new TEventBinding record
+  Binding: TEventBinding; // <--- Now a class instance, not a pointer to a record
 begin
-  New(Binding); // Allocate memory for the record
-  Binding^.EventName := AEventName;
-  Binding^.FunctionName := AFunctionName;
-  FEventBindings.Add(Binding); // Add the pointer to the list
+  Binding := TEventBinding.Create(AEventName, AFunctionName); // <--- Create a new instance of the class
+  FEventBindings.Add(Binding); // Add the class instance to the list
 end;
 
 
@@ -272,39 +275,4 @@ begin
   FCaption := ACaption;
 end;
 
-implementation
-
-{ TKfrmComponentDef }
-
-constructor TKfrmComponentDef.Create;
-begin
-  inherited Create;
-  FName := '';
-  FLeft := 0;
-  FTop := 0;
-  FWidth := 0;
-  FHeight := 0;
-  FCaption := '';
-  FVisible := True;
-  FEnabled := True;
-  FEventBindings := TObjectList.Create(True); // Owns records (pointers to records)
-end;
-
-constructor TKfrmComponentDef.Create(const AName: String; ALeft, ATop, AWidth, AHeight: Integer);
-begin
-  Create; // Call default constructor
-  FName := AName;
-  FLeft := ALeft;
-  FTop := ATop;
-  FWidth := AWidth;
-  FHeight := AHeight;
-end;
-
-destructor TKfrmComponentDef.Destroy;
-begin
-  // FEventBindings stores records, which are value types.
-  // TObjectList needs to own objects, not records.
-  // If TEventBinding were a class, FEventBindings would free them.
-  // Since it's a record, we just free the list itself.
-  // If we decided to store PEventBinding and allocated them, we'd need to free PEventBinding.
-  // For simplicity, let's assume we'll store TEventBinding directly if we had a TList<TEventBinding> (FPC 3.2
+end.

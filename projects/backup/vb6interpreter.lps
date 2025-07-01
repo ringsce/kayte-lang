@@ -7,116 +7,116 @@
       <Unit>
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/interpreterutils.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="InterpreterUtils"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/interpretercore.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="InterpreterCore"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/dhtml.pas"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/vbcompiler.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VBCompiler"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/synvbhighlighter.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="SynVBHighlighter"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/jsbindings.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="JSBindings"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/wincominterop.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="WinComInterop"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/frm.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="Form1"/>
         <ResourceBaseClass Value="Form"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/bytecodetypes.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="BytecodeTypes"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/bytecodevm.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="BytecodeVM"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/lexer.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Lexer"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/parser.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Parser"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/vmui.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VMUI"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/formgenerator.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="FormGenerator"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/tokendefs.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="tokenDefs"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/umaininterpreterform.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UMainInterpreterForm"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/uvm.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UVM"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/uparsertypes.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UParserTypes"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../source/ukfrmtypes.pas"/>
@@ -125,7 +125,7 @@
         <EditorIndex Value="3"/>
         <TopLine Value="256"/>
         <CursorPos X="5" Y="289"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -134,14 +134,14 @@
         <UnitName Value="FKfrmRuntime"/>
         <EditorIndex Value="4"/>
         <CursorPos X="45" Y="11"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../Runtime/ukfrmruntime.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UKfrmRuntime"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
       </Unit>
       <Unit>
         <Filename Value="../Router/ueventrouter.pas"/>
@@ -150,7 +150,7 @@
         <EditorIndex Value="1"/>
         <TopLine Value="101"/>
         <CursorPos Y="133"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -159,20 +159,24 @@
         <UnitName Value="UKfrmParser"/>
         <EditorIndex Value="5"/>
         <CursorPos Y="31"/>
-        <UsageCount Value="23"/>
+        <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../Renderer/UKfrmRenderer.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="4"/>
-        <CursorPos Y="16"/>
-        <UsageCount Value="12"/>
+        <TopLine Value="3"/>
+        <CursorPos X="21" Y="13"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="../source/fkfrmruntime.pas"/>
+        <Caret Line="19" Column="18"/>
+      </Position>
       <Position>
         <Filename Value="../source/fkfrmruntime.pas"/>
         <Caret Line="151" Column="5" TopLine="118"/>
@@ -287,10 +291,6 @@
       <Position>
         <Filename Value="../source/ukfrmtypes.pas"/>
         <Caret Line="289" Column="5" TopLine="256"/>
-      </Position>
-      <Position>
-        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
-        <Caret Line="13" Column="21" TopLine="3"/>
       </Position>
     </JumpHistory>
     <RunParams>

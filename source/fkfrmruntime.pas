@@ -6,10 +6,10 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, StdCtrls,
-  Contnrs,            //  <-- for TObjectList
+  Contnrs,             // <-- for TObjectList
   UKfrmTypes,
-  UKfrmParser,        //  <-- real (or stub) parser
-  UKfrmRenderer,      //  <-- renderer unit already in project path
+  UKfrmParser in '../Parser/UKfrmParser.pas',         // <-- real (or stub) parser
+  UKfrmRenderer in '../Renderer/UKfrmRenderer.pas',       // <-- renderer unit already in project path (KEEP HERE)
   UEventRouter;
 
 type
@@ -33,13 +33,16 @@ type
 
 implementation
 
+uses
+  UKfrmRenderer; // <<< ADDED UKfrmRenderer TO IMPLEMENTATION USES CLAUSE <<<
+
 { TKfrmRuntime }
 
 constructor TKfrmRuntime.Create(AEventRouter: TEventRouter);
 begin
   inherited Create;
   FKfrmParser   := TKfrmParser.Create;
-  FKfrmRenderer := TKfrmRenderer.Create;
+  FKfrmRenderer := TKfrmRenderer.Create; // This line needs TKfrmRenderer to be known in implementation
   FEventRouter  := AEventRouter;
   FLoadedForms  := TObjectList.Create(True);  // owns objects
 end;
@@ -128,4 +131,3 @@ begin
 end;
 
 end.
-
