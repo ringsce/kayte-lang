@@ -9,7 +9,7 @@ uses
   // IMPORTANT: For these 'in' clauses, ensure the paths are correct relative to your project file.
   // Often, if these units are in your project, you can simply use their names:
   // UKfrmParser, UKfrmRenderer;
-  UKfrmParser in '../Parser/UKfrmParser.pas',
+  //UKfrmParser in '../Parser/UKfrmParser.pas',
   UKfrmRenderer in '../Renderer/UKfrmRenderer.pas',
   UEventRouter;
 

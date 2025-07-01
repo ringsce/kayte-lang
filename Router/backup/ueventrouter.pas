@@ -35,7 +35,6 @@ type
 
   public
     constructor Create(ARouter: TEventRouter; const AFunctionName: String);
-    // !!! ONLY ONE HandleClick DECLARATION HERE !!!
     procedure HandleClick(Sender: TObject); // The actual method assigned to OnClick
 
     property KayteFunctionName: String read FKayteFunctionName;
@@ -74,8 +73,8 @@ end;
 constructor TUIEventHandler.Create(ARouter: TEventRouter; const AFunctionName: String);
 begin
   inherited Create;
-  FEventRouter := ARouter; // Corrected field name to FEventRouter
-  FKayteFunctionName := AFunctionName; // Corrected field name to FKayteFunctionName
+  FEventRouter := ARouter;
+  FKayteFunctionName := AFunctionName;
 end;
 
 procedure TUIEventHandler.HandleClick(Sender: TObject);
@@ -119,7 +118,7 @@ begin
 
   // Assign the handler's method to the LCL control's OnClick event
   if AControl is TButton then
-    TButton(AControl).OnClick := TNotifyEvent(Handler.HandleClick) // Explicit cast added here
+    TButton(AControl).OnClick := Handler.HandleClick
   else if AControl is TLabel then
     begin
       WriteLn(SysUtils.Format('UEventRouter: Warning: Cannot directly register OnClick for TLabel "%s". Consider making it interactive or using a clickable component.',

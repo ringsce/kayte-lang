@@ -5,122 +5,72 @@ unit UKfrmRenderer;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, Buttons,
-  UKfrmTypes,
-  UEventRouter in '../Router/UEventRouter.pas';
+  Classes, SysUtils, Forms, Contnrs,  StdCtrls, ExtCtrls, Buttons,
+  UKfrmTypes, UEventRouter;
 
 type
   TKfrmRenderer = class
   public
-    function CreateAndPopulateForm(AFormDef: TKfrmFormDef; AEventRouter: TEventRouter): TForm;
+    function CreateAndPopulateForm(AFormDef: TKfrmFormDef;
+                                   AEventRouter: TEventRouter): TForm;
+  end;
+  { -- one control on the form ------------------------------------------------ }
+  TKfrmControlDef = class
+  public
+    Name               : String;
+    ControlClassType   : String;   // “TButton”, “TEdit”, …
+    Left, Top          : Integer;
+    Width, Height      : Integer;
+    Visible            : Boolean;
+
+    // type‑specific extras
+    Caption            : String;   // for TLabel / TButton
+    Text               : String;   // for TEdit, TMemo …
+    PasswordChar       : Char;
+    OnClickHandlerName : String;
+
+    constructor Create;
+  end;
+
+  { -- whole form description ------------------------------------------------ }
+  TKfrmFormDef = class
+  public
+    Name      : String;
+    Caption   : String;
+    Width     : Integer;
+    Height    : Integer;
+    Position  : TPosition;
+
+    Controls  : TObjectList;      // list of TKfrmControlDef
+
+    constructor Create;
+    destructor  Destroy; override;
   end;
 
 implementation
 
-{ TKfrmRenderer }
+{ TKfrmControlDef }
 
-function TKfrmRenderer.CreateAndPopulateForm(AFormDef: TKfrmFormDef; AEventRouter: TEventRouter): TForm;
-var
-  NewForm: TForm;
-  ControlDef: TKfrmControlDef;
-  NewControl: TControl;
-  ControlClass: TControlClass; // Type for LCL control classes (e.g., TButtonClass)
-  PropValue: String;
+constructor TKfrmControlDef.Create;
 begin
-  NewForm := TForm.Create(Application); // Create a new TForm instance, parented by Application
+  inherited Create;
+  Visible       := True;
+  PasswordChar  := #0;
+end;
 
-  // Apply form properties
-  NewForm.Name := AFormDef.Name + 'Instance'; // Give it a unique runtime name
-  NewForm.Caption := AFormDef.Caption;
-  NewForm.Width := AFormDef.Width;
-  NewForm.Height := AFormDef.Height;
-  NewForm.Position := AFormDef.Position;
-  NewForm.Visible := False; // Keep invisible until fully populated
+{ TKfrmFormDef }
 
-  // Iterate through control definitions and create actual LCL controls
-  for ControlDef in AFormDef.Controls do
-  begin
-    NewControl := nil;
+constructor TKfrmFormDef.Create;
+begin
+  inherited Create;
+  Controls := TObjectList.Create(True);  // own the control objects
+end;
 
-    // Get the control class by its string name using RTTI (Run-Time Type Information)
-    // TControlClass is a pointer to a class type derived from TControl.
-    // GetClass returns TClass (generic pointer to any class), so cast it.
-    ControlClass := TControlClass(GetClass(ControlDef.ControlClassType));
-
-    if Assigned(ControlClass) and (ControlClass.InheritsFrom(TControl)) then
-    begin
-      // Create the control, parented to the new form
-      NewControl := ControlClass.Create(NewForm);
-    end;
-
-    if Assigned(NewControl) then
-    begin
-      NewControl.Parent := NewForm; // This is crucial for the control to appear on the form
-      NewControl.Name := ControlDef.Name; // Set the instance name, useful for lookup later
-
-      // Apply common properties
-      NewControl.Left := ControlDef.Left;
-      NewControl.Top := ControlDef.Top;
-      NewControl.Width := ControlDef.Width;
-      NewControl.Height := ControlDef.Height;
-      NewControl.Visible := ControlDef.Visible;
-
-      // Apply type-specific properties (use 'is' to check type and then cast)
-      if NewControl is TLabel then
-        TLabel(NewControl).Caption := ControlDef.Caption
-      else if NewControl is TButton then
-        TButton(NewControl).Caption := ControlDef.Caption
-      else if NewControl is TEdit then
-      begin
-        TEdit(NewControl).Text := ControlDef.Text;
-        if ControlDef.PasswordChar <> #0 then
-          TEdit(NewControl).PasswordChar := ControlDef.PasswordChar;
-      end
-      // Add more 'else if' blocks here for other control types (e.g., TMemo, TComboBox)
-      // Example:
-      // else if NewControl is TMemo then
-      // begin
-      //   TMemo(NewControl).Text := ControlDef.Text;
-      //   TMemo(NewControl).ScrollBars := TScrollStyle(GetEnumValue(TypeInfo(TScrollStyle), ControlDef.GetProperty('ScrollBars')));
-      // end;
-      ;
-
-      // Apply generic properties (if you add RTTI support to dynamically set any property by name)
-      // This part is significantly more complex in Pascal than VB6 due to lack of a direct
-      // "Properties collection". You'd need FPC's RTTI units (TypInfo) and complex code.
-      // For now, rely on specific property settings above or add more here via a large case statement.
-      // Example:
-      // PropValue := ControlDef.GetProperty('Font.Size');
-      // if PropValue <> '' then
-      //   NewControl.Font.Size := StrToIntDef(PropValue, NewControl.Font.Size);
-      // PropValue := ControlDef.GetProperty('Color');
-      // if PropValue <> '' then
-      //   NewControl.Color := StrToColor(PropValue);
-
-
-      // Register event handler with the central event router
-      if ControlDef.OnClickHandlerName <> '' then
-      begin
-        // Assign the generic event handler from the EventRouter,
-        // which will then dispatch to the VM based on control.Name
-        if NewControl is TButton then
-          TButton(NewControl).OnClick := AEventRouter.CreateEventHandler(NewControl, ControlDef.OnClickHandlerName)
-        else if NewControl is TEdit then
-        begin
-          // For TEdit, OnChange is a more common "action" event
-          TEdit(NewControl).OnChange := AEventRouter.CreateEventHandler(NewControl, ControlDef.OnClickHandlerName);
-          // If you want to also handle OnClick for TEdit, assign that too.
-        end;
-        // Add more specific event assignments here for other controls (e.g., OnSelect for TComboBox)
-      end;
-    end
-    else
-    begin
-      WriteLn(SysUtils.Format('Warning: Could not create LCL control of type "%s" for control "%s". Check Type name in .kfrm.', [ControlDef.ControlClassType, ControlDef.Name]));
-    end;
-  end;
-
-  Result := NewForm;
+destructor TKfrmFormDef.Destroy;
+begin
+  Controls.Free;
+  inherited Destroy;
 end;
 
 end.
+

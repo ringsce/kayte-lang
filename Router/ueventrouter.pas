@@ -35,7 +35,6 @@ type
 
   public
     constructor Create(ARouter: TEventRouter; const AFunctionName: String);
-    // !!! ONLY ONE HandleClick DECLARATION HERE !!!
     procedure HandleClick(Sender: TObject); // The actual method assigned to OnClick
 
     property KayteFunctionName: String read FKayteFunctionName;
@@ -74,8 +73,8 @@ end;
 constructor TUIEventHandler.Create(ARouter: TEventRouter; const AFunctionName: String);
 begin
   inherited Create;
-  FEventRouter := ARouter; // Corrected field name to FEventRouter
-  FKayteFunctionName := AFunctionName; // Corrected field name to FKayteFunctionName
+  FEventRouter := ARouter;
+  FKayteFunctionName := AFunctionName;
 end;
 
 procedure TUIEventHandler.HandleClick(Sender: TObject);
@@ -107,33 +106,29 @@ begin
 end;
 
 
-procedure TEventRouter.RegisterOnClickHandler(AControl: TControl; const AKayteFunctionName: String);
+procedure TEventRouter.RegisterOnClickHandler(AControl: TControl;
+  const AKayteFunctionName: String);
 var
   Handler: TUIEventHandler;
 begin
-  if not Assigned(AControl) then Exit;
+  if not Assigned(AControl) then
+    Exit;
 
-  // Create a new event handler instance for this specific Kayte function
   Handler := TUIEventHandler.Create(Self, AKayteFunctionName);
-  FEventHandlers.Add(Handler); // Add to our list so it's managed and not freed prematurely
+  FEventHandlers.Add(Handler);          // keep it alive
 
-  // Assign the handler's method to the LCL control's OnClick event
+  {--- assign the event handler ---}
   if AControl is TButton then
-    TButton(AControl).OnClick := Handler.HandleClick // <--- FIXED: Removed TNotifyEvent() cast
+    TButton(AControl).OnClick := @Handler.HandleClick          //  ←  @ here!
   else if AControl is TLabel then
-    begin
-      WriteLn(SysUtils.Format('UEventRouter: Warning: Cannot directly register OnClick for TLabel "%s". Consider making it interactive or using a clickable component.',
-        [AControl.Name]));
-    end
+    WriteLn(Format(
+      'UEventRouter: Warning: Cannot directly register OnClick for TLabel "%s".',
+      [AControl.Name]))
   else if AControl is TEdit then
-    begin
-      WriteLn(SysUtils.Format('UEventRouter: Warning: OnClick registration for TEdit "%s" might not be intended. Consider other events like OnChange or OnEnter.',
-        [AControl.Name]));
-    end
-  // Add more control types as needed (e.g., TBitBtn, TSpeedButton, TPanel if clickable)
-  // else if AControl is TSomeOtherClickableControl then
-  //    TSomeOtherClickableControl(AControl).OnClick := Handler.HandleClick;
-  ;
+    WriteLn(Format(
+      'UEventRouter: Warning: OnClick for TEdit "%s" is unusual; consider OnChange.',
+      [AControl.Name]));
+  { add more control types as needed }
 end;
 
 end.

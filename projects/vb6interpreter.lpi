@@ -114,11 +114,6 @@
         <UnitName Value="UMainInterpreterForm"/>
       </Unit>
       <Unit>
-        <Filename Value="../source/umaininterpreterform.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="UMainInterpreterForm"/>
-      </Unit>
-      <Unit>
         <Filename Value="../source/uvm.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UVM"/>
@@ -136,7 +131,7 @@
       <Unit>
         <Filename Value="../source/fkfrmruntime.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="FKFRMRUNTIME"/>
+        <UnitName Value="FKfrmRuntime"/>
       </Unit>
       <Unit>
         <Filename Value="../Runtime/ukfrmruntime.pas"/>
@@ -147,6 +142,11 @@
         <Filename Value="../Router/ueventrouter.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UEventRouter"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/ukfrmparser.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UKfrmParser"/>
       </Unit>
     </Units>
   </ProjectOptions>
