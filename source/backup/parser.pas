@@ -1,30 +1,33 @@
 unit Parser;
 
+{$mode objfpc}{$H+}
+
 interface
 
 uses
   SysUtils, Classes,
-  TokenDefs,     // <--- Correctly uses for TToken, TTokenType
-  Lexer,         // For TLexer
-  BytecodeTypes, // <--- Correctly uses for TBCValue and CreateBCValue* functions
-  TypInfo, fgl, Forms, StdCtrls,
-  FKfrmRuntime in '../Runtime/FKfrmRuntime.pas';       // For GetEnumName
-
-// Remove 'Forms' unless you actually need it in the interface for GUI elements.
-// Remove the explicit declarations of CreateBCValue* functions here. They are in BytecodeTypes.pas
+  TokenDefs,       // <--- Correctly uses for TToken, TTokenType
+  Lexer,           // For TLexer
+  BytecodeTypes,   // <--- Correctly uses for TBCValue and CreateBCValue* functions (for interface types)
+  TypInfo,         // For GetEnumName and TypeInfo
+  fgl,             // If you use FGL (Free Pascal Generics Library) - keep if needed, otherwise remove
+  Forms, StdCtrls,  // For TForm, TEdit (used in TVM)
+  FKfrmRuntime;    // For TKfrmRuntime (used in TVM)
 
 type
   IInterpreterCallback = interface
+    ['{F2C6C1B0-9A1A-4D7E-9F4F-7B3B5C9D0E1F}'] // Generate a new GUID for your actual project
     procedure Log(const Msg: String);
   end;
 
-  TVM = class
+  TVM = class(TObject)
   private
     FCallback: IInterpreterCallback;
+    FKfrmRuntime: TKfrmRuntime; // Instance of your runtime handler
 
   public
     destructor Destroy; override;
-    constructor Create(ACallback: IInterpreterCallback);
+    constructor Create(ACallback: IInterpreterCallback; AKfrmRuntime: TKfrmRuntime);
     procedure ExecuteInterpretedFunction(const AFunctionName: String);
   end;
 
@@ -40,6 +43,7 @@ type
     procedure ParseShowStatement;
     procedure ParseLetStatement(const VarName: String);
     procedure ParseIfStatement;
+    procedure ParseStatement; // Declaration for ParseStatement
 
     function ParseExpression: TBCValue;
     function ParseTerm: TBCValue;
@@ -51,26 +55,32 @@ type
     procedure ParseProgram;
   end;
 
-  implementation
+implementation
+
+// Add units needed only in the implementation section here
 
 { TVM }
 
-  constructor TVM.Create(ACallback: IInterpreterCallback);
-  begin
-    inherited Create;
-    FCallback := ACallback;
-    if Assigned(FCallback) then
-      FCallback.Log('VM: Virtual Machine created and initialized.');
-  end;
+constructor TVM.Create(ACallback: IInterpreterCallback; AKfrmRuntime: TKfrmRuntime);
+begin
+  inherited Create;
+  FCallback := ACallback;
+  FKfrmRuntime := AKfrmRuntime; // Assign the passed runtime instance
+  if Assigned(FCallback) then
+    FCallback.Log('VM: Virtual Machine created and initialized.');
+end;
 
-  destructor TVM.Destroy;
-  begin
-    if Assigned(FCallback) then
-      FCallback.Log('VM: Virtual Machine destroyed.');
-    inherited Destroy;
-  end;
+destructor TVM.Destroy;
+begin
+  if Assigned(FCallback) then
+    FCallback.Log('VM: Virtual Machine destroyed.');
+  FKfrmRuntime := nil;
+  FCallback := nil;
+  inherited Destroy;
+end;
 
-  procedure TVM.ExecuteInterpretedFunction(const AFunctionName: String);
+
+procedure TVM.ExecuteInterpretedFunction(const AFunctionName: String);
   var
     LoadedLoginForm: TForm;
     UsernameEdit: TEdit;
@@ -141,17 +151,14 @@ begin
     FCurrentToken := FLexer.GetNextToken
   else
     raise Exception.CreateFmt('Parser Error: Expected %s but found %s ("%s") at %d:%d',
-      [GetEnumName(TypeInfo(TTokenType), Ord(ExpectedType)), // GetEnumName is now visible
-       GetEnumName(TypeInfo(TTokenType), Ord(FCurrentToken.TokenType)), // GetEnumName is now visible
+      [GetEnumName(TypeInfo(TTokenType), Ord(ExpectedType)),
+       GetEnumName(TypeInfo(TTokenType), Ord(FCurrentToken.TokenType)),
        FCurrentToken.Lexeme,
        FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
 end;
 
 function TParser.PeekToken: TToken;
 begin
-  // This is a simplification. A real parser often needs true look-ahead from lexer.
-  // For now, assume GetNextToken moves the internal lexer state.
-  // A better Peek: FLexer would have a buffer of tokens.
   Result := FCurrentToken;
 end;
 
@@ -164,32 +171,27 @@ begin
   case FCurrentToken.TokenType of
     tkIntegerLiteral:
       begin
-        NumVal := StrToInt(FCurrentToken.Lexeme); // <-- Changed from .Value to .Lexeme
+        NumVal := StrToInt(FCurrentToken.Lexeme);
         ConsumeToken(tkIntegerLiteral);
-        Result := CreateBCValueInteger(NumVal); // Assuming CreateBCValueInteger helper is used
+        Result := CreateBCValueInteger(NumVal);
       end;
     tkStringLiteral:
       begin
-        // Remove quotes from string literal value for internal use
-        StrVal := Copy(FCurrentToken.Lexeme, 2, Length(FCurrentToken.Lexeme) - 2); // <-- Changed from .Value to .Lexeme
+        StrVal := Copy(FCurrentToken.Lexeme, 2, Length(FCurrentToken.Lexeme) - 2);
         ConsumeToken(tkStringLiteral);
-        Result := CreateBCValueString(StrVal); // Assuming CreateBCValueString helper is used
+        Result := CreateBCValueString(StrVal);
       end;
     tkBooleanLiteral:
       begin
-        BoolVal := SameText(FCurrentToken.Lexeme, 'TRUE'); // <-- Changed from .Value to .Lexeme
+        BoolVal := SameText(FCurrentToken.Lexeme, 'TRUE');
         ConsumeToken(tkBooleanLiteral);
-        Result := CreateBCValueBoolean(BoolVal); // Assuming CreateBCValueBoolean helper is used
+        Result := CreateBCValueBoolean(BoolVal);
       end;
     tkIdentifier: // If factor is a variable
       begin
-        // In a real VM, this would generate OP_PUSH_VAR
-        // For now, assume it's an error or get value from existing system
-        WriteLn(Format('Parser Note: Variable reference "%s" found. (Value lookup not implemented)', [FCurrentToken.Lexeme])); // <-- Changed from .Value to .Lexeme
-        // You would typically call a GetVar function here or generate code to do so
-        // For now, return a null value
+        WriteLn(Format('Parser Note: Variable reference "%s" found. (Value lookup not implemented)', [FCurrentToken.Lexeme]));
         ConsumeToken(tkIdentifier);
-        Result := CreateBCValueNull; // Assuming CreateBCValueNull helper is used
+        Result := CreateBCValueNull;
       end;
     tkParenthesisOpen:
       begin
@@ -199,7 +201,7 @@ begin
       end;
     else
       raise Exception.CreateFmt('Parser Error: Unexpected token "%s" when expecting factor at %d:%d',
-        [FCurrentToken.Lexeme, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]); // <-- Changed from .Value to .Lexeme
+        [FCurrentToken.Lexeme, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
   end;
 end;
 
@@ -211,18 +213,16 @@ var
 begin
   Left := ParseFactor;
   while (FCurrentToken.TokenType = tkOperator) and
-        (SameText(FCurrentToken.Lexeme, '*') or SameText(FCurrentToken.Lexeme, '/')) do // <-- Changed .Value to .Lexeme
+        (SameText(FCurrentToken.Lexeme, '*') or SameText(FCurrentToken.Lexeme, '/')) do
   begin
     Op := FCurrentToken;
     ConsumeToken(tkOperator);
     Right := ParseFactor;
-    // Perform operation (for direct interpretation) or generate opcode (for VM)
-    // Simplified for now, just example for integer multiplication
     if (Left.ValueType = bcvtInteger) and (Right.ValueType = bcvtInteger) then
     begin
-      if Op.Lexeme = '*' then // <-- Changed .Value to .Lexeme
+      if Op.Lexeme = '*' then
         Left.IntValue := Left.IntValue * Right.IntValue
-      else if Op.Lexeme = '/' then // <-- Changed .Value to .Lexeme
+      else if Op.Lexeme = '/' then
       begin
         if Right.IntValue = 0 then
           raise Exception.Create('Division by zero');
@@ -242,41 +242,32 @@ var
 begin
   Left := ParseTerm;
   while (FCurrentToken.TokenType = tkOperator) and
-        (SameText(FCurrentToken.Value, '+') or SameText(FCurrentToken.Value, '-') or
-         SameText(FCurrentToken.Value, '&')) do // Handle '&' for string concat
+        (SameText(FCurrentToken.Lexeme, '+') or SameText(FCurrentToken.Lexeme, '-') or
+         SameText(FCurrentToken.Lexeme, '&')) do
   begin
     Op := FCurrentToken;
     ConsumeToken(tkOperator);
     Right := ParseTerm;
 
-    // Perform operation or generate opcode
-    if Op.Value = '+' then
+    if Op.Lexeme = '+' then
     begin
       if (Left.ValueType = bcvtInteger) and (Right.ValueType = bcvtInteger) then
         Left.IntValue := Left.IntValue + Right.IntValue
       else
         raise Exception.Create('Type mismatch in addition');
     end
-    else if Op.Value = '-' then
+    else if Op.Lexeme = '-' then
     begin
       if (Left.ValueType = bcvtInteger) and (Right.ValueType = bcvtInteger) then
         Left.IntValue := Left.IntValue - Right.IntValue
       else
         raise Exception.Create('Type mismatch in subtraction');
     end
-    else if Op.Value = '&' then // String concatenation
+    else if Op.Lexeme = '&' then // String concatenation
     begin
-      // Ensure values are convertible to strings
-      Left.ValueType := bcvtString;
-      Right.ValueType := bcvtString; // Simplified: assumes both are strings
-      // You'd need conversion logic here if they aren't already strings
-      if Assigned(Left.StrValuePtr) and Assigned(Right.StrValuePtr) then
-        Left.StrValuePtr^ := Left.StrValuePtr^ + Right.StrValuePtr^
-      else if Assigned(Left.StrValuePtr) then
-        Left.StrValuePtr^ := Left.StrValuePtr^ + IntToStr(Right.IntValue) // Example mixed type
-      else if Assigned(Right.StrValuePtr) then
-        Left.StrValuePtr^ := IntToStr(Left.IntValue) + Right.StrValuePtr^; // Example mixed type
-      // For proper String concatenation from other types you'd need functions like Str() or CStr()
+      // !!! FIXED: Now using TBCValue.AsString and TBCValue.StringValue directly !!!
+      Left.StringValue := Left.AsString + Right.AsString;
+      Left.ValueType := bcvtString; // Ensure the result type is string
     end;
   end;
   Result := Left;
@@ -289,17 +280,10 @@ var
 begin
   ConsumeToken(tkKeyword); // Consume PRINT
   ExprValue := ParseExpression; // Parse what to print
-  // Here, you would either:
-  // 1. Directly print the value for a direct interpreter
-  //    case ExprValue.ValueType of
-  //      bcvtInteger: WriteLn(ExprValue.IntValue);
-  //      bcvtString: WriteLn(ExprValue.StrValuePtr^);
-  //      bcvtBoolean: WriteLn(ExprValue.BoolValue);
-  //    end;
-  // 2. Generate OP_PRINT bytecode for a VM
   WriteLn(Format('Parsed PRINT statement with value: %s (Type: %s)',
-    [GetEnumName(TypeInfo(TBCValueType), Ord(ExprValue.ValueType)), ExprValue.ValueType.ToString])); // Placeholder
-  ExprValue.Destroy; // Free the TBCValue's internal string if it's a string
+    [ExprValue.AsString, // Use AsString for display
+     GetEnumName(TypeInfo(TBCValueType), Ord(ExprValue.ValueType))
+     ]));
 end;
 
 procedure TParser.ParseShowStatement;
@@ -313,10 +297,7 @@ begin
       [FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
   ConsumeToken(tkIdentifier); // Consume the identifier
 
-  // Here, you would either:
-  // 1. Directly find/create and show the form for a direct interpreter (similar to old ExecuteLine)
-  // 2. Generate OP_SHOW_FORM bytecode for a VM (operand would be index to FormMap/StringLiterals)
-  WriteLn(Format('Parsed SHOW statement for form: %s', [FormNameToken.Value])); // Placeholder
+  WriteLn(Format('Parsed SHOW statement for form: %s', [FormNameToken.Lexeme]));
 end;
 
 procedure TParser.ParseLetStatement(const VarName: String);
@@ -330,13 +311,10 @@ begin
   ConsumeToken(tkOperator); // Consume '='
   ExprValue := ParseExpression; // Parse the value to assign
 
-  // Here, you would either:
-  // 1. Directly set the variable value in your runtime Vars list
-  //    SetVar(VarName, ExprValue); // You'd need to adapt SetVar to use TBCValue
-  // 2. Generate OP_POP_VAR and OP_PUSH_VAR (if var on stack) or specific assignment opcode for VM
   WriteLn(Format('Parsed LET/Assignment statement: %s = %s (Type: %s)',
-    [VarName, GetEnumName(TypeInfo(TBCValueType), Ord(ExprValue.ValueType)), ExprValue.ValueType.ToString])); // Placeholder
-  ExprValue.Destroy; // Free the TBCValue's internal string
+    [VarName, ExprValue.AsString, // Use AsString for display
+     GetEnumName(TypeInfo(TBCValueType), Ord(ExprValue.ValueType))
+     ]));
 end;
 
 
@@ -344,10 +322,6 @@ procedure TParser.ParseIfStatement;
 var
   ConditionValue: TBCValue;
   ThenToken: TToken;
-  // If you implement a full IF, you'd need to handle:
-  // - Nested IFs
-  // - ELSEIF / ELSE
-  // - Multi-line IF blocks vs single-line IFs
 begin
   ConsumeToken(tkKeyword); // Consume IF
 
@@ -357,12 +331,10 @@ begin
   ThenToken := FCurrentToken;
   if ThenToken.TokenType = tkKeyword then
   begin
-    if SameText(ThenToken.Value, 'THEN') then
+    if SameText(ThenToken.Lexeme, 'THEN') then
     begin
       ConsumeToken(tkKeyword); // Consume THEN
       // Now parse the statement(s) that follow THEN
-      // For simplicity, assume single statement on same line for now
-      // A full IF would handle EOL and new lines for block IFs.
       if (FCurrentToken.TokenType <> tkEndOfLine) and (FCurrentToken.TokenType <> tkEndOfFile) then
       begin
         WriteLn('  (Parsing statement after THEN)');
@@ -371,22 +343,20 @@ begin
     end
     else
       raise Exception.CreateFmt('Parser Error: Expected THEN but found "%s" in IF statement at %d:%d',
-        [FCurrentToken.Value, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
+        [FCurrentToken.Lexeme, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
   end
   else
     raise Exception.CreateFmt('Parser Error: Expected THEN keyword in IF statement at %d:%d',
       [FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
 
-  // For multi-line IFs, you would then look for ELSEIF, ELSE, END IF
-  // This simple parser assumes single line IF.
-  WriteLn(Format('Parsed IF statement with condition of type: %s', [GetEnumName(TypeInfo(TBCValueType), Ord(ConditionValue.ValueType))])); // Placeholder
-  ConditionValue.Destroy; // Free any string in condition
+  WriteLn(Format('Parsed IF statement with condition of type: %s', [GetEnumName(TypeInfo(TBCValueType), Ord(ConditionValue.ValueType))]));
 end;
 
 
 procedure TParser.ParseStatement;
 var
   CurrentLineNum: Integer;
+  PotentialVarName: String;
 begin
   CurrentLineNum := FCurrentToken.LineNum;
   // Skip comments on their own line
@@ -405,7 +375,7 @@ begin
     case FCurrentToken.TokenType of
       tkKeyword:
         begin
-          case LowerCase(FCurrentToken.Value) of
+          case LowerCase(FCurrentToken.Lexeme) of
             'print': ParsePrintStatement;
             'show': ParseShowStatement;
             'if': ParseIfStatement;
@@ -415,61 +385,44 @@ begin
                 WriteLn('Parsed END statement. Program will terminate.');
                 Exit; // Stop parsing
               end;
-            // Add more keywords and their respective parsing procedures
             else
               raise Exception.CreateFmt('Parser Error: Unrecognized keyword "%s" at %d:%d',
-                [FCurrentToken.Value, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
-          end; // case LowerCase(FCurrentToken.Value)
+                [FCurrentToken.Lexeme, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
+          end; // case LowerCase(FCurrentToken.Lexeme)
         end;
       tkIdentifier: // Could be assignment, or a CALL to a subroutine
         begin
-          // Peek ahead to see if it's an assignment (e.g., Var = Expr)
-          // This simplified parser doesn't have true lookahead in ConsumeToken,
-          // so it's a bit tricky. A more robust parser would use a lookahead buffer.
-          // For now, assume if it's an identifier not followed by '=' it's a syntax error
-          // Or, assume it's an assignment if '=' is the next actual token.
-          // This requires a real PeekToken in the lexer that returns next token without advancing.
-          // For now, we'll consume the identifier and check the next token.
+          PotentialVarName := FCurrentToken.Lexeme;
+          ConsumeToken(tkIdentifier); // Consume the identifier
 
-          // Simplified: assume 'Identifier' means 'LET Identifier = Value' syntax
-          // In VB6, 'Let' is optional. So 'MyVar = 10' is an assignment.
-          // If the next token is '=', it's an assignment.
-            PotentialVarName: String;
-            NextTok: TToken;
+          if FCurrentToken.TokenType = tkOperator then
           begin
-            PotentialVarName := FCurrentToken.Value;
-            ConsumeToken(tkIdentifier); // Consume the identifier
-            if FCurrentToken.TokenType = tkOperator then
+            if FCurrentToken.Lexeme = '=' then
             begin
-              if FCurrentToken.Value = '=' then
-              begin
-                ParseLetStatement(PotentialVarName); // Call assignment parser
-              end
-              else
-                raise Exception.CreateFmt('Parser Error: Expected "=" after identifier "%s" at %d:%d',
-                  [PotentialVarName, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
+              ParseLetStatement(PotentialVarName); // Call assignment parser
             end
             else
-              raise Exception.CreateFmt('Parser Error: Unexpected token "%s" after identifier "%s". Expected "=" or end of statement. at %d:%d',
-                [FCurrentToken.Value, PotentialVarName, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
-          end;
+              raise Exception.CreateFmt('Parser Error: Expected "=" after identifier "%s" at %d:%d',
+                [PotentialVarName, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
+          end
+          else
+            raise Exception.CreateFmt('Parser Error: Unexpected token "%s" after identifier "%s". Expected "=" or end of statement. at %d:%d',
+              [FCurrentToken.Lexeme, PotentialVarName, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
         end;
       tkEndOfFile: Exit; // Reached end of file, stop parsing
 
       else
         raise Exception.CreateFmt('Parser Error: Unexpected token "%s" at start of statement at %d:%d',
-          [FCurrentToken.Value, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
+          [FCurrentToken.Lexeme, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
     end; // case FCurrentToken.TokenType
 
     // After parsing a statement, check for ':' for multi-statement lines
     if FCurrentToken.TokenType = tkColon then
     begin
       ConsumeToken(tkColon); // Consume the colon
-      // Continue loop to parse next statement on the same line
     end
     else if FCurrentToken.TokenType = tkEndOfLine then
     begin
-      // Consume EOL and exit for this line
       ConsumeToken(tkEndOfLine);
       Break;
     end
@@ -479,9 +432,8 @@ begin
     end
     else
     begin
-      // If we are not at EOL, Colon or EOF, it's a syntax error
       raise Exception.CreateFmt('Parser Error: Expected EOL or ":" after statement, but found "%s" at %d:%d',
-        [FCurrentToken.Value, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
+        [FCurrentToken.Lexeme, FCurrentToken.LineNum + 1, FCurrentToken.ColNum]);
     end;
   end; // while FCurrentToken.TokenType <> tkEndOfLine
 end;
@@ -497,3 +449,4 @@ begin
 end;
 
 end.
+

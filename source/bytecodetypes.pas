@@ -1,12 +1,15 @@
 unit BytecodeTypes;
 
+{$mode objfpc}{$H+}
+
 interface
+
 uses
-  SysUtils, // For PString, FreeAndNil, Dispose, SetLength
-  Classes, fgl, tokenDefs;  // For TStringList, TObject (Note: Generics.Collections is no longer needed if TList<T> is removed)
+  SysUtils, // For IntToStr, BoolToStr, etc.
+  Classes,  // For TStringList, TObject
+  fgl;      // For TFPGMap (generics)
 
-
-type // <--- ALL TYPE DECLARATIONS START HERE AND END WITH THE LAST TYPE
+type // --- ALL TYPE DECLARATIONS START HERE ---
   // 1. Unified value-type enum
   TBCValueType = (
     bcvtNull,
@@ -15,32 +18,33 @@ type // <--- ALL TYPE DECLARATIONS START HERE AND END WITH THE LAST TYPE
     bcvtBoolean
   );
 
-  // 2. String pointer used inside VM values
-  PBCString = ^AnsiString;
-
-  // 3. Runtime value structure (record)
+  // 2. Runtime value structure (record) - NO LONGER A VARIANT RECORD
+  //    Uses direct StringValue for simpler memory management.
   TBCValue = record
-    case ValueType: TBCValueType of
-      bcvtNull: ();
-      bcvtInteger: (IntValue: Int64);
-      bcvtString: (StrValuePtr: PBCString);
-      bcvtBoolean: (BoolValue: Boolean);
-  end; // <--- SEMICOLON HERE, as more types follow
+    ValueType: TBCValueType;
+    IntValue: Int64;
+    StringValue: String; // <<< DIRECT STRING STORAGE, NO POINTER
+    BoolValue: Boolean;
 
-  // 4. Alias for VM variable type
-  TVMVariable = TBCValue; // This is an alias, no 'end;' needed
+    // Helper method to get the string representation of the value
+    function AsString: String;
+  end;
 
-  // 5. Variable object wrapper (class)
-  TVMVariableObject = class
+  // 3. Alias for VM variable type
+  TVMVariable = TBCValue;
+
+  // 4. Variable object wrapper (class) - If you need to wrap TBCValue in an object
+  //    Adjusted constructor/destructor for direct StringValue in TBCValue
+  TVMVariableObject = class(TObject) // Inherit from TObject
     Variable: TBCValue;
     constructor Create;
     destructor Destroy; override;
-  end; // <--- SEMICOLON HERE, as more types follow
+  end;
 
-  // 6. Subroutine map – String → Integer (specialized map)
-  TStringIntMap = specialize TFPGMap<AnsiString, LongInt>; // <--- SEMICOLON HERE, as more types follow
+  // 5. Subroutine map – String → Integer (specialized map from FGL)
+  TStringIntMap = specialize TFPGMap<AnsiString, LongInt>;
 
-  // 7. The enum for opcodes
+  // 6. The enum for opcodes
   TOpCode = (
     OP_PUSH_INT, OP_PUSH_STRING, OP_PUSH_VAR, OP_POP_VAR, OP_POP,
     OP_ADD_INT, OP_SUB_INT, OP_MUL_INT, OP_DIV_INT, OP_ADD_STRING,
@@ -49,18 +53,17 @@ type // <--- ALL TYPE DECLARATIONS START HERE AND END WITH THE LAST TYPE
     OP_AND, OP_OR, OP_NOT,
     OP_JUMP, OP_JUMP_IF_FALSE, OP_CALL, OP_RETURN, OP_HALT,
     OP_DECL_VAR, OP_PRINT, OP_INPUT, OP_SHOW_FORM
-  ); // <--- SEMICOLON HERE, as more types follow
+  );
 
-  // 8. Instruction format (record)
+  // 7. Instruction format (record)
   TBCInstruction = record
     OpCode: TOpCode;
     Operand1: Integer;
     Operand2: Integer;
   end;
 
-
-  // 9. Byte-code program class
-  TByteCodeProgram = class
+  // 8. Byte-code program class
+  TByteCodeProgram = class(TObject) // Inherit from TObject
   public
     Instructions: array of TBCInstruction;
     StringLiterals: TStringList;
@@ -71,90 +74,114 @@ type // <--- ALL TYPE DECLARATIONS START HERE AND END WITH THE LAST TYPE
 
     constructor Create;
     destructor Destroy; override;
-  end; // <--- NO SEMICOLON HERE, as this is the last type declaration in the 'type' block
+  end;
+// --- ALL TYPE DECLARATIONS END HERE ---
 
-// 3. GLOBAL FUNCTION DECLARATIONS GO THIRD (AFTER the 'type' block)
-(*function CreateBCValueInteger(AValue: Int64): TBCValue;
+
+// --- GLOBAL FUNCTION DECLARATIONS ---
+// These are helper functions to create TBCValue instances (like constructors for records)
+function CreateBCValueNull: TBCValue;
+function CreateBCValueInteger(AValue: Int64): TBCValue; // Changed to Int64 to match TBCValue.IntValue
 function CreateBCValueString(const AValue: String): TBCValue;
 function CreateBCValueBoolean(AValue: Boolean): TBCValue;
-function CreateBCValueNull: TBCValue;   *)
 
 
-// --- Implementation for Token Types ---
-// If GetTokenType is truly a standalone function, it belongs here.
 implementation
+
+{ TBCValue Record Methods }
+
+function TBCValue.AsString: String;
+begin
+  case ValueType of
+    bcvtNull: Result := 'NULL';
+    bcvtInteger: Result := IntToStr(IntValue);
+    bcvtString: Result := StringValue;
+    bcvtBoolean: Result := BoolToStr(BoolValue, True); // True for 'True'/'False' strings
+    else Result := '';
+  end;
+end;
 
 { TVMVariableObject }
 
 constructor TVMVariableObject.Create;
 begin
   inherited Create;
+  // Initialize the TBCValue record directly
   Variable.ValueType := bcvtNull;
+  Variable.IntValue := 0;
+  Variable.StringValue := ''; // Initialize string
+  Variable.BoolValue := False;
 end;
 
 destructor TVMVariableObject.Destroy;
 begin
-  if Variable.ValueType = bcvtString then
-    Dispose(Variable.StrValuePtr);
+  // No explicit Dispose needed for Variable.StringValue as String is managed by FPC
   inherited Destroy;
 end;
 
 
-// However, this kind of logic is *usually* a method of the TLexer class.
-// If it's a TLexer method, its implementation should be in Lexer.pas.
-function GetTokenType(const S: String): TTokenType;
-begin
-  Result := tkIdentifier; // Default to identifier
+{ Global TBCValue Creation Functions }
 
-  // Convert to uppercase for case-insensitive comparison (VB6 style)
-  case AnsiUpperCase(S) of
-    // Keywords
-    'REM', 'END', 'SUB', 'FUNCTION', 'IF', 'THEN', 'ELSE', 'ELSEIF', 'ENDIF',
-    'SELECT', 'CASE', 'END SELECT', 'WHILE', 'WEND', 'FOR', 'NEXT', 'TO', 'STEP',
-    'DIM', 'AS', 'REDIM', 'PRESERVE', 'CALL', 'GOTO', 'GOSUB', 'RETURN',
-    'PRINT', 'INPUT', 'MSGBOX', 'FORM', 'END FORM', 'SHOW', 'HIDE':
-      Result := tkKeyword;
-    // Boolean Literals
-    'TRUE', 'FALSE':
-      Result := tkBooleanLiteral;
-    // Operators (basic ones; full list would be larger)
-    '+', '-', '*', '/', '=', '<', '>', '<=', '>=', '<>', '&': // '&' for string concat
-      Result := tkOperator;
-    'AND', 'OR', 'NOT', 'IS': // Logical/comparison operators as keywords
-      Result := tkOperator; // Or keep as tkKeyword if you want to distinguish
-    '(': Result := tkParenthesisOpen;
-    ')': Result := tkParenthesisClose;
-    ',': Result := tkComma;
-    '.': Result := tkDot;
-    ':': Result := tkColon;
-  end;
+function CreateBCValueNull: TBCValue;
+begin
+  Result.ValueType := bcvtNull;
+  Result.IntValue := 0;
+  Result.StringValue := '';
+  Result.BoolValue := False;
 end;
 
-// --- Implementation for TByteCodeProgram methods ---
+function CreateBCValueInteger(AValue: Int64): TBCValue;
+begin
+  Result.ValueType := bcvtInteger;
+  Result.IntValue := AValue;
+  Result.StringValue := '';
+  Result.BoolValue := False;
+end;
+
+function CreateBCValueString(const AValue: String): TBCValue;
+begin
+  Result.ValueType := bcvtString;
+  Result.IntValue := 0;
+  Result.StringValue := AValue;
+  Result.BoolValue := False;
+end;
+
+function CreateBCValueBoolean(AValue: Boolean): TBCValue;
+begin
+  Result.ValueType := bcvtBoolean;
+  Result.IntValue := 0;
+  Result.StringValue := '';
+  Result.BoolValue := AValue;
+end;
+
+
+{ TByteCodeProgram methods }
+
 constructor TByteCodeProgram.Create;
 begin
-  inherited;
+  inherited Create; // Call inherited constructor for TObject
   StringLiterals := TStringList.Create;
-  SetLength(IntegerLiterals, 0);
+  SetLength(IntegerLiterals, 0); // Initialize dynamic array
   VariableMap := TStringIntMap.Create;
   SubroutineMap := TStringIntMap.Create;
   FormMap := TStringIntMap.Create;
-  SetLength(Instructions, 0);
+  SetLength(Instructions, 0); // Initialize dynamic array
 end;
 
 destructor TByteCodeProgram.Destroy;
 begin
-  // For dynamic arrays, FPC automatically manages memory if they are fields of a class or local vars.
-  // No explicit FreeAndNil(IntegerLiterals) is needed for dynamic arrays of simple types.
-  // If IntegerLiterals was 'array of PInteger', you'd need to iterate and Dispose each PInteger.
-
+  // Free owned objects
   FreeAndNil(StringLiterals);
-  // FreeAndNil(IntegerLiterals); // Not needed for dynamic array of Integer
   FreeAndNil(VariableMap);
   FreeAndNil(SubroutineMap);
   FreeAndNil(FormMap);
 
-  inherited; // Call inherited destructor last
+  // Dynamic arrays of simple types (like TBCInstruction, Int64) are managed by FPC.
+  // No explicit FreeAndNil or SetLength(..., 0) is strictly needed here for them
+  // if they are class fields, as the class destructor handles their memory.
+
+  inherited Destroy; // Call inherited destructor last
 end;
 
 end.
+
