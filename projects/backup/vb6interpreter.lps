@@ -7,141 +7,146 @@
       <Unit>
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="24"/>
+        <TopLine Value="99"/>
+        <UsageCount Value="77"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/interpreterutils.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="InterpreterUtils"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/interpretercore.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="InterpreterCore"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/dhtml.pas"/>
         <IsPartOfProject Value="True"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/vbcompiler.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VBCompiler"/>
-        <UsageCount Value="24"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="138"/>
+        <CursorPos X="3" Y="155"/>
+        <UsageCount Value="77"/>
+        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/synvbhighlighter.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="SynVBHighlighter"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/jsbindings.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="JSBindings"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/wincominterop.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="WinComInterop"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/frm.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="Form1"/>
         <ResourceBaseClass Value="Form"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/bytecodetypes.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="BytecodeTypes"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/bytecodevm.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="BytecodeVM"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/lexer.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Lexer"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/parser.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Parser"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/vmui.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VMUI"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/formgenerator.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="FormGenerator"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/tokendefs.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="tokenDefs"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/umaininterpreterform.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UMainInterpreterForm"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/uvm.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UVM"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/uparsertypes.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UParserTypes"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../source/ukfrmtypes.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UKfrmTypes"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="256"/>
         <CursorPos X="5" Y="289"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/fkfrmruntime.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="FKfrmRuntime"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="5"/>
         <CursorPos X="45" Y="11"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../Runtime/ukfrmruntime.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UKfrmRuntime"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
       </Unit>
       <Unit>
         <Filename Value="../Router/ueventrouter.pas"/>
@@ -150,121 +155,29 @@
         <EditorIndex Value="1"/>
         <TopLine Value="101"/>
         <CursorPos Y="133"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="77"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/ukfrmparser.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UKfrmParser"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="6"/>
         <CursorPos Y="31"/>
-        <UsageCount Value="22"/>
+        <UsageCount Value="75"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../Renderer/UKfrmRenderer.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="3"/>
-        <CursorPos X="21" Y="13"/>
-        <UsageCount Value="11"/>
+        <TopLine Value="188"/>
+        <CursorPos Y="190"/>
+        <UsageCount Value="38"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="19" Column="18"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="151" Column="5" TopLine="118"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="33" Column="23" TopLine="2"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="131" TopLine="98"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/ukfrmparser.pas"/>
-        <Caret Line="30"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/ukfrmparser.pas"/>
-        <Caret Line="23" Column="20"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/ukfrmparser.pas"/>
-        <Caret Line="31"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="23" Column="21" TopLine="2"/>
-      </Position>
-      <Position>
-        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
-        <Caret Line="8" Column="102"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="40" Column="80"/>
-      </Position>
-      <Position>
-        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
-        <Caret Line="9" Column="28"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="29" Column="54" TopLine="2"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="131" TopLine="98"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="16" Column="25" TopLine="2"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="133" Column="5" TopLine="100"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="12" Column="3"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="20" Column="15"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="123" Column="29" TopLine="100"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="133" Column="5" TopLine="100"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/fkfrmruntime.pas"/>
-        <Caret Line="11" Column="45"/>
-      </Position>
-      <Position>
-        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
-        <Caret Line="8" Column="37"/>
-      </Position>
-      <Position>
-        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
-        <Caret Line="18" Column="23"/>
-      </Position>
-      <Position>
-        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
-        <Caret Line="69" Column="29" TopLine="43"/>
-      </Position>
       <Position>
         <Filename Value="../Renderer/UKfrmRenderer.pas"/>
         <Caret Line="32" Column="32"/>
@@ -291,6 +204,98 @@
       <Position>
         <Filename Value="../source/ukfrmtypes.pas"/>
         <Caret Line="289" Column="5" TopLine="256"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="13" Column="21" TopLine="3"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="16" TopLine="4"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="24" Column="26" TopLine="4"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="51" Column="81" TopLine="34"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/vbcompiler.pas"/>
+        <Caret Line="155" Column="3" TopLine="138"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="168" TopLine="138"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="123" Column="54" TopLine="106"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="172" TopLine="139"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="107" Column="5" TopLine="75"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="108" Column="98" TopLine="92"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="156" Column="5" TopLine="123"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="187" TopLine="154"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="133" Column="46" TopLine="108"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="54" Column="3" TopLine="37"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="214" Column="21" TopLine="191"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="140" Column="24" TopLine="124"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="192" Column="15" TopLine="175"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="125" Column="52" TopLine="108"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="222" TopLine="189"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="200" Column="28" TopLine="183"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="192" Column="15" TopLine="175"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="221" TopLine="190"/>
+      </Position>
+      <Position>
+        <Filename Value="../Renderer/UKfrmRenderer.pas"/>
+        <Caret Line="138" TopLine="108"/>
       </Position>
     </JumpHistory>
     <RunParams>

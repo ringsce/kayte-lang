@@ -33,9 +33,6 @@ type
 
 implementation
 
-uses
-  UKfrmRenderer; // <<< ADDED UKfrmRenderer TO IMPLEMENTATION USES CLAUSE <<<
-
 { TKfrmRuntime }
 
 constructor TKfrmRuntime.Create(AEventRouter: TEventRouter);

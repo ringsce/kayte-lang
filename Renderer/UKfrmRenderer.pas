@@ -48,109 +48,122 @@ begin
   inherited Destroy;
 end;
 
-procedure TKfrmRenderer.ApplyControlProperties(AControl: TControl; AControlDef: TKfrmControlDef);
+// !!! FIX APPLIED HERE: Changed AControlDef type to TKfrmComponentDef !!!
+procedure TKfrmRenderer.ApplyControlProperties(AControl: TControl; AControlDef: TKfrmComponentDef);
 var
   IntValue: Integer;
 begin
   if not Assigned(AControl) or not Assigned(AControlDef) then Exit;
 
-  // Apply common properties directly from TKfrmControlDef
-  AControl.Name := AControlDef.Name_; // Use Name_ from TKfrmControlDef
+  // Apply common properties from TKfrmComponentDef (base class)
+  AControl.Name := AControlDef.Name; // Use Name from TKfrmComponentDef (inherited)
   AControl.Left := AControlDef.Left;
   AControl.Top := AControlDef.Top;
   AControl.Width := AControlDef.Width;
   AControl.Height := AControlDef.Height;
   AControl.Visible := AControlDef.Visible;
+  AControl.Enabled := AControlDef.Enabled; // Apply Enabled property
 
-  // Apply type-specific properties
-  case AControlDef.ControlClassType.ToLower of
-    'tform': // For forms themselves
-      if AControl is TForm then
-      begin
-        TForm(AControl).Caption := AControlDef.Caption;
-        TForm(AControl).Position := AControlDef.Position;
-        // Note: Width/Height/Left/Top are already handled by common properties
-      end;
-    'tbutton', 'tlabel':
-      AControl.Caption := AControlDef.Caption;
-    'tedit':
-      if AControl is TEdit then
-      begin
-        TEdit(AControl).Text := AControlDef.Text;
-        TEdit(AControl).PasswordChar := AControlDef.PasswordChar;
-      end;
-    // Add more control types and their specific properties here
-  end;
+  // Apply Caption if applicable (from TKfrmComponentDef)
+  if (AControl is TButton) or (AControl is TLabel) or (AControl is TForm) then // Forms also have Caption
+    AControl.Caption := AControlDef.Caption;
 
-  // Example for TWinControl.Align (if you want to support it via a generic property or specific field)
-  // This would require adding an 'Align' property to TKfrmControlDef or parsing from a generic property list.
-  // For now, it's not directly included in the TKfrmControlDef structure you provided.
-  // If you add it to TKfrmControlDef, you'd do:
-  (*
-  if AControl is TWinControl then
+  // Apply type-specific properties based on the actual *runtime type* of AControlDef
+  if AControlDef is TKfrmFormDef then
   begin
-    case AControlDef.Align.ToLower of // Assuming Align is a string property in TKfrmControlDef
-      'alnone': TWinControl(AControl).Align := alNone;
-      'alclient': TWinControl(AControl).Align := alClient;
-      // ... etc.
+    if AControl is TForm then
+    begin
+      TForm(AControl).Position := TKfrmFormDef(AControlDef).Position;
     end;
-  end;
-  *)
+  end
+  else if AControlDef is TKfrmEditDef then
+  begin
+    if AControl is TEdit then
+    begin
+      TEdit(AControl).Text := TKfrmEditDef(AControlDef).Text;
+      TEdit(AControl).ReadOnly := TKfrmEditDef(AControlDef).ReadOnly;
+      TEdit(AControl).MaxLength := TKfrmEditDef(AControlDef).MaxLength;
+      TEdit(AControl).PasswordChar := TKfrmEditDef(AControlDef).PasswordChar;
+    end;
+  end
+  else if AControlDef is TKfrmLabelDef then
+  begin
+    if AControl is TLabel then
+    begin
+      // TAlignment is an enum, convert string to enum value
+      // This is a simplified conversion. For production, use a robust string-to-enum function.
+      case TKfrmLabelDef(AControlDef).Alignment.ToLower of
+        'left': TLabel(AControl).Alignment := taLeftJustify;
+        'right': TLabel(AControl).Alignment := taRightJustify;
+        'center': TLabel(AControl).Alignment := taCenter;
+        else
+          WriteLn(SysUtils.Format('UKfrmRenderer: Warning: Unknown Alignment "%s" for label "%s".', [TKfrmLabelDef(AControlDef).Alignment, AControl.Name]));
+      end;
+      TLabel(AControl).AutoSize := TKfrmLabelDef(AControlDef).AutoSize;
+      TLabel(AControl).WordWrap := TKfrmLabelDef(AControlDef).WordWrap;
+    end;
+  end
+  // Add more control types and their specific properties here
 end;
 
-procedure TKfrmRenderer.RegisterControlEvents(AControl: TControl; AControlDef: TKfrmControlDef; AEventRouter: TEventRouter);
+// !!! FIX APPLIED HERE: Changed AControlDef type to TKfrmComponentDef !!!
+procedure TKfrmRenderer.RegisterControlEvents(AControl: TControl; AControlDef: TKfrmComponentDef; AEventRouter: TEventRouter);
+var
+  EventBinding: TEventBinding;
+  I: Integer;
 begin
   if not Assigned(AControl) or not Assigned(AControlDef) or not Assigned(AEventRouter) then Exit;
 
-  // Register OnClick if specified
-  if AControlDef.OnClickHandlerName <> '' then
+  // Iterate through all event bindings defined for this component
+  for I := 0 to AControlDef.EventBindings.Count - 1 do
   begin
-    if AControl is TButton then
-      TButton(AControl).OnClick := AEventRouter.RegisterOnClickHandler(AControl, AControlDef.OnClickHandlerName)
-    else if AControl is TLabel then // Labels typically don't have OnClick unless made interactive
-      WriteLn(SysUtils.Format('UKfrmRenderer: Warning: OnClick specified for TLabel "%s". TLabel does not have a direct OnClick event unless made interactive.', [AControl.Name]))
-    else if AControl is TEdit then // Edits typically don't use OnClick for primary interaction
-      WriteLn(SysUtils.Format('UKfrmRenderer: Warning: OnClick specified for TEdit "%s". Consider other events like OnChange or OnEnter for primary interaction.', [AControl.Name]))
-    else
-      WriteLn(SysUtils.Format('UKfrmRenderer: Warning: OnClick specified for unsupported control type "%s" (Name: "%s").', [AControl.ClassName, AControl.Name]));
+    EventBinding := TEventBinding(AControlDef.EventBindings.Items[I]);
+    case EventBinding.EventName.ToLower of
+      'onclick':
+        // Only assign OnClick if the control actually has an OnClick event
+        if AControl is TButton then
+          // !!! FIX APPLIED HERE: Call RegisterOnClickHandler as a procedure, not as an assignment source !!!
+          AEventRouter.RegisterOnClickHandler(AControl, EventBinding.FunctionName)
+        else if (AControl is TWinControl) and (TWinControl(AControl).IsControl) then
+          WriteLn(SysUtils.Format('UKfrmRenderer: Warning: OnClick specified for non-button TWinControl "%s" (Name: "%s"). Implement custom click handling for this type.', [AControl.ClassName, AControl.Name]))
+        else
+          WriteLn(SysUtils.Format('UKfrmRenderer: Warning: OnClick specified for unsupported control type "%s" (Name: "%s").', [AControl.ClassName, AControl.Name]));
+      // Add more event types (e.g., 'onchange', 'onkeydown') here if your TEventBinding includes them
+      else
+        WriteLn(SysUtils.Format('UKfrmRenderer: Warning: Unknown event "%s" specified for control "%s".', [EventBinding.EventName, AControl.Name]));
+    end;
   end;
-
-  // Add more event types (e.g., OnChange, OnKeyDown) here if your TKfrmControlDef includes them
-  // For example: if AControlDef.OnChangeHandlerName <> '' then ...
 end;
 
 
-function TKfrmRenderer.CreateLCLControl(AControlDef: TKfrmControlDef; AParent: TWinControl; AEventRouter: TEventRouter): TControl;
+// !!! CHANGED AControlDef TYPE TO TKfrmComponentDef !!!
+function TKfrmRenderer.CreateLCLControl(AControlDef: TKfrmComponentDef; AParent: TWinControl; AEventRouter: TEventRouter): TControl;
 var
   LCLControl: TControl;
-  ChildControlDef: TKfrmControlDef;
+  ChildComponentDef: TKfrmComponentDef; // Use base type for children
   I: Integer;
 begin
   LCLControl := nil;
 
-  // Create the LCL control based on ControlClassType
-  case AControlDef.ControlClassType.ToLower of
-    'tform':
-      // Forms are handled by CreateAndPopulateForm directly, but this case is here for completeness
-      // if you were to create sub-forms dynamically.
-      LCLControl := TForm.Create(AParent);
-    'tbutton':
-      LCLControl := TButton.Create(AParent);
-    'tlabel':
-      LCLControl := TLabel.Create(AParent);
-    'tedit':
-      LCLControl := TEdit.Create(AParent);
-    'tpanel':
-      LCLControl := TPanel.Create(AParent); // Requires ExtCtrls
-    // Add more control types as needed (e.g., TMemo, TListBox, TCheckBox, TRadioButton)
-    else
-      WriteLn(SysUtils.Format('UKfrmRenderer: Error: Unknown control type "%s". Cannot create control.', [AControlDef.ControlClassType]));
-      Exit(nil); // Exit if control type is unknown
+  // Create the LCL control based on the specific type of AControlDef
+  if AControlDef is TKfrmFormDef then
+    LCLControl := TForm.Create(AParent)
+  else if AControlDef is TKfrmButtonDef then
+    LCLControl := TButton.Create(AParent)
+  else if AControlDef is TKfrmLabelDef then
+    LCLControl := TLabel.Create(AParent)
+  else if AControlDef is TKfrmEditDef then
+    LCLControl := TEdit.Create(AParent)
+  // Add more control types here
+  else
+  begin
+    WriteLn(SysUtils.Format('UKfrmRenderer: Error: Unknown or unsupported TKfrmComponentDef type "%s". Cannot create control.', [AControlDef.ClassName]));
+    Exit(nil);
   end;
 
-  // Set parent if it's not a top-level form
+  // Set parent
   if Assigned(AParent) then
-    LCLControl.Parent := AParent; // TControl.Parent property is TWinControl
+    LCLControl.Parent := AParent;
 
   // Apply properties
   ApplyControlProperties(LCLControl, AControlDef);
@@ -159,17 +172,25 @@ begin
   RegisterControlEvents(LCLControl, AControlDef, AEventRouter);
 
   // Recursively create and populate child controls (if any)
-  // Note: TKfrmControlDef does not have a 'Children' list in your latest UKfrmTypes.pas.
-  // If controls can be nested, you'll need to add 'Children: TObjectList;' to TKfrmControlDef
-  // and modify TKfrmFormDef.Controls to contain these TKfrmControlDef.
-  // Assuming for now that only forms have a 'Controls' list.
+  // Only TKfrmFormDef has a 'Controls' list for children.
+  if AControlDef is TKfrmFormDef then
+  begin
+    for I := 0 to TKfrmFormDef(AControlDef).Controls.Count - 1 do
+    begin
+      ChildComponentDef := TKfrmComponentDef(TKfrmFormDef(AControlDef).Controls.Items[I]);
+      CreateLCLControl(ChildComponentDef, TWinControl(LCLControl), AEventRouter);
+    end;
+  end;
+
   Result := LCLControl;
 end;
+
+
 
 function TKfrmRenderer.CreateAndPopulateForm(AFormDef: TKfrmFormDef; AEventRouter: TEventRouter): TForm;
 var
   NewForm: TForm;
-  ControlDef: TKfrmControlDef;
+  ControlDef: TKfrmComponentDef; // Corrected type to TKfrmComponentDef
   I: Integer;
 begin
   Result := nil;
@@ -177,13 +198,12 @@ begin
 
   // Create the form instance
   NewForm := TForm.Create(Application); // Application is the owner for top-level forms
-  NewForm.Name := AFormDef.Name_; // Set the form's name early for debugging/lookup
+  NewForm.Name := AFormDef.Name; // Set the form's name early for debugging/lookup (used Name from TKfrmComponentDef)
 
-  // Apply form-specific properties (FormDef is a TKfrmFormDef, which has common properties)
-  ApplyControlProperties(NewForm, AFormDef); // TKfrmFormDef inherits from TObject, not TKfrmControlDef, so pass it directly
+  // Apply form properties (TKfrmFormDef inherits from TKfrmComponentDef, so this works)
+  ApplyControlProperties(NewForm, AFormDef);
 
-  // Register form events (if any, e.g., OnClose, OnShow)
-  // Assuming TKfrmFormDef has an OnClickHandlerName for the form itself if needed
+  // Register form events (if any)
   RegisterControlEvents(NewForm, AFormDef, AEventRouter);
 
   // Create and populate controls on the form
@@ -191,13 +211,15 @@ begin
   begin
     for I := 0 to AFormDef.Controls.Count - 1 do
     begin
-      ControlDef := TKfrmControlDef(AFormDef.Controls.Items[I]);
+      ControlDef := TKfrmComponentDef(AFormDef.Controls.Items[I]);
       CreateLCLControl(ControlDef, NewForm, AEventRouter); // Pass NewForm as parent
+      // !!! REMOVED THE EXTRANEOUS "fungicide." HERE !!!
     end;
   end;
 
   Result := NewForm;
 end;
+
 
 end.
 

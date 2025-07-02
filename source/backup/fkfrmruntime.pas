@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, Forms, Controls, StdCtrls,
   Contnrs,             // <-- for TObjectList
   UKfrmTypes,
-  UKfrmParser,         // <-- real (or stub) parser
+  UKfrmParser in '../Parser/UKfrmParser.pas',         // <-- real (or stub) parser
   UKfrmRenderer in '../Renderer/UKfrmRenderer.pas',       // <-- renderer unit already in project path (KEEP HERE)
   UEventRouter;
 
