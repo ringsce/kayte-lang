@@ -7,9 +7,8 @@
       <Unit>
         <Filename Value="kayte.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="683"/>
-        <CursorPos X="24" Y="715"/>
+        <TopLine Value="626"/>
+        <CursorPos X="29" Y="652"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
       </Unit>
@@ -108,8 +107,9 @@
         <Filename Value="../source/cli.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="CLI"/>
-        <EditorIndex Value="10"/>
-        <CursorPos X="39" Y="9"/>
+        <EditorIndex Value="12"/>
+        <TopLine Value="19"/>
+        <CursorPos X="5" Y="51"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -161,7 +161,7 @@
       <Unit>
         <Filename Value="../source/c99.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="10"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -186,7 +186,7 @@
       <Unit>
         <Filename Value="../source/c_backend.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="11"/>
+        <EditorIndex Value="15"/>
         <TopLine Value="104"/>
         <CursorPos X="12" Y="122"/>
         <UsageCount Value="303"/>
@@ -195,7 +195,7 @@
       <Unit>
         <Filename Value="../source/kayte_parser.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="12"/>
+        <EditorIndex Value="16"/>
         <TopLine Value="20"/>
         <CursorPos X="29" Y="37"/>
         <UsageCount Value="257"/>
@@ -211,7 +211,7 @@
       <Unit>
         <Filename Value="kayte_compiler.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="6"/>
         <TopLine Value="27"/>
         <CursorPos X="35" Y="43"/>
         <UsageCount Value="251"/>
@@ -220,7 +220,7 @@
       <Unit>
         <Filename Value="../source/kayte_runtime.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="4"/>
         <CursorPos Y="38"/>
         <UsageCount Value="251"/>
@@ -229,7 +229,7 @@
       <Unit>
         <Filename Value="../source/kayte_loader.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="38"/>
         <CursorPos X="38" Y="56"/>
         <UsageCount Value="251"/>
@@ -238,7 +238,7 @@
       <Unit>
         <Filename Value="../source/kayte_vm.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="5"/>
         <CursorPos Y="41"/>
         <UsageCount Value="250"/>
         <Loaded Value="True"/>
@@ -247,7 +247,7 @@
         <Filename Value="../source/buildkayte.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="BuildKayte"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="4"/>
         <UsageCount Value="249"/>
         <Loaded Value="True"/>
       </Unit>
@@ -262,7 +262,7 @@
       </Unit>
       <Unit>
         <Filename Value="../source/sys_mac.pas"/>
-        <EditorIndex Value="13"/>
+        <EditorIndex Value="17"/>
         <CursorPos Y="6"/>
         <UsageCount Value="116"/>
         <Loaded Value="True"/>
@@ -277,7 +277,7 @@
       </Unit>
       <Unit>
         <Filename Value="../source/basic.pas"/>
-        <EditorIndex Value="9"/>
+        <EditorIndex Value="11"/>
         <TopLine Value="68"/>
         <CursorPos X="10" Y="84"/>
         <UsageCount Value="172"/>
@@ -285,133 +285,167 @@
       </Unit>
       <Unit>
         <Filename Value="../source/n64.pas"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="9"/>
         <TopLine Value="25"/>
         <CursorPos Y="44"/>
         <UsageCount Value="158"/>
         <Loaded Value="True"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/parser.pas"/>
+        <UnitName Value="Parser"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="72"/>
+        <CursorPos X="26" Y="89"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/tokendefs.pas"/>
+        <UnitName Value="TokenDefs"/>
+        <EditorIndex Value="8"/>
+        <TopLine Value="41"/>
+        <CursorPos X="10" Y="58"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/bytecodetypes.pas"/>
+        <UnitName Value="BytecodeTypes"/>
+        <EditorIndex Value="14"/>
+        <TopLine Value="156"/>
+        <CursorPos Y="189"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/lexer.pas"/>
+        <UnitName Value="Lexer"/>
+        <EditorIndex Value="13"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="../source/kayte_parser.pas"/>
-        <Caret Line="13" Column="12"/>
+        <Filename Value="../source/lexer.pas"/>
+        <Caret Line="182" TopLine="160"/>
       </Position>
       <Position>
-        <Filename Value="kayte.lpr"/>
-        <Caret Line="20" Column="27"/>
+        <Filename Value="../source/lexer.pas"/>
+        <Caret Line="177" Column="20" TopLine="160"/>
       </Position>
       <Position>
-        <Filename Value="kayte.lpr"/>
-        <Caret Line="33" Column="5"/>
+        <Filename Value="../source/lexer.pas"/>
+        <Caret Line="192" Column="31" TopLine="160"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_parser.pas"/>
-        <Caret Line="41" Column="87" TopLine="20"/>
+        <Filename Value="../source/lexer.pas"/>
       </Position>
       <Position>
-        <Filename Value="kayte.lpr"/>
-        <Caret Line="33" Column="51" TopLine="15"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="110" Column="21" TopLine="84"/>
       </Position>
       <Position>
-        <Filename Value="kayte_compiler.pas"/>
-        <Caret Line="61" TopLine="27"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="497" TopLine="464"/>
       </Position>
       <Position>
-        <Filename Value="kayte_compiler.pas"/>
-        <Caret Line="58" TopLine="24"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="96" Column="24" TopLine="75"/>
       </Position>
       <Position>
-        <Filename Value="kayte_compiler.pas"/>
-        <Caret Line="16" Column="13"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="490" Column="5" TopLine="457"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_runtime.pas"/>
-        <Caret Line="38" TopLine="4"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="87" Column="26" TopLine="70"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="45" TopLine="11"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="580" TopLine="547"/>
       </Position>
       <Position>
-        <Filename Value="kayte.lpr"/>
-        <Caret Line="35" Column="8" TopLine="20"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="884" Column="7" TopLine="851"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_vm.pas"/>
-        <Caret Line="38" TopLine="4"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="88" Column="26" TopLine="71"/>
       </Position>
       <Position>
-        <Filename Value="kayte.lpr"/>
-        <Caret Line="36" Column="39" TopLine="20"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="331" TopLine="331"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_vm.pas"/>
-        <Caret Line="21" Column="34" TopLine="4"/>
+        <Filename Value="../source/bytecodetypes.pas"/>
+        <Caret Line="190" TopLine="157"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_vm.pas"/>
-        <Caret Line="30" Column="29" TopLine="4"/>
+        <Filename Value="../source/bytecodetypes.pas"/>
+        <Caret Line="189" TopLine="156"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="8" Column="22"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="91" Column="6" TopLine="72"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="74" TopLine="40"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="236" TopLine="216"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="22" Column="56" TopLine="5"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="90" TopLine="71"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="74" TopLine="40"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="106" TopLine="73"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="36" Column="31" TopLine="5"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="89" Column="26" TopLine="72"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="50" Column="20" TopLine="42"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="275" TopLine="252"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="108" TopLine="74"/>
+        <Filename Value="../source/tokendefs.pas"/>
+        <Caret Line="58" Column="10" TopLine="41"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="13" Column="44" TopLine="3"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="362" Column="110" TopLine="346"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="61" Column="36" TopLine="44"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="333" TopLine="327"/>
       </Position>
       <Position>
-        <Filename Value="../source/kayte_loader.pas"/>
-        <Caret Line="104" TopLine="70"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="363" Column="5" TopLine="333"/>
       </Position>
       <Position>
-        <Filename Value="../source/buildkayte.pas"/>
-        <Caret Line="70" TopLine="36"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="89" Column="26" TopLine="72"/>
       </Position>
       <Position>
-        <Filename Value="kayte.lpr"/>
-        <Caret Line="37" Column="5" TopLine="20"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="275" TopLine="252"/>
       </Position>
       <Position>
-        <Filename Value="../source/kaytesyntax.pas"/>
-        <Caret Line="134" TopLine="100"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="107" TopLine="74"/>
       </Position>
       <Position>
-        <Filename Value="kayte.lpr"/>
-        <Caret Line="37" Column="5" TopLine="24"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="89" Column="26" TopLine="72"/>
       </Position>
       <Position>
-        <Filename Value="kayte.lpr"/>
-        <Caret Line="19" Column="4"/>
+        <Filename Value="../source/parser.pas"/>
+        <Caret Line="107" TopLine="74"/>
       </Position>
     </JumpHistory>
     <RunParams>

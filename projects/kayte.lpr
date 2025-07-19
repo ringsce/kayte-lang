@@ -568,7 +568,6 @@ begin
   end;
 end;
 
-(* Execute Instructions *)
 procedure TVirtualMachine.ExecuteInstruction(Instruction: TBCInstruction);
 var
   CaseValue: Int64;
@@ -685,26 +684,27 @@ begin
       WriteLn(Format('VM: Returning from procedure to address %d', [TargetAddress]));
     end;
 
-    OP_FORM_START: // <<< NEW: Handle FORM START
+    OP_FORM_START:
     begin
-      FormID := Instruction.Operand1; // Assuming Operand1 holds a Form ID or Index
-      FActiveFormStack.Push(FormID); // Push the current form context onto the stack
+      FormID := Instruction.Operand1;
+      FActiveFormStack.Push(FormID);
       WriteLn(Format('VM: Entering FORM definition block for Form ID: %d', [FormID]));
-      // In a real scenario, the VM might load form metadata or prepare for control definitions
     end;
 
-    OP_FORM_END: // <<< NEW: Handle FORM END
+    OP_FORM_END:
     begin
       if FActiveFormStack.IsEmpty then
         raise Exception.Create('VM Error: END FORM without matching FORM START.');
-      FormID := FActiveFormStack.Pop; // Pop the form context from the stack
+      FormID := FActiveFormStack.Pop;
       WriteLn(Format('VM: Exiting FORM definition block for Form ID: %d', [FormID]));
-      // In a real scenario, the VM might finalize form loading or register the form
     end;
 
     OP_HALT:
     begin
       WriteLn('VM: HALT instruction encountered. Stopping execution.');
+      // <<< NEW: Use the ProgramTitle here
+      if FProgram <> nil then
+        WriteLn(Format('VM: Application "%s" has finished.', [FProgram.ProgramTitle]));
       FPC := MaxInt;
     end;
 
@@ -713,3 +713,4 @@ begin
       FPC := MaxInt;
   end;
 end;
+

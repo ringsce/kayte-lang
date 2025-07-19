@@ -141,7 +141,7 @@ begin
     // Keywords
     'REM', 'END', 'SUB', 'FUNCTION', 'IF', 'THEN', 'ELSE', 'ELSEIF', 'ENDIF',
     'SELECT', 'CASE', 'END SELECT', 'WHILE', 'WEND', 'FOR', 'NEXT', 'TO', 'STEP',
-    'DIM', 'AS', 'REDIM', 'PRESERVE', 'CALL', 'GOTO', 'GOSUB', 'RETURN', // <<< ADDED DIM
+    'DIM', 'AS', 'REDIM', 'PRESERVE', 'CALL', 'GOTO', 'GOSUB', 'RETURN',
     'PRINT', 'INPUT', 'MSGBOX', 'FORM', 'END FORM', 'SHOW', 'HIDE':
       Result := tkKeyword;
     // Boolean Literals
@@ -162,7 +162,6 @@ begin
     'EXPLICIT': Result := tkExplicit;
     'ON': Result := tkOn;
     'OFF': Result := tkOff;
-    'AS': Result := tkKeyword; // 'AS' keyword for type declarations in DIM
     // --- End New Keywords ---
   end;
 end;
@@ -173,9 +172,13 @@ var
   StartCol: Integer;
   LexemeBuilder: String;
   CurrentTokType: TTokenType;
+  // Store current position to rollback if it's not "Option Explicit On/Off"
+  SavedCharIndex : Integer;   // Corrected declaration
+  SavedLineIndex : Integer;   // Corrected declaration
+  SavedLineContent : String;  // Corrected declaration
 begin
-  Result.LineNum := FCurrentLineIndex;
-  Result.ColNum := FCurrentCharIndex;
+  Result.Line := FCurrentLineIndex; // Use .Line and .Column as per TokenDefs
+  Result.Column := FCurrentCharIndex;
 
   // Handle End of File
   if FEOF then
@@ -188,7 +191,7 @@ begin
   SkipWhitespace; // Skip leading whitespace
 
   StartCol := FCurrentCharIndex;
-  Result.ColNum := StartCol; // Update column number after skipping whitespace
+  Result.Column := StartCol; // Update column number after skipping whitespace
 
   // Handle End of Line
   if (FCurrentCharIndex >= Length(FCurrentLine)) and (FCurrentLineIndex < FSourceCode.Count) then
@@ -232,7 +235,7 @@ begin
       Exit;
     end
     else
-      raise Exception.CreateFmt('Lexer Error: Unclosed string literal at %d:%d', [Result.LineNum + 1, Result.ColNum]);
+      raise Exception.CreateFmt('Lexer Error: Unclosed string literal at %d:%d', [Result.Line + 1, Result.Column + 1]);
   end;
 
   // Handle Integer Literals
@@ -265,9 +268,9 @@ begin
     if (CurrentTokType = tkOption) then
     begin
       // Store current position to rollback if it's not "Option Explicit On/Off"
-      var SavedCharIndex := FCurrentCharIndex;
-      var SavedLineIndex := FCurrentLineIndex;
-      var SavedLineContent := FCurrentLine;
+      SavedCharIndex := FCurrentCharIndex;    // Corrected assignment
+      SavedLineIndex := FCurrentLineIndex;    // Corrected assignment
+      SavedLineContent := FCurrentLine;       // Corrected assignment
 
       SkipWhitespace; // Skip space after "Option"
       LexemeBuilder := '';
@@ -331,25 +334,33 @@ begin
   end;
 
   // Handle Operators and single-character tokens
+  // Initialize LexemeBuilder with the current character, assuming it's a single-char token
+  LexemeBuilder := String(CurrentChar);
+  CurrentTokType := tkUnknown; // Default to unknown, will be updated in case
+
   case CurrentChar of
     '+', '-', '*', '/': CurrentTokType := tkOperator;
     '=': CurrentTokType := tkOperator; // Assignment and equality
     '<':
-      if PeekChar = '=' then
       begin
-        CurrentTokType := tkOperator; LexemeBuilder := '<='; Advance;
-      end
-      else if PeekChar = '>' then
-      begin
-        CurrentTokType := tkOperator; LexemeBuilder := '<>'; Advance;
-      end
-      else CurrentTokType := tkOperator;
+        if PeekChar = '=' then
+        begin
+          CurrentTokType := tkOperator; LexemeBuilder := '<='; Advance;
+        end
+        else if PeekChar = '>' then
+        begin
+          CurrentTokType := tkOperator; LexemeBuilder := '<>'; Advance;
+        end
+        else CurrentTokType := tkOperator;
+      end;
     '>':
-      if PeekChar = '=' then
       begin
-        CurrentTokType := tkOperator; LexemeBuilder := '>='; Advance;
-      end
-      else CurrentTokType := tkOperator;
+        if PeekChar = '=' then
+        begin
+          CurrentTokType := tkOperator; LexemeBuilder := '>='; Advance;
+        end
+        else CurrentTokType := tkOperator;
+      end;
     '&': CurrentTokType := tkOperator; // String concatenation
     '(': CurrentTokType := tkParenthesisOpen;
     ')': CurrentTokType := tkParenthesisClose;
@@ -358,11 +369,8 @@ begin
     ':': CurrentTokType := tkColon;
     else
       raise Exception.CreateFmt('Lexer Error: Unexpected character "%s" at %d:%d',
-        [CurrentChar, Result.LineNum + 1, Result.ColNum]);
+        [CurrentChar, Result.Line + 1, Result.Column + 1]);
   end;
-
-  if LexemeBuilder = '' then // For single-character tokens
-    LexemeBuilder := CurrentChar;
 
   Advance; // Consume the character(s) for the token
   Result.TokenType := CurrentTokType;

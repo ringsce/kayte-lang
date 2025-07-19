@@ -3,27 +3,13 @@
 #include <string.h>  // For strlen, strcpy, strcat, strcmp, strdup
 
 // --- Kayte Runtime Functions (Declarations) ---
-// These match the 'declare' statements in the LLVM IR (.ll) files.
-
-// Prints a string to the console.
 void kayte_print_string(const char* str);
-
-// Shows a form with the given name. (Dummy implementation)
 void kayte_show_form(const char* form_name);
-
-// Gets the text content of a control on a form. (Dummy implementation)
-// Returns a newly allocated string, which the caller must free.
 char* kayte_get_control_text(const char* form_name, const char* control_name);
-
-// Compares two strings for equality. Returns 1 for true, 0 for false.
 int kayte_string_equal(const char* s1, const char* s2);
-
-// Closes a form with the given name. (Dummy implementation)
 void kayte_close_form(const char* form_name);
-
-// Concatenates two strings. Returns a newly allocated string, which the caller must free.
 char* kayte_concat_strings(const char* s1, const char* s2);
-
+char* kayte_int_to_string(long long value); // <<< NEW: For converting int to string
 
 // --- Kayte Runtime Functions (Implementations) ---
 
@@ -41,31 +27,23 @@ void kayte_show_form(const char* form_name) {
     } else {
         printf("Kayte Runtime (GUI): Request to show unnamed form. (Dummy)\n");
     }
-    // In a real application, you would integrate with your LCL/GUI framework here.
-    // Example (conceptual): LCL_ShowForm(form_name);
 }
 
 char* kayte_get_control_text(const char* form_name, const char* control_name) {
     printf("Kayte Runtime (GUI): Request to get text from control '%s' on form '%s'. (Dummy: Returning hardcoded value)\n", control_name, form_name);
 
-    // --- DUMMY LOGIC FOR DEMONSTRATION ---
-    // In a real application, this would query the actual GUI control.
     if (strcmp(form_name, "LoginForm") == 0) {
         if (strcmp(control_name, "EditUsername") == 0) {
-            return strdup("admin"); // Simulate "admin" entered
+            return strdup("admin");
         } else if (strcmp(control_name, "EditPassword") == 0) {
-            return strdup("password"); // Simulate "password" entered
+            return strdup("password");
         }
     }
-    // --- END DUMMY LOGIC ---
-
-    // Return an empty string if control not found or no dummy value
-    return strdup(""); // strdup allocates memory, must be freed by caller
+    return strdup("");
 }
 
 int kayte_string_equal(const char* s1, const char* s2) {
     if (!s1 || !s2) {
-        // Handle null pointers gracefully, e.g., only equal if both are null
         return (s1 == s2);
     }
     return strcmp(s1, s2) == 0;
@@ -77,29 +55,32 @@ void kayte_close_form(const char* form_name) {
     } else {
         printf("Kayte Runtime (GUI): Request to close unnamed form. (Dummy)\n");
     }
-    // In a real application, you would integrate with your LCL/GUI framework here.
-    // Example (conceptual): LCL_CloseForm(form_name);
 }
 
 char* kayte_concat_strings(const char* s1, const char* s2) {
-    if (!s1) s1 = ""; // Treat null as empty string for concatenation
+    if (!s1) s1 = "";
     if (!s2) s2 = "";
 
     size_t len1 = strlen(s1);
     size_t len2 = strlen(s2);
-    char* result = (char*)malloc(len1 + len2 + 1); // +1 for null terminator
+    char* result = (char*)malloc(len1 + len2 + 1);
 
     if (result == NULL) {
         fprintf(stderr, "Kayte Runtime Error: Memory allocation failed for string concatenation.\n");
-        exit(EXIT_FAILURE); // Or handle more gracefully
+        exit(EXIT_FAILURE);
     }
 
     strcpy(result, s1);
     strcat(result, s2);
 
-    return result; // Caller is responsible for freeing this memory
+    return result;
 }
 
-// Add more runtime functions as needed (e.g., for integer operations,
-// more complex string manipulations, file I/O, etc.)
+char* kayte_int_to_string(long long value) {
+    // A simple implementation, consider snprintf for robustness
+    // Max long long is ~19 digits + sign + null terminator
+    char buffer[25];
+    snprintf(buffer, sizeof(buffer), "%lld", value);
+    return strdup(buffer); // Caller must free
+}
 

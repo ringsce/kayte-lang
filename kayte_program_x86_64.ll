@@ -14,8 +14,7 @@ declare void @kayte_close_form(i8*)
 declare i8* @kayte_concat_strings(i8*, i8*) ; For string concatenation
 
 ; --- Global String Literals ---
-@.str.start_app = private unnamed_addr constant [25 x i8] c"Starting Kayte application!\00", align 1
-@.str.login_form_name = private unnamed_addr constant [10 x i8] c"LoginForm\00", align 1
+@.str.start_app = private unnamed_addr constant [28 x i8] c"Starting Kayte application!\00", align 1@.str.login_form_name = private unnamed_addr constant [10 x i8] c"LoginForm\00", align 1
 @.str.guest = private unnamed_addr constant [6 x i8] c"guest\00", align 1
 @.str.123 = private unnamed_addr constant [4 x i8] c"123\00", align 1
 @.str.admin = private unnamed_addr constant [6 x i8] c"admin\00", align 1

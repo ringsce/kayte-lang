@@ -23,17 +23,16 @@ type
     IntValue    : Int64;
     StringValue : String;
     BoolValue   : Boolean;
-    function AsString: String;
-  end; // <<< NO SEMICOLON HERE. This is crucial for correct syntax when other types follow.
+  end;
 
   {--- 3. VM variable alias ---}
   TVMVariable = TBCValue;
 
   {--- 4. Variable wrapper object ---}
-  TVMVariableObject = class(TObject) // Explicitly inherit from TObject
+  TVMVariableObject = class(TObject)
     Variable: TBCValue;
     constructor Create;
-    destructor Destroy; override; // Must be override if inheriting from TObject
+    destructor Destroy; override;
   end;
 
   {--- 5. String → Int maps ---}
@@ -47,7 +46,16 @@ type
     OP_GREATER_EQUAL, OP_LESS_EQUAL,
     OP_AND, OP_OR, OP_NOT,
     OP_JUMP, OP_JUMP_IF_FALSE, OP_CALL, OP_RETURN, OP_HALT,
-    OP_DECL_VAR, OP_PRINT, OP_INPUT, OP_SHOW_FORM
+    OP_DECL_VAR, OP_PRINT, OP_INPUT, OP_SHOW_FORM,
+    OP_CASE_COND,      // For SELECT CASE condition evaluation
+    OP_ENDCASE,        // Marker for END SELECT
+    OP_FOREACH_INIT,   // Initialize FOREACH loop (Operand1: loop var index, Operand2: collection index)
+    OP_FOREACH_ITER,   // Iterate FOREACH loop (Operand1: loop var index, Operand2: jump if end)
+    OP_FOREACH_END,    // Marker for END FOREACH
+    OP_CALL_PROC,      // Call a procedure/function (Operand1: target address)
+    OP_RETURN_PROC,    // Return from a procedure/function
+    OP_FORM_START,     // Start of a FORM definition block (Operand1: Form ID/Index)
+    OP_FORM_END        // End of a FORM definition block
   );
 
   {--- 7. Instruction ---}
@@ -58,7 +66,7 @@ type
   end;
 
   {--- 8. Byte-code program container ---}
-  TByteCodeProgram = class(TObject) // Explicitly inherit from TObject
+  TByteCodeProgram = class(TObject)
   public
     Instructions    : array of TBCInstruction;
     StringLiterals  : TStringList;
@@ -66,9 +74,11 @@ type
     VariableMap     : TStringIntMap;
     SubroutineMap   : TStringIntMap;
     FormMap         : TStringIntMap;
+    ProgramTitle    : String;
+
     constructor Create;
     destructor  Destroy; override;
-  end; // <<< ONLY THIS LAST 'end;' IN THE ENTIRE TYPE BLOCK GETS THE SEMICOLON
+  end;
 
 { ---------------------------------------------------------------------------
   ▸  HELPER CREATORS
@@ -78,33 +88,25 @@ function CreateBCValueInteger(A: Int64)  : TBCValue;
 function CreateBCValueString (const S: String): TBCValue;
 function CreateBCValueBoolean(B: Boolean): TBCValue;
 
+{ ---------------------------------------------------------------------------
+  ▸  GLOBAL HELPER FUNCTION FOR CONVERSION
+  --------------------------------------------------------------------------- }
+function BCValueToString(const AValue: TBCValue): String;
+function GetBCValueTypeName(AType: TBCValueType): String; // <<< NEW FUNCTION DECLARATION
+
 implementation
 { --------------------------------------------------------------------------- }
-
-{ TBCValue helpers }
-function TBCValue.AsString: String;
-begin
-  case ValueType of
-    bcvtNull    : Result := 'NULL';
-    bcvtInteger : Result := IntToStr(IntValue);
-    bcvtString  : Result := StringValue;
-    bcvtBoolean : Result := BoolToStr(BoolValue, True);
-  end;
-end;
-
 
 { TVMVariableObject }
 constructor TVMVariableObject.Create;
 begin
-  inherited Create; // Call inherited constructor for TObject
-  Variable := CreateBCValueNull; // Initialize the record
+  inherited Create;
+  Variable := CreateBCValueNull;
 end;
 
 destructor TVMVariableObject.Destroy;
 begin
-  // No explicit Dispose needed for Variable.StringValue as String is managed by FPC.
-  // CreateBCValueNull initializes the record, so no pointer to free.
-  inherited Destroy; // Call inherited destructor for TObject
+  inherited Destroy;
 end;
 
 
@@ -119,21 +121,21 @@ end;
 
 function CreateBCValueInteger(A: Int64): TBCValue;
 begin
-  Result := CreateBCValueNull; // Initialize all fields
+  Result := CreateBCValueNull;
   Result.ValueType := bcvtInteger;
   Result.IntValue  := A;
 end;
 
 function CreateBCValueString(const S: String): TBCValue;
 begin
-  Result := CreateBCValueNull; // Initialize all fields
+  Result := CreateBCValueNull;
   Result.ValueType   := bcvtString;
   Result.StringValue := S;
 end;
 
 function CreateBCValueBoolean(B: Boolean): TBCValue;
 begin
-  Result := CreateBCValueNull; // Initialize all fields
+  Result := CreateBCValueNull;
   Result.ValueType := bcvtBoolean;
   Result.BoolValue := B;
 end;
@@ -141,25 +143,47 @@ end;
 { TByteCodeProgram }
 constructor TByteCodeProgram.Create;
 begin
-  inherited Create; // Call inherited constructor for TObject
+  inherited Create;
   StringLiterals  := TStringList.Create;
   VariableMap     := TStringIntMap.Create;
   SubroutineMap   := TStringIntMap.Create;
   FormMap         := TStringIntMap.Create;
-  SetLength(Instructions, 0); // Initialize dynamic array
-  SetLength(IntegerLiterals, 0); // Initialize dynamic array
+  SetLength(Instructions, 0);
+  SetLength(IntegerLiterals, 0);
+  ProgramTitle := 'Kayte Application';
 end;
 
 destructor TByteCodeProgram.Destroy;
 begin
-  // Free owned objects (TStringList and TFPGMap instances)
   StringLiterals.Free;
   VariableMap   .Free;
   SubroutineMap .Free;
   FormMap       .Free;
-  // Dynamic arrays (Instructions, IntegerLiterals) are automatically managed by FPC.
-  inherited Destroy; // Call inherited destructor last
+  inherited Destroy;
 end;
+
+{ GLOBAL HELPER FUNCTION FOR CONVERSION }
+function BCValueToString(const AValue: TBCValue): String;
+begin
+  case AValue.ValueType of
+    bcvtNull    : Result := 'NULL';
+    bcvtInteger : Result := IntToStr(AValue.IntValue);
+    bcvtString  : Result := AValue.StringValue;
+    bcvtBoolean : Result := BoolToStr(AValue.BoolValue, True);
+  end;
+end;
+
+// <<< NEW FUNCTION IMPLEMENTATION
+function GetBCValueTypeName(AType: TBCValueType): String;
+begin
+  case AType of
+    bcvtNull: Result := 'Null';
+    bcvtInteger: Result := 'Integer';
+    bcvtString: Result := 'String';
+    bcvtBoolean: Result := 'Boolean';
+  end;
+end;
+// End NEW FUNCTION IMPLEMENTATION
 
 end.
 
