@@ -213,7 +213,6 @@ begin
     begin
       ControlDef := TKfrmComponentDef(AFormDef.Controls.Items[I]);
       CreateLCLControl(ControlDef, NewForm, AEventRouter); // Pass NewForm as parent
-      // !!! REMOVED THE EXTRANEOUS "fungicide." HERE !!!
     end;
   end;
 

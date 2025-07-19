@@ -254,8 +254,8 @@ begin
 
     if FCurrentChar = #0 then // End of file
     begin
-      Result.TokenType := tkEndOfFile;
-      Result.Value := '';
+      Result.TokenType := tkEOF; // Use tokEOF or tkEndOfFile as defined in TokenDefs.pas
+      Result.Lexeme := ''; // <-- Changed from .Value to .Lexeme
       Result.LineNum := FCurrentLineIdx;
       Result.ColNum := CurrentTokenCol;
       Exit;
@@ -265,8 +265,8 @@ begin
       AdvanceChar;
       if FCurrentChar = #10 then // Line Feed (Windows EOL)
         AdvanceChar;
-      Result.TokenType := tkEndOfLine;
-      Result.Value := '';
+      Result.TokenType := tkNewline; // Use tkNewline or tkEndOfLine as defined
+      Result.Lexeme := ''; // <-- Changed from .Value to .Lexeme
       Result.LineNum := FCurrentLineIdx;
       Result.ColNum := CurrentTokenCol;
       Exit;
@@ -274,8 +274,8 @@ begin
     else if FCurrentChar = #10 then // Line Feed (Unix EOL)
     begin
       AdvanceChar;
-      Result.TokenType := tkEndOfLine;
-      Result.Value := '';
+      Result.TokenType := tkNewline; // Use tkNewline or tkEndOfLine
+      Result.Lexeme := ''; // <-- Changed from .Value to .Lexeme
       Result.LineNum := FCurrentLineIdx;
       Result.ColNum := CurrentTokenCol;
       Exit;
@@ -283,8 +283,8 @@ begin
     else if (FCurrentChar = '''') then // Single quote comment
     begin
       // Consume the rest of the line as a comment
-      Result.TokenType := tkComment;
-      Result.Value := Copy(FSourceCode[FCurrentLineIdx], FCurrentCharIdx, FLineLength - FCurrentCharIdx + 1);
+      Result.TokenType := tkComment; // Assuming tkComment is defined
+      Result.Lexeme := Copy(FSourceCode[FCurrentLineIdx], FCurrentCharIdx, FLineLength - FCurrentCharIdx + 1); // <-- Changed from .Value to .Lexeme
       FCurrentCharIdx := FLineLength + 1; // Move past end of line
       AdvanceChar; // To trigger EOL handling
       // A comment token is returned, but for an interpreter, you'd usually discard them here

@@ -40,6 +40,22 @@ type
     // ... add any other token types used in your language
     // ... add specific keywords if you want, e.g.,
     tkIf, tkThen, tkElse, tkEnd, tkWhile, tkDo, tkPrint, tkLet, tkTrue, tkFalse // etc.
+
+    // --- New Tokens for Option Explicit ---
+    tkOption,         // 'Option' keyword
+    tkExplicit,       // 'Explicit' keyword
+    tkOn,             // 'On' keyword
+    tkOff,            // 'Off' keyword
+    tkOptionExplicitOn,  // Composite token for "Option Explicit On"
+    tkOptionExplicitOff  // Composite token for "Option Explicit Off"
+    // --- End New Tokens ---// --- New Tokens for Option Explicit ---
+    tkOption,         // 'Option' keyword
+    tkExplicit,       // 'Explicit' keyword
+    tkOn,             // 'On' keyword
+    tkOff,            // 'Off' keyword
+    tkOptionExplicitOn,  // Composite token for "Option Explicit On"
+    tkOptionExplicitOff  // Composite token for "Option Explicit Off"
+    // --- End New Tokens ---
   );
 
 
@@ -59,22 +75,33 @@ type
   implementation
 
   // --- FUNCTION IMPLEMENTATION ---
-  function GetTokenType(const S: String): TTokenType;
-  begin
-    // This is a simplified example; you'd build a more comprehensive check
-    // using a hash map or a case statement for all keywords.
-    if SameText(S, 'IF') then Result := tkIf
-    else if SameText(S, 'THEN') then Result := tkThen
-    else if SameText(S, 'ELSE') then Result := tkElse
-    else if SameText(S, 'END') then Result := tkEnd
-    else if SameText(S, 'WHILE') then Result := tkWhile
-    else if SameText(S, 'DO') then Result := tkDo
-    else if SameText(S, 'PRINT') then Result := tkPrint
-    else if SameText(S, 'LET') then Result := tkLet
-    else if SameText(S, 'TRUE') then Result := tkBooleanLiteral // Specific keyword for boolean true
-    else if SameText(S, 'FALSE') then Result := tkBooleanLiteral // Specific keyword for boolean false
-    else Result := tkIdentifier; // If not a keyword, it's an identifier
+  function GetTokenTypeName(ATokenType: TTokenType): String;
+begin
+  case ATokenType of
+    tkUnknown: Result := 'UNKNOWN';
+    tkEndOfFile: Result := 'END_OF_FILE';
+    tkEndOfLine: Result := 'END_OF_LINE';
+    tkComment: Result := 'COMMENT';
+    tkKeyword: Result := 'KEYWORD';
+    tkIdentifier: Result := 'IDENTIFIER';
+    tkIntegerLiteral: Result := 'INTEGER_LITERAL';
+    tkStringLiteral: Result := 'STRING_LITERAL';
+    tkBooleanLiteral: Result := 'BOOLEAN_LITERAL';
+    tkOperator: Result := 'OPERATOR';
+    tkParenthesisOpen: Result := 'PARENTHESIS_OPEN';
+    tkParenthesisClose: Result := 'PARENTHESIS_CLOSE';
+    tkComma: Result := 'COMMA';
+    tkDot: Result := 'DOT';
+    tkColon: Result := 'COLON';
+    tkOption: Result := 'OPTION_KEYWORD';
+    tkExplicit: Result := 'EXPLICIT_KEYWORD';
+    tkOn: Result := 'ON_KEYWORD';
+    tkOff: Result := 'OFF_KEYWORD';
+    tkOptionExplicitOn: Result := 'OPTION_EXPLICIT_ON_DIRECTIVE';
+    tkOptionExplicitOff: Result := 'OPTION_EXPLICIT_OFF_DIRECTIVE';
+    else Result := 'UNHANDLED_TOKEN_TYPE';
   end;
+end;
 
 end.
 

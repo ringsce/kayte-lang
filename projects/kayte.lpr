@@ -568,37 +568,148 @@ begin
   end;
 end;
 
-(* while function procedure *)
-procedure TVirtualMachine.ExecuteInstruction(Instruction: TInstruction);
+(* Execute Instructions *)
+procedure TVirtualMachine.ExecuteInstruction(Instruction: TBCInstruction);
 var
-  CaseValue: Integer;
+  CaseValue: Int64;
   Matched: Boolean;
+  TargetAddress: Integer;
+  LoopVarIndex: Integer;
+  CollectionIndex: Integer;
+  CurrentCollection: TStringList;
+  CurrentIterator: Integer;
+  ItemValue: TBCValue;
+  FormID: Integer; // For FORM_START/END
 begin
-  case Instruction of
-    // Existing cases...
-    CASE_COND:
-    begin
-      // Example: The case is based on the value in Register 1
-      CaseValue := FRegisters[1];
-      Matched := False;
+  case Instruction.OpCode of
+    OP_PUSH_INT: FRegisters[0] := CreateBCValueInteger(Instruction.Operand1);
+    OP_PUSH_STRING: FRegisters[0] := CreateBCValueString(FProgram.StringLiterals[Instruction.Operand1]);
+    OP_PUSH_VAR: FRegisters[0] := GetVariableValue(Instruction.Operand1);
+    OP_POP_VAR: SetVariableValue(Instruction.Operand1, FRegisters[0]);
+    OP_POP: ;
 
-      // This is where you would check against the actual case values.
-      // Here, we'll just simulate skipping until the match is found or ENDCASE
-      if CaseValue = 0 then
-        Matched := True; // Assume some condition
+    OP_ADD_INT: FRegisters[0].IntValue := FRegisters[0].IntValue + FRegisters[1].IntValue;
+    OP_SUB_INT: FRegisters[0].IntValue := FRegisters[0].IntValue - FRegisters[1].IntValue;
+    OP_MUL_INT: FRegisters[0].IntValue := FRegisters[0].IntValue * FRegisters[1].IntValue;
+    OP_DIV_INT:
+      if FRegisters[1].IntValue = 0 then
+        raise Exception.Create('VM Error: Division by zero');
+      FRegisters[0].IntValue := FRegisters[0].IntValue div FRegisters[1].IntValue;
+    OP_ADD_STRING: FRegisters[0].StringValue := FRegisters[0].AsString + FRegisters[1].AsString;
+
+    OP_JUMP: FPC := Instruction.Operand1 - 1;
+    OP_JUMP_IF_FALSE:
+      if not FRegisters[0].BoolValue then
+        FPC := Instruction.Operand1 - 1;
+
+    OP_PRINT: WriteLn(FRegisters[0].AsString);
+    OP_SHOW_FORM: WriteLn(Format('VM: Showing form: %s', [FRegisters[0].AsString]));
+
+    OP_CASE_COND:
+    begin
+      CaseValue := FRegisters[0].IntValue;
+      Matched := False;
+      if CaseValue = 0 then Matched := True; // Placeholder condition
 
       if not Matched then
       begin
         repeat
           Inc(FPC);
-        until (FMemory[FPC] = Ord(ENDCASE));
+          if FPC >= Length(FProgram.Instructions) then
+            raise Exception.Create('VM Error: ENDCASE not found for CASE_COND.');
+        until (FProgram.Instructions[FPC].OpCode = OP_ENDCASE);
       end;
     end;
-    ENDCASE:
-      ; // No operation, just a marker for the end of CASE
-  else
-    Writeln('Unknown instruction');
+    OP_ENDCASE:
+      ;
+
+    OP_FOREACH_INIT:
+    begin
+      LoopVarIndex := Instruction.Operand1;
+      CollectionIndex := Instruction.Operand2;
+      CurrentCollection := GetCollectionByIndex(CollectionIndex);
+      FLoopIterators.Add(0);
+      FLoopCollections.Add(CurrentCollection);
+
+      if CurrentCollection.Count = 0 then
+        FPC := Instruction.Operand2 - 1; // Jump past loop if empty
+      else
+      begin
+        ItemValue := CreateBCValueString(CurrentCollection[0]);
+        SetVariableValue(LoopVarIndex, ItemValue);
+      end;
+    end;
+
+    OP_FOREACH_ITER:
+    begin
+      LoopVarIndex := Instruction.Operand1;
+      if FLoopIterators.Count = 0 then
+        raise Exception.Create('VM Error: FOREACH_ITER without active loop iterator.');
+
+      CurrentIterator := FLoopIterators[FLoopIterators.Count - 1];
+      CurrentCollection := FLoopCollections[FLoopCollections.Count - 1];
+
+      Inc(CurrentIterator);
+
+      if CurrentIterator < CurrentCollection.Count then
+      begin
+        FLoopIterators[FLoopIterators.Count - 1] := CurrentIterator;
+        ItemValue := CreateBCValueString(CurrentCollection[CurrentIterator]);
+        SetVariableValue(LoopVarIndex, ItemValue);
+        FPC := Instruction.Operand2 - 1;
+      end
+      else
+      begin
+        FLoopIterators.Delete(FLoopIterators.Count - 1);
+        FLoopCollections.Delete(FLoopCollections.Count - 1);
+      end;
+    end;
+
+    OP_FOREACH_END:
+      ;
+
+    OP_CALL_PROC:
+    begin
+      TargetAddress := Instruction.Operand1;
+      FCallStack.Push(FPC);
+      FPC := TargetAddress - 1;
+      WriteLn(Format('VM: Calling procedure at address %d. Return address: %d', [TargetAddress, FCallStack.FItems[FCallStack.Count-1]]));
+    end;
+
+    OP_RETURN_PROC:
+    begin
+      if FCallStack.IsEmpty then
+        raise Exception.Create('VM Error: RETURN_PROC with empty call stack (no active call).');
+      TargetAddress := FCallStack.Pop;
+      FPC := TargetAddress;
+      WriteLn(Format('VM: Returning from procedure to address %d', [TargetAddress]));
+    end;
+
+    OP_FORM_START: // <<< NEW: Handle FORM START
+    begin
+      FormID := Instruction.Operand1; // Assuming Operand1 holds a Form ID or Index
+      FActiveFormStack.Push(FormID); // Push the current form context onto the stack
+      WriteLn(Format('VM: Entering FORM definition block for Form ID: %d', [FormID]));
+      // In a real scenario, the VM might load form metadata or prepare for control definitions
+    end;
+
+    OP_FORM_END: // <<< NEW: Handle FORM END
+    begin
+      if FActiveFormStack.IsEmpty then
+        raise Exception.Create('VM Error: END FORM without matching FORM START.');
+      FormID := FActiveFormStack.Pop; // Pop the form context from the stack
+      WriteLn(Format('VM: Exiting FORM definition block for Form ID: %d', [FormID]));
+      // In a real scenario, the VM might finalize form loading or register the form
+    end;
+
+    OP_HALT:
+    begin
+      WriteLn('VM: HALT instruction encountered. Stopping execution.');
+      FPC := MaxInt;
+    end;
+
+    else
+      WriteLn(Format('VM Error: Unknown instruction opcode %d at PC %d', [Ord(Instruction.OpCode), FPC]));
+      FPC := MaxInt;
   end;
 end;
-
-

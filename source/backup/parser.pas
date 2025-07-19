@@ -8,7 +8,7 @@ uses
   SysUtils, Classes,
   TokenDefs,       // <--- Correctly uses for TToken, TTokenType
   Lexer,           // For TLexer
-  BytecodeTypes,   // <--- Correctly uses for TBCValue and CreateBCValue* functions (for interface types)
+  BytecodeTypes in '../source/BytecodeTypes.pas',   // <--- Correctly uses for TBCValue and CreateBCValue* functions (for interface types)
   TypInfo,         // For GetEnumName and TypeInfo
   fgl,             // If you use FGL (Free Pascal Generics Library) - keep if needed, otherwise remove
   Forms, StdCtrls,  // For TForm, TEdit (used in TVM)

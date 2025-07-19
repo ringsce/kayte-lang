@@ -1,48 +1,45 @@
 unit BytecodeTypes;
 
 {$mode objfpc}{$H+}
+{$modeswitch TypeHelpers-}   // disable implicit helpers just for this unit
 
 interface
 
 uses
-  SysUtils, // For IntToStr, BoolToStr, etc.
-  Classes,  // For TStringList, TObject
-  fgl;      // For TFPGMap (generics)
+  SysUtils,            // IntToStr, BoolToStr …
+  Classes,             // TStringList
+  fgl;                 // TFPGMap (generics)
 
-type // --- ALL TYPE DECLARATIONS START HERE ---
-  // 1. Unified value-type enum
-  TBCValueType = (
-    bcvtNull,
-    bcvtInteger,
-    bcvtString,
-    bcvtBoolean
-  ); // No semicolon here
+{ ---------------------------------------------------------------------------
+  ▸  TYPE DECLARATIONS
+  --------------------------------------------------------------------------- }
+type
+  {--- 1. Value-type enum ---}
+  TBCValueType = (bcvtNull, bcvtInteger, bcvtString, bcvtBoolean);
 
-  // 2. Runtime value structure (record)
+  {--- 2. Runtime value record ---}
   TBCValue = record
-    ValueType: TBCValueType;
-    IntValue: Int64;
-    StringValue: String;
-    BoolValue: Boolean;
-
-    // Helper method to get the string representation of the value
+    ValueType   : TBCValueType;
+    IntValue    : Int64;
+    StringValue : String;
+    BoolValue   : Boolean;
     function AsString: String;
-  end; // <<< REMOVED SEMICOLON HERE
+  end; // <<< NO SEMICOLON HERE. This is crucial for correct syntax when other types follow.
 
-  // 3. Alias for VM variable type
-  TVMVariable = TBCValue; // No semicolon here
+  {--- 3. VM variable alias ---}
+  TVMVariable = TBCValue;
 
-  // 4. Variable object wrapper (class)
-  TVMVariableObject = class(TObject)
+  {--- 4. Variable wrapper object ---}
+  TVMVariableObject = class(TObject) // Explicitly inherit from TObject
     Variable: TBCValue;
     constructor Create;
-    destructor Destroy; override;
-  end; // <<< REMOVED SEMICOLON HERE
+    destructor Destroy; override; // Must be override if inheriting from TObject
+  end;
 
-  // 5. Subroutine map – String → Integer (specialized map)
-  TStringIntMap = specialize TFPGMap<AnsiString, LongInt>; // No semicolon here
+  {--- 5. String → Int maps ---}
+  TStringIntMap = specialize TFPGMap<AnsiString, LongInt>;
 
-  // 6. The enum for opcodes
+  {--- 6. Opcodes ---}
   TOpCode = (
     OP_PUSH_INT, OP_PUSH_STRING, OP_PUSH_VAR, OP_POP_VAR, OP_POP,
     OP_ADD_INT, OP_SUB_INT, OP_MUL_INT, OP_DIV_INT, OP_ADD_STRING,
@@ -51,124 +48,118 @@ type // --- ALL TYPE DECLARATIONS START HERE ---
     OP_AND, OP_OR, OP_NOT,
     OP_JUMP, OP_JUMP_IF_FALSE, OP_CALL, OP_RETURN, OP_HALT,
     OP_DECL_VAR, OP_PRINT, OP_INPUT, OP_SHOW_FORM
-  ); // No semicolon here
+  );
 
-  // 7. Instruction format (record)
+  {--- 7. Instruction ---}
   TBCInstruction = record
-    OpCode: TOpCode;
-    Operand1: Integer;
-    Operand2: Integer;
-  end; // No semicolon here
+    OpCode   : TOpCode;
+    Operand1 : LongInt;
+    Operand2 : LongInt;
+  end;
 
-  // 8. Byte-code program class
-  TByteCodeProgram = class(TObject)
+  {--- 8. Byte-code program container ---}
+  TByteCodeProgram = class(TObject) // Explicitly inherit from TObject
   public
-    Instructions: array of TBCInstruction;
-    StringLiterals: TStringList;
-    IntegerLiterals: array of Int64;
-    VariableMap: TStringIntMap;
-    SubroutineMap: TStringIntMap;
-    FormMap: TStringIntMap;
-
+    Instructions    : array of TBCInstruction;
+    StringLiterals  : TStringList;
+    IntegerLiterals : array of Int64;
+    VariableMap     : TStringIntMap;
+    SubroutineMap   : TStringIntMap;
+    FormMap         : TStringIntMap;
     constructor Create;
-    destructor Destroy; override;
-  end; // <<< ONLY THIS LAST 'end;' IN THE TYPE BLOCK GETS THE SEMICOLON
+    destructor  Destroy; override;
+  end; // <<< ONLY THIS LAST 'end;' IN THE ENTIRE TYPE BLOCK GETS THE SEMICOLON
 
-// --- GLOBAL FUNCTION DECLARATIONS ---
-function CreateBCValueNull: TBCValue;
-function CreateBCValueInteger(AValue: Int64): TBCValue;
-function CreateBCValueString(const AValue: String): TBCValue;
-function CreateBCValueBoolean(AValue: Boolean): TBCValue;
+{ ---------------------------------------------------------------------------
+  ▸  HELPER CREATORS
+  --------------------------------------------------------------------------- }
+function CreateBCValueNull        : TBCValue;
+function CreateBCValueInteger(A: Int64)  : TBCValue;
+function CreateBCValueString (const S: String): TBCValue;
+function CreateBCValueBoolean(B: Boolean): TBCValue;
 
 implementation
+{ --------------------------------------------------------------------------- }
 
-{ TBCValue Record Methods }
-
+{ TBCValue helpers }
 function TBCValue.AsString: String;
 begin
   case ValueType of
-    bcvtNull: Result := 'NULL';
-    bcvtInteger: Result := IntToStr(IntValue);
-    bcvtString: Result := StringValue;
-    bcvtBoolean: Result := BoolToStr(BoolValue, True); // True for 'True'/'False' strings
-    else Result := '';
+    bcvtNull    : Result := 'NULL';
+    bcvtInteger : Result := IntToStr(IntValue);
+    bcvtString  : Result := StringValue;
+    bcvtBoolean : Result := BoolToStr(BoolValue, True);
   end;
 end;
 
-{ TVMVariableObject }
 
+{ TVMVariableObject }
 constructor TVMVariableObject.Create;
 begin
-  inherited Create;
-  Variable.ValueType := bcvtNull;
-  Variable.IntValue := 0;
-  Variable.StringValue := '';
-  Variable.BoolValue := False;
+  inherited Create; // Call inherited constructor for TObject
+  Variable := CreateBCValueNull; // Initialize the record
 end;
 
 destructor TVMVariableObject.Destroy;
 begin
-  // No explicit Dispose needed for Variable.StringValue as String is managed by FPC
-  inherited Destroy;
+  // No explicit Dispose needed for Variable.StringValue as String is managed by FPC.
+  // CreateBCValueNull initializes the record, so no pointer to free.
+  inherited Destroy; // Call inherited destructor for TObject
 end;
 
 
-{ Global TBCValue Creation Functions }
-
+{ global creators }
 function CreateBCValueNull: TBCValue;
 begin
-  Result.ValueType := bcvtNull;
-  Result.IntValue := 0;
+  Result.ValueType   := bcvtNull;
+  Result.IntValue    := 0;
   Result.StringValue := '';
-  Result.BoolValue := False;
+  Result.BoolValue   := False;
 end;
 
-function CreateBCValueInteger(AValue: Int64): TBCValue;
+function CreateBCValueInteger(A: Int64): TBCValue;
 begin
+  Result := CreateBCValueNull; // Initialize all fields
   Result.ValueType := bcvtInteger;
-  Result.IntValue := AValue;
-  Result.StringValue := '';
-  Result.BoolValue := False;
+  Result.IntValue  := A;
 end;
 
-function CreateBCValueString(const AValue: String): TBCValue;
+function CreateBCValueString(const S: String): TBCValue;
 begin
-  Result.ValueType := bcvtString;
-  Result.IntValue := 0;
-  Result.StringValue := AValue;
-  Result.BoolValue := False;
+  Result := CreateBCValueNull; // Initialize all fields
+  Result.ValueType   := bcvtString;
+  Result.StringValue := S;
 end;
 
-function CreateBCValueBoolean(AValue: Boolean): TBCValue;
+function CreateBCValueBoolean(B: Boolean): TBCValue;
 begin
+  Result := CreateBCValueNull; // Initialize all fields
   Result.ValueType := bcvtBoolean;
-  Result.IntValue := 0;
-  Result.StringValue := '';
-  Result.BoolValue := AValue;
+  Result.BoolValue := B;
 end;
 
-
-{ TByteCodeProgram methods }
-
+{ TByteCodeProgram }
 constructor TByteCodeProgram.Create;
 begin
-  inherited Create;
-  StringLiterals := TStringList.Create;
-  SetLength(IntegerLiterals, 0);
-  VariableMap := TStringIntMap.Create;
-  SubroutineMap := TStringIntMap.Create;
-  FormMap := TStringIntMap.Create;
-  SetLength(Instructions, 0);
+  inherited Create; // Call inherited constructor for TObject
+  StringLiterals  := TStringList.Create;
+  VariableMap     := TStringIntMap.Create;
+  SubroutineMap   := TStringIntMap.Create;
+  FormMap         := TStringIntMap.Create;
+  SetLength(Instructions, 0); // Initialize dynamic array
+  SetLength(IntegerLiterals, 0); // Initialize dynamic array
 end;
 
 destructor TByteCodeProgram.Destroy;
 begin
-  FreeAndNil(StringLiterals);
-  FreeAndNil(VariableMap);
-  FreeAndNil(SubroutineMap);
-  FreeAndNil(FormMap);
-
-  inherited Destroy;
+  // Free owned objects (TStringList and TFPGMap instances)
+  StringLiterals.Free;
+  VariableMap   .Free;
+  SubroutineMap .Free;
+  FormMap       .Free;
+  // Dynamic arrays (Instructions, IntegerLiterals) are automatically managed by FPC.
+  inherited Destroy; // Call inherited destructor last
 end;
 
 end.
+

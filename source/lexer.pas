@@ -1,46 +1,37 @@
 unit Lexer;
 
+{$mode objfpc}{$H+}
+
 interface
 
 uses
-  SysUtils, Classes, // For TStringList
-  BytecodeTypes, tokenDefs; // For TToken, TTokenType, GetTokenType
+  SysUtils, Classes, TokenDefs; // TokenDefs for TToken, TTokenType
 
-// --- Define TToken and related types FIRST ---
-
-// This enum will define the possible types of tokens
 type
+  TLexer = class
+  private
+    FSourceCode: TStringList;
+    FCurrentLineIndex: Integer;
+    FCurrentCharIndex: Integer;
+    FCurrentLine: String;
+    FEOF: Boolean;
 
-// --- Now define TLexer ---
-TLexer = class
-private
-  FSourceCode: TStringList; // The lines of code to tokenize
-  FCurrentLineIdx: Integer; // Current line number in FSourceCode
-  FCurrentCharIdx: Integer; // Current character position in the current line
-  FCurrentChar: Char;       // The character at FCurrentCharIdx
-  FLineLength: Integer;     // Length of the current line
+    procedure Advance;
+    function CurrentChar: Char;
+    function PeekChar: Char;
+    procedure SkipWhitespace;
+    function IsDigit(C: Char): Boolean;
+    function IsLetter(C: Char): Boolean;
+    function IsIdentifierStart(C: Char): Boolean;
+    function IsIdentifierChar(C: Char): Boolean;
+    function GetTokenType(const S: String): TTokenType; // Moved from BytecodeTypes
 
-  // Advances to the next character, handles EOL
-  procedure AdvanceChar;
-  // Peeks at the next character without advancing
-  function PeekChar(Offset: Integer = 1): Char;
-
-  // Helper for numeric literals
-  function ScanNumber: TToken;
-  // Helper for string literals
-  function ScanString: TToken;
-  // Helper for identifiers/keywords
-  function ScanIdentifierOrKeyword: TToken;
-  // Helper for operators
-  function ScanOperator: TToken;
-
-public
-  constructor Create(ASourceCode: TStringList);
-  destructor Destroy; override;
-
-  function GetNextToken: TToken; // Main method to get the next token
-  procedure Reset; // Reset lexer to start of code
-end;
+  public
+    constructor Create(ASourceCode: TStringList);
+    destructor Destroy; override;
+    procedure Reset;
+    function GetNextToken: TToken;
+  end;
 
 implementation
 
@@ -49,265 +40,334 @@ implementation
 constructor TLexer.Create(ASourceCode: TStringList);
 begin
   inherited Create;
-  FSourceCode := ASourceCode; // Assign (not own) the TStringList
+  FSourceCode := ASourceCode; // Lexer does not own the StringList
   Reset;
 end;
 
 destructor TLexer.Destroy;
 begin
-  // FSourceCode is not owned here, so don't free it
   inherited Destroy;
 end;
 
 procedure TLexer.Reset;
 begin
-  FCurrentLineIdx := 0;
-  FCurrentCharIdx := 0;
-  FCurrentChar := #0; // Null character
-  FLineLength := 0;
-  if (FSourceCode <> nil) and (FSourceCode.Count > 0) then
+  FCurrentLineIndex := 0;
+  FCurrentCharIndex := 0;
+  FCurrentLine := '';
+  FEOF := False;
+  if (FSourceCode.Count > 0) then
+    FCurrentLine := FSourceCode[FCurrentLineIndex]
+  else
+    FEOF := True; // Empty source code
+end;
+
+procedure TLexer.Advance;
+begin
+  if FEOF then Exit;
+
+  Inc(FCurrentCharIndex);
+  if FCurrentCharIndex >= Length(FCurrentLine) then
   begin
-    FLineLength := Length(FSourceCode[FCurrentLineIdx]);
-    if FLineLength > 0 then
-      FCurrentChar := FSourceCode[FCurrentLineIdx][1];
+    Inc(FCurrentLineIndex);
+    FCurrentCharIndex := 0;
+    if FCurrentLineIndex < FSourceCode.Count then
+      FCurrentLine := FSourceCode[FCurrentLineIndex]
+    else
+      FEOF := True;
   end;
 end;
 
-procedure TLexer.AdvanceChar;
+function TLexer.CurrentChar: Char;
 begin
-  Inc(FCurrentCharIdx);
-  if FCurrentCharIdx > FLineLength then
-  begin
-    // End of current line, move to next
-    Inc(FCurrentLineIdx);
-    FCurrentCharIdx := 0; // Reset char index for new line
-    if FCurrentLineIdx < FSourceCode.Count then
-    begin
-      FLineLength := Length(FSourceCode[FCurrentLineIdx]);
-      if FLineLength > 0 then
-        FCurrentChar := FSourceCode[FCurrentLineIdx][1] // Start of new line
-      else
-        FCurrentChar := #0; // Empty line
-    end
-    else
-    begin
-      FCurrentChar := #0; // End of file
-      FLineLength := 0;
-    end;
-  end
-  else if FCurrentCharIdx <= FLineLength then
-    FCurrentChar := FSourceCode[FCurrentLineIdx][FCurrentCharIdx];
+  if FEOF then Result := #0 else Result := FCurrentLine[FCurrentCharIndex + 1];
 end;
 
-function TLexer.PeekChar(Offset: Integer = 1): Char;
+function TLexer.PeekChar: Char;
 var
-  TargetCharIdx: Integer;
-  TargetLineIdx: Integer;
+  NextCharIndex: Integer;
+  NextLineIndex: Integer;
 begin
-  TargetCharIdx := FCurrentCharIdx + Offset;
-  TargetLineIdx := FCurrentLineIdx;
+  if FEOF then Result := #0;
 
-  if TargetCharIdx > FLineLength then
+  NextCharIndex := FCurrentCharIndex + 1;
+  NextLineIndex := FCurrentLineIndex;
+
+  if NextCharIndex >= Length(FCurrentLine) then
   begin
-    // Peek into next lines
-    TargetLineIdx := FCurrentLineIdx + (TargetCharIdx div (FLineLength + 1)); // Approximation
-    TargetCharIdx := TargetCharIdx mod (FLineLength + 1);
-    if TargetCharIdx = 0 then TargetCharIdx := 1; // Adjust if it wrapped perfectly
-
-    if TargetLineIdx < FSourceCode.Count then
-    begin
-      if TargetCharIdx <= Length(FSourceCode[TargetLineIdx]) then
-        Result := FSourceCode[TargetLineIdx][TargetCharIdx]
-      else
-        Result := #0; // Beyond end of that line
-    end
+    NextLineIndex := FCurrentLineIndex + 1;
+    NextCharIndex := 0;
+    if NextLineIndex < FSourceCode.Count then
+      Result := FSourceCode[NextLineIndex][NextCharIndex + 1]
     else
       Result := #0; // End of file
   end
   else
-    Result := FSourceCode[FCurrentLineIdx][TargetCharIdx];
+    Result := FCurrentLine[NextCharIndex + 1];
 end;
 
-
-function TLexer.ScanNumber: TToken;
-var
-  StartPos: Integer;
-  NumStr: String;
+procedure TLexer.SkipWhitespace;
 begin
-  Result.TokenType := tkIntegerLiteral; // Assuming tkIntegerLiteral is in your unified TTokenType
-  Result.LineNum := FCurrentLineIdx;
-  Result.ColNum := FCurrentCharIdx;
-  StartPos := FCurrentCharIdx;
-  NumStr := '';
-
-  while (FCurrentChar >= '0') and (FCurrentChar <= '9') do
-  begin
-    NumStr := NumStr + FCurrentChar;
-    AdvanceChar;
-  end;
-  Result.Lexeme := NumStr; // <-- Changed from Result.Value to Result.Lexeme
+  while (CurrentChar = ' ') or (CurrentChar = #9) do // Space or Tab
+    Advance;
 end;
 
-
-function TLexer.ScanString: TToken;
-var
-  StartPos: Integer;
-  StrContent: String;
+function TLexer.IsDigit(C: Char): Boolean;
 begin
-  Result.TokenType := tkStringLiteral; // Assuming tkStringLiteral is correctly defined
-  Result.LineNum := FCurrentLineIdx;
-  Result.ColNum := FCurrentCharIdx;
-  StartPos := FCurrentCharIdx;
-  StrContent := '';
-
-  // Consume the opening quote
-  if FCurrentChar = '"' then
-    AdvanceChar
-  else
-    raise Exception.CreateFmt('Lexer Error: Expected " at %d:%d', [FCurrentLineIdx + 1, FCurrentCharIdx]);
-
-  while (FCurrentChar <> '"') and (FCurrentChar <> #0) do // #0 for EOF
-  begin
-    // Handle escaped quotes if VB6 supports them (e.g., "" for a single ")
-    // This simple lexer doesn't, just takes char until next single quote.
-    StrContent := StrContent + FCurrentChar;
-    AdvanceChar;
-  end;
-
-  // Consume the closing quote
-  if FCurrentChar = '"' then
-    AdvanceChar
-  else
-    raise Exception.CreateFmt('Lexer Error: Unterminated string literal at %d:%d', [FCurrentLineIdx + 1, StartPos]);
-
-  Result.Lexeme := '"' + StrContent + '"'; // <-- Changed from Result.Value to Result.Lexeme
+  Result := (C >= '0') and (C <= '9');
 end;
 
-function TLexer.ScanIdentifierOrKeyword: TToken;
-var
-  StartPos: Integer;
-  IdStr: String;
+function TLexer.IsLetter(C: Char): Boolean;
 begin
-  Result.LineNum := FCurrentLineIdx;
-  Result.ColNum := FCurrentCharIdx;
-  StartPos := FCurrentCharIdx;
-  IdStr := '';
-
-  while (FCurrentChar >= 'A') and (FCurrentChar <= 'Z') or
-        (FCurrentChar >= 'a') and (FCurrentChar <= 'z') or
-        (FCurrentChar >= '0') and (FCurrentChar <= '9') or
-        (FCurrentChar = '_') do // Identifiers can contain letters, digits, and underscore
-  begin
-    IdStr := IdStr + FCurrentChar;
-    AdvanceChar;
-  end;
-
-  Result.Lexeme := IdStr; // <-- Changed from Result.Value to Result.Lexeme
-  Result.TokenType := GetTokenType(IdStr); // Check if it's a keyword
+  Result := ((C >= 'a') and (C <= 'z')) or ((C >= 'A') and (C <= 'Z'));
 end;
 
-
-function TLexer.ScanOperator: TToken;
-var
-  OpStr: String;
-  NextChar: Char;
+function TLexer.IsIdentifierStart(C: Char): Boolean;
 begin
-  Result.LineNum := FCurrentLineIdx;
-  Result.ColNum := FCurrentCharIdx;
-  OpStr := FCurrentChar;
-  AdvanceChar;
+  Result := IsLetter(C) or (C = '_');
+end;
 
-  // Handle multi-character operators (e.g., <=, >=, <>)
-  NextChar := FCurrentChar;
-  if (OpStr = '<') and (NextChar = '>') then
-  begin
-    OpStr := OpStr + NextChar;
-    AdvanceChar;
-  end
-  else if (OpStr = '<') and (NextChar = '=') then
-  begin
-    OpStr := OpStr + NextChar;
-    AdvanceChar;
-  end
-  else if (OpStr = '>') and (NextChar = '=') then
-  begin
-    OpStr := OpStr + NextChar;
-    AdvanceChar;
+function TLexer.IsIdentifierChar(C: Char): Boolean;
+begin
+  Result := IsLetter(C) or IsDigit(C) or (C = '_');
+end;
+
+// Moved from BytecodeTypes.pas
+function TLexer.GetTokenType(const S: String): TTokenType;
+begin
+  Result := tkIdentifier; // Default to identifier
+
+  // Convert to uppercase for case-insensitive comparison (VB6 style)
+  case AnsiUpperCase(S) of
+    // Keywords
+    'REM', 'END', 'SUB', 'FUNCTION', 'IF', 'THEN', 'ELSE', 'ELSEIF', 'ENDIF',
+    'SELECT', 'CASE', 'END SELECT', 'WHILE', 'WEND', 'FOR', 'NEXT', 'TO', 'STEP',
+    'DIM', 'AS', 'REDIM', 'PRESERVE', 'CALL', 'GOTO', 'GOSUB', 'RETURN', // <<< ADDED DIM
+    'PRINT', 'INPUT', 'MSGBOX', 'FORM', 'END FORM', 'SHOW', 'HIDE':
+      Result := tkKeyword;
+    // Boolean Literals
+    'TRUE', 'FALSE':
+      Result := tkBooleanLiteral;
+    // Operators (basic ones; full list would be larger)
+    '+', '-', '*', '/', '=', '<', '>', '<=', '>=', '<>', '&': // '&' for string concat
+      Result := tkOperator;
+    'AND', 'OR', 'NOT', 'IS': // Logical/comparison operators as keywords
+      Result := tkOperator; // Or keep as tkKeyword if you want to distinguish
+    '(': Result := tkParenthesisOpen;
+    ')': Result := tkParenthesisClose;
+    ',': Result := tkComma;
+    '.': Result := tkDot;
+    ':': Result := tkColon;
+    // --- New Keywords for Option Explicit ---
+    'OPTION': Result := tkOption;
+    'EXPLICIT': Result := tkExplicit;
+    'ON': Result := tkOn;
+    'OFF': Result := tkOff;
+    'AS': Result := tkKeyword; // 'AS' keyword for type declarations in DIM
+    // --- End New Keywords ---
   end;
-
-  Result.Lexeme := OpStr; // <-- Changed from Result.Value to Result.Lexeme
-  Result.TokenType := GetTokenType(OpStr); // Ensure it resolves to tkOperator
 end;
 
 
 function TLexer.GetNextToken: TToken;
 var
-  CurrentTokenCol: Integer;
+  StartCol: Integer;
+  LexemeBuilder: String;
+  CurrentTokType: TTokenType;
 begin
-  while True do
+  Result.LineNum := FCurrentLineIndex;
+  Result.ColNum := FCurrentCharIndex;
+
+  // Handle End of File
+  if FEOF then
   begin
-    // Skip whitespace
-    while (FCurrentChar = ' ') or (FCurrentChar = #9) do // Space or Tab
-      AdvanceChar;
+    Result.TokenType := tkEndOfFile;
+    Result.Lexeme := '';
+    Exit;
+  end;
 
-    CurrentTokenCol := FCurrentCharIdx; // Store start column for token
+  SkipWhitespace; // Skip leading whitespace
 
-    if FCurrentChar = #0 then // End of file
+  StartCol := FCurrentCharIndex;
+  Result.ColNum := StartCol; // Update column number after skipping whitespace
+
+  // Handle End of Line
+  if (FCurrentCharIndex >= Length(FCurrentLine)) and (FCurrentLineIndex < FSourceCode.Count) then
+  begin
+    Advance; // Move to the next line
+    Result.TokenType := tkEndOfLine;
+    Result.Lexeme := '';
+    Exit;
+  end;
+
+  // Handle comments starting with ' or REM
+  if CurrentChar = '''' then // Single quote comment
+  begin
+    LexemeBuilder := '';
+    while (CurrentChar <> #0) and (FCurrentCharIndex < Length(FCurrentLine)) do
     begin
-      Result.TokenType := tkEOF; // Use tokEOF or tkEndOfFile as defined in TokenDefs.pas
-      Result.Lexeme := ''; // <-- Changed from .Value to .Lexeme
-      Result.LineNum := FCurrentLineIdx;
-      Result.ColNum := CurrentTokenCol;
+      LexemeBuilder := LexemeBuilder + CurrentChar;
+      Advance;
+    end;
+    Result.TokenType := tkComment;
+    Result.Lexeme := LexemeBuilder;
+    Exit;
+  end;
+
+  // Handle String Literals
+  if CurrentChar = '"' then
+  begin
+    LexemeBuilder := '"';
+    Advance; // Consume the opening quote
+    while (CurrentChar <> '"') and (CurrentChar <> #0) and (FCurrentCharIndex < Length(FCurrentLine)) do
+    begin
+      LexemeBuilder := LexemeBuilder + CurrentChar;
+      Advance;
+    end;
+    if CurrentChar = '"' then
+    begin
+      LexemeBuilder := LexemeBuilder + '"';
+      Advance; // Consume the closing quote
+      Result.TokenType := tkStringLiteral;
+      Result.Lexeme := LexemeBuilder;
       Exit;
     end
-    else if FCurrentChar = #13 then // Carriage Return (Windows EOL)
-    begin
-      AdvanceChar;
-      if FCurrentChar = #10 then // Line Feed (Windows EOL)
-        AdvanceChar;
-      Result.TokenType := tkNewline; // Use tkNewline or tkEndOfLine as defined
-      Result.Lexeme := ''; // <-- Changed from .Value to .Lexeme
-      Result.LineNum := FCurrentLineIdx;
-      Result.ColNum := CurrentTokenCol;
-      Exit;
-    end
-    else if FCurrentChar = #10 then // Line Feed (Unix EOL)
-    begin
-      AdvanceChar;
-      Result.TokenType := tkNewline; // Use tkNewline or tkEndOfLine
-      Result.Lexeme := ''; // <-- Changed from .Value to .Lexeme
-      Result.LineNum := FCurrentLineIdx;
-      Result.ColNum := CurrentTokenCol;
-      Exit;
-    end
-    else if (FCurrentChar = '''') then // Single quote comment
-    begin
-      // Consume the rest of the line as a comment
-      Result.TokenType := tkComment; // Assuming tkComment is defined
-      Result.Lexeme := Copy(FSourceCode[FCurrentLineIdx], FCurrentCharIdx, FLineLength - FCurrentCharIdx + 1); // <-- Changed from .Value to .Lexeme
-      FCurrentCharIdx := FLineLength + 1; // Move past end of line
-      AdvanceChar; // To trigger EOL handling
-      // A comment token is returned, but for an interpreter, you'd usually discard them here
-      // and then call GetNextToken again to get the real next statement or EOL.
-      // For now, we'll return it and the parser can skip it.
-      Exit;
-    end
-    else if (FCurrentChar >= '0') and (FCurrentChar <= '9') then
-      Exit(ScanNumber)
-    else if FCurrentChar = '"' then
-      Exit(ScanString)
-    else if (FCurrentChar >= 'A') and (FCurrentChar <= 'Z') or
-            (FCurrentChar >= 'a') and (FCurrentChar <= 'z') or
-            (FCurrentChar = '_') then
-      Exit(ScanIdentifierOrKeyword)
-    else if (FCurrentChar = '+') or (FCurrentChar = '-') or (FCurrentChar = '*') or (FCurrentChar = '/') or
-            (FCurrentChar = '=') or (FCurrentChar = '<') or (FCurrentChar = '>') or (FCurrentChar = '&') or
-            (FCurrentChar = '(') or (FCurrentChar = ')') or (FCurrentChar = ',') or (FCurrentChar = '.') or
-            (FCurrentChar = ':') then
-      Exit(ScanOperator) // Single char operators and multi-char prefixes
     else
-      raise Exception.CreateFmt('Lexer Error: Unrecognized character "%s" at %d:%d', [FCurrentChar, FCurrentLineIdx + 1, FCurrentCharIdx]);
-  end; // while True
+      raise Exception.CreateFmt('Lexer Error: Unclosed string literal at %d:%d', [Result.LineNum + 1, Result.ColNum]);
+  end;
+
+  // Handle Integer Literals
+  if IsDigit(CurrentChar) then
+  begin
+    LexemeBuilder := '';
+    while IsDigit(CurrentChar) do
+    begin
+      LexemeBuilder := LexemeBuilder + CurrentChar;
+      Advance;
+    end;
+    Result.TokenType := tkIntegerLiteral;
+    Result.Lexeme := LexemeBuilder;
+    Exit;
+  end;
+
+  // Handle Identifiers and Keywords
+  if IsIdentifierStart(CurrentChar) then
+  begin
+    LexemeBuilder := '';
+    while IsIdentifierChar(CurrentChar) do
+    begin
+      LexemeBuilder := LexemeBuilder + CurrentChar;
+      Advance;
+    end;
+
+    CurrentTokType := GetTokenType(LexemeBuilder);
+
+    // --- Special handling for "Option Explicit On/Off" sequence ---
+    if (CurrentTokType = tkOption) then
+    begin
+      // Store current position to rollback if it's not "Option Explicit On/Off"
+      var SavedCharIndex := FCurrentCharIndex;
+      var SavedLineIndex := FCurrentLineIndex;
+      var SavedLineContent := FCurrentLine;
+
+      SkipWhitespace; // Skip space after "Option"
+      LexemeBuilder := '';
+      while IsIdentifierChar(CurrentChar) do
+      begin
+        LexemeBuilder := LexemeBuilder + CurrentChar;
+        Advance;
+      end;
+      if GetTokenType(LexemeBuilder) = tkExplicit then
+      begin
+        SkipWhitespace; // Skip space after "Explicit"
+        LexemeBuilder := '';
+        while IsIdentifierChar(CurrentChar) do
+        begin
+          LexemeBuilder := LexemeBuilder + CurrentChar;
+          Advance;
+        end;
+        if GetTokenType(LexemeBuilder) = tkOn then
+        begin
+          Result.TokenType := tkOptionExplicitOn;
+          Result.Lexeme := 'Option Explicit On';
+          Exit;
+        end
+        else if GetTokenType(LexemeBuilder) = tkOff then
+        begin
+          Result.TokenType := tkOptionExplicitOff;
+          Result.Lexeme := 'Option Explicit Off';
+          Exit;
+        end
+        else
+        begin
+          // Not "On" or "Off", rollback
+          FCurrentCharIndex := SavedCharIndex;
+          FCurrentLineIndex := SavedLineIndex;
+          FCurrentLine := SavedLineContent;
+          // Re-process "Option" as a regular keyword/identifier
+          Result.TokenType := tkOption;
+          Result.Lexeme := 'Option';
+          Advance; // Consume 'Option'
+          Exit;
+        end;
+      end
+      else
+      begin
+        // Not "Explicit", rollback
+        FCurrentCharIndex := SavedCharIndex;
+        FCurrentLineIndex := SavedLineIndex;
+        FCurrentLine := SavedLineContent;
+        // Re-process "Option" as a regular keyword/identifier
+        Result.TokenType := tkOption;
+        Result.Lexeme := 'Option';
+        Advance; // Consume 'Option'
+        Exit;
+      end;
+    end;
+    // --- End Special handling ---
+
+    Result.TokenType := CurrentTokType;
+    Result.Lexeme := LexemeBuilder;
+    Exit;
+  end;
+
+  // Handle Operators and single-character tokens
+  case CurrentChar of
+    '+', '-', '*', '/': CurrentTokType := tkOperator;
+    '=': CurrentTokType := tkOperator; // Assignment and equality
+    '<':
+      if PeekChar = '=' then
+      begin
+        CurrentTokType := tkOperator; LexemeBuilder := '<='; Advance;
+      end
+      else if PeekChar = '>' then
+      begin
+        CurrentTokType := tkOperator; LexemeBuilder := '<>'; Advance;
+      end
+      else CurrentTokType := tkOperator;
+    '>':
+      if PeekChar = '=' then
+      begin
+        CurrentTokType := tkOperator; LexemeBuilder := '>='; Advance;
+      end
+      else CurrentTokType := tkOperator;
+    '&': CurrentTokType := tkOperator; // String concatenation
+    '(': CurrentTokType := tkParenthesisOpen;
+    ')': CurrentTokType := tkParenthesisClose;
+    ',': CurrentTokType := tkComma;
+    '.': CurrentTokType := tkDot;
+    ':': CurrentTokType := tkColon;
+    else
+      raise Exception.CreateFmt('Lexer Error: Unexpected character "%s" at %d:%d',
+        [CurrentChar, Result.LineNum + 1, Result.ColNum]);
+  end;
+
+  if LexemeBuilder = '' then // For single-character tokens
+    LexemeBuilder := CurrentChar;
+
+  Advance; // Consume the character(s) for the token
+  Result.TokenType := CurrentTokType;
+  Result.Lexeme := LexemeBuilder;
 end;
 
 end.
+

@@ -1,0 +1,22 @@
+Option Explicit On
+
+DIM MyIntegerVar
+DIM MyStringVar, AnotherVar AS STRING ' AS STRING is parsed but not enforced yet
+
+MyIntegerVar = 123
+PRINT MyIntegerVar
+
+MyStringVar = "Hello" & " World"
+PRINT MyStringVar
+
+' This line should cause a compile-time error if Option Explicit On
+' UndeclaredVar = 456
+
+Option Explicit Off
+
+ImplicitVar = "I am implicitly declared"
+PRINT ImplicitVar
+
+IF 5 > 3 THEN PRINT "Condition is true"
+
+END
