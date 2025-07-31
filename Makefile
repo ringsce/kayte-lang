@@ -4,196 +4,161 @@
 
 # --- Global Project Settings ---
 PROJECT_NAME := kayte
-SRC_DIR := source               # Pascal compiler/runtime source files (units)
-PROJECT_DIR := projects         # Contains main .lpr project files (e.g., Kayte.lpr, vb6interpreter.lpr)
-COMPONENTS_DIR := components    # Path to your components folder (relative to Makefile root)
-BIN_DIR := bin                  # Where all compiled executables will go
-BUILD_DIR := build              # Where intermediate bytecode objects and .o/.ppu files go
+SRC_DIR := source                # Pascal compiler/runtime source files (units)
+PROJECT_DIR := projects          # Contains main .lpr project files (e.g., Kayte.lpr, vb6interpreter.lpr)
+COMPONENTS_DIR := components     # Path to your components folder (relative to Makefile root)
+BIN_DIR := bin                   # Where all compiled executables will go
+BUILD_DIR := build               # Where intermediate bytecode objects and .o/.ppu files go
 
 # Toolchain
 FPC := fpc
+LAZBUILD := /Applications/lazarus/lazbuild # Default for macOS, adjust if needed
+LAZARUS_APP_DIR := /Applications/lazarus # Used for lazbuild --lazarusdir
 
 # Detect platform (macOS or Linux) and set common linker flags
 UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-  PLATFORM := darwin
-  # Common linker flags for macOS. Adjust if needed.
-  COMMON_LDFLAGS := -WM-macosx_version_min=10.15
-  # lazbuild specific path on macOS
-  LAZBUILD := /Applications/lazarus/lazbuild
-  LAZARUS_APP_DIR := /Applications/lazarus # Used for lazbuild --lazarusdir
-else
+ifeq ($(UNAME_S),Linux)
   PLATFORM := linux
   COMMON_LDFLAGS := # No specific common linker flags for Linux by default
-  # LAZBUILD is not used directly for Linux FPC builds
+else ifeq ($(UNAME_S),Darwin)
+  PLATFORM := darwin
+  COMMON_LDFLAGS := -WM-macosx_version_min=10.15 # Common linker flags for macOS
+else
+  $(error Unsupported OS: $(UNAME_S). Please add specific rules for it.)
 endif
 
-# --- Executables and their Main Project Files ---
-# Define projects using a macro for reusability in individual build rules.
-# This does NOT define the build rules directly, but makes variables available.
-define DEFINE_PROJECT
-$(1)_EXE_NAME := $(1)
-$(1)_SOURCE_FILE := $(PROJECT_DIR)/$(1).lpr
-$(1)_LPI_FILE := $(PROJECT_DIR)/$(1).lpi
-$(1)_MACOS_X86_64_TARGET := $(BIN_DIR)/$(1)-macos-x86_64
-$(1)_MACOS_ARM64_TARGET := $(BIN_DIR)/$(1)-macos-arm64
-$(1)_LINUX_AMD64_TARGET := $(BIN_DIR)/$(1)-linux-amd64
-$(1)_LINUX_ARM64_TARGET := $(BIN_DIR)/$(1)-linux-arm64
-$(1)_MACOS_UNIVERSAL_TARGET := $(BIN_DIR)/$(1)-macos-universal
+# --- Project Definitions ---
+# List of all project base names (without .lpr/.lpi or paths)
+PROJECT_BASE_NAMES = kaytec vb6interpreter kayteide build_kayte main_app
+
+# --- Helper Functions ---
+# Function to get the full .lpr path for a given project base name
+define get_lpr_path
+$(PROJECT_DIR)/$(1).lpr
 endef
 
-$(eval $(call DEFINE_PROJECT,kaytec))
-$(eval $(call DEFINE_PROJECT,vb6interpreter))
-$(eval $(call DEFINE_PROJECT,kayteide))
-$(eval $(call DEFINE_PROJECT,build_kayte))
-$(eval $(call DEFINE_PROJECT,main_app)) # Assuming main_app has main_app.lpr/lpi
+# Function to get the full .lpi path for a given project base name
+define get_lpi_path
+$(PROJECT_DIR)/$(1).lpi
+endef
+
+# Function to get the full executable path for a given project base name and OS/arch
+define get_exe_path
+$(BIN_DIR)/$(1)-$(2)-$(3)
+endef
+
+# --- All Source and Target Lists ---
+# All .pas unit source files from SRC_DIR and COMPONENTS_DIR
+ALL_UNIT_SOURCES = $(wildcard $(SRC_DIR)/*.pas) $(wildcard $(COMPONENTS_DIR)/*.pas)
+
+# All .ppu targets (compiled units in BUILD_DIR)
+ALL_PPU_TARGETS = $(patsubst %.pas,$(BUILD_DIR)/%.ppu,$(notdir $(ALL_UNIT_SOURCES)))
+
+# All executable targets for each platform/architecture
+ALL_MACOS_X86_64_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(call get_exe_path,$(p),macos,x86_64))
+ALL_MACOS_ARM64_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(call get_exe_path,$(p),macos,arm64))
+ALL_LINUX_AMD64_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(call get_exe_path,$(p),linux,amd64))
+ALL_LINUX_ARM64_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(call get_exe_path,$(p),linux,arm64))
+
+# All universal macOS targets
+ALL_MACOS_UNIVERSAL_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(BIN_DIR)/$(p)-macos-universal)
+
 
 # --- Phony Targets ---
 .PHONY: all clean _CREATE_DIRS \
         build_components build_bytecode \
-        macos linux macos-x86_64 macos-arm64 linux-amd64 linux-arm64 run run-x86_64-on-arm64
+        macos linux macos-x86_64 macos-arm64 linux-amd64 linux-arm64 \
+        universal run run-x86_64-on-arm64
 
 # Default target: Build everything
 all: macos linux
 
+# --- Directory Creation Targets ---
+# These are actual directory targets. Make will create them if they don't exist.
+$(BIN_DIR) $(BUILD_DIR):
+	@echo "Creating directory: $@"
+	mkdir -p $@
+
+# --- VPATH for Make to find source files ---
+# This tells make to look in these directories for prerequisites like %.pas, %.lpr, %.lpi
+vpath %.pas $(SRC_DIR):$(COMPONENTS_DIR)
+vpath %.lpr $(PROJECT_DIR)
+vpath %.lpi $(PROJECT_DIR)
+
+
 # --- Build common components (produces .ppu and .o files in BUILD_DIR) ---
-# This target compiles all .pas files in COMPONENTS_DIR into .ppu/.o in BUILD_DIR.
-# Other projects will then find these compiled units via -Fu$(BUILD_DIR)
-build_components: _CREATE_DIRS
-	@echo "Compiling components from $(COMPONENTS_DIR)..."
-	$(FPC) -Fu$(SRC_DIR) -Fu$(COMPONENTS_DIR) -FE$(BUILD_DIR) -B $(COMPONENTS_DIR)/*.pas $(COMMON_LDFLAGS)
-	@echo "Components compiled to $(BUILD_DIR)."
+# This target compiles all .pas files in ALL_UNIT_SOURCES into .ppu/.o in BUILD_DIR.
+build_components: $(ALL_PPU_TARGETS)
+	@echo "All common components compiled to $(BUILD_DIR)."
 
-# --- Build Rules for Individual Projects (Native Architectures) ---
+# Generic rule for compiling any .pas unit into its .ppu/.o in BUILD_DIR
+# The prerequisite `%.pas` will be found by `vpath`
+$(BUILD_DIR)/%.ppu: %.pas | $(BUILD_DIR)
+	@echo "Compiling unit $<..."
+	$(FPC) -MObjFPC -O2 -g -gl -vewnhi -FE$(BUILD_DIR) -FU$(BUILD_DIR) -Fu$(SRC_DIR) -Fu$(COMPONENTS_DIR) $<
 
-# macOS x86_64 builds
-define MACOS_X86_64_BUILD_RULE
-$(1)_MACOS_X86_64_TARGET: $($(1)_LPI_FILE) build_components | _CREATE_DIRS
-	@echo "Compiling $(1) for macOS x86_64..."
-	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=x86_64 $($(1)_LPI_FILE)
-	# lazbuild outputs to $(PROJECT_DIR)/lib/darwin-x86_64/$(1)_EXE_NAME
-	mv $(PROJECT_DIR)/lib/darwin-x86_64/$(call __get_exe_name,$(1)) $@
+
+# --- Generic Build Rules for Executables ---
+# These rules use pattern matching to build any executable based on its .lpr or .lpi file.
+
+# Common FPC compilation flags for executables
+FPC_EXE_FLAGS = -MObjFPC -O3 -g -gl -vewnhi -FU$(BUILD_DIR) -Fu$(SRC_DIR) -Fu$(COMPONENTS_DIR) $(COMMON_LDFLAGS)
+
+# macOS builds (using lazbuild for .lpi projects)
+$(BIN_DIR)/%-macos-x86_64: %.lpi build_components | $(BIN_DIR)
+	@echo "Compiling $* for macOS x86_64 using lazbuild..."
+	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=x86_64 $<
+	# lazbuild outputs to $(PROJECT_DIR)/lib/darwin-x86_64/$(basename $(notdir $<))
+	mv $(PROJECT_DIR)/lib/darwin-x86_64/$(basename $(notdir $<)) $@
 	chmod +x $@
-endef
 
-# macOS ARM64 builds
-define MACOS_ARM64_BUILD_RULE
-$(1)_MACOS_ARM64_TARGET: $($(1)_LPI_FILE) build_components | _CREATE_DIRS
-	@echo "Compiling $(1) for macOS arm64..."
-	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=aarch64 $($(1)_LPI_FILE)
-	# lazbuild outputs to $(PROJECT_DIR)/lib/darwin-aarch64/$(1)_EXE_NAME
-	mv $(PROJECT_DIR)/lib/darwin-aarch64/$(call __get_exe_name,$(1)) $@
+$(BIN_DIR)/%-macos-arm64: %.lpi build_components | $(BIN_DIR)
+	@echo "Compiling $* for macOS arm64 using lazbuild..."
+	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=aarch64 $<
+	mv $(PROJECT_DIR)/lib/darwin-aarch64/$(basename $(notdir $<)) $@
 	chmod +x $@
-endef
 
-# Linux AMD64 builds (assumes running on an AMD64 Linux machine)
-define LINUX_AMD64_BUILD_RULE
-$(1)_LINUX_AMD64_TARGET: $($(1)_SOURCE_FILE) build_components | _CREATE_DIRS
-	@echo "Compiling $(1) for Linux AMD64..."
-	$(FPC) $($(1)_SOURCE_FILE) -B -O3 -Tlinux -Px86_64 -FE$(BIN_DIR) -FU$(SRC_DIR) -FU$(COMPONENTS_DIR) -FU$(BUILD_DIR) -o$@ $(COMMON_LDFLAGS)
+# Linux builds (using fpc directly for .lpr projects)
+$(BIN_DIR)/%-linux-amd64: %.lpr build_components | $(BIN_DIR)
+	@echo "Compiling $* for Linux AMD64 using fpc..."
+	$(FPC) $< -Tlinux -Px86_64 -FE$(BIN_DIR) -o$@ $(FPC_EXE_FLAGS)
 	chmod +x $@
-endef
 
-# Linux ARM64 builds (assumes running on an ARM64 Linux machine)
-define LINUX_ARM64_BUILD_RULE
-$(1)_LINUX_ARM64_TARGET: $($(1)_SOURCE_FILE) build_components | _CREATE_DIRS
-	@echo "Compiling $(1) for Linux ARM64..."
-	$(FPC) $($(1)_SOURCE_FILE) -B -O3 -Tlinux -Paarch64 -FE$(BIN_DIR) -FU$(SRC_DIR) -FU$(COMPONENTS_DIR) -FU$(BUILD_DIR) -o$@ $(COMMON_LDFLAGS)
+$(BIN_DIR)/%-linux-arm64: %.lpr build_components | $(BIN_DIR)
+	@echo "Compiling $* for Linux ARM64 using fpc..."
+	$(FPC) $< -Tlinux -Paarch64 -FE$(BIN_DIR) -o$@ $(FPC_EXE_FLAGS)
 	chmod +x $@
-endef
-
-# Helper to get the base executable name (e.g., "kaytec" from "kaytec_EXE_NAME")
-# lazbuild's mv needs this because it outputs the raw executable name
-__get_exe_name = $(value $(1)_EXE_NAME)
 
 
-# Apply the build rules for each project defined above
-$(eval $(call MACOS_X86_64_BUILD_RULE,kaytec))
-$(eval $(call MACOS_X86_64_BUILD_RULE,vb6interpreter))
-$(eval $(call MACOS_X86_64_BUILD_RULE,kayteide))
-$(eval $(call MACOS_X86_64_BUILD_RULE,build_kayte))
-$(eval $(call MACOS_X86_64_BUILD_RULE,main_app))
+# --- Aggregate Build Targets by OS/Architecture ---
 
-$(eval $(call MACOS_ARM64_BUILD_RULE,kaytec))
-$(eval $(call MACOS_ARM64_BUILD_RULE,vb6interpreter))
-$(eval $(call MACOS_ARM64_BUILD_RULE,kayteide))
-$(eval $(call MACOS_ARM64_BUILD_RULE,build_kayte))
-$(eval $(call MACOS_ARM64_BUILD_RULE,main_app))
+macos: $(ALL_MACOS_X86_64_TARGETS) $(ALL_MACOS_ARM64_TARGETS) universal
+	@echo "All macOS builds completed."
 
-$(eval $(call LINUX_AMD64_BUILD_RULE,kaytec))
-$(eval $(call LINUX_AMD64_BUILD_RULE,vb6interpreter))
-$(eval $(call LINUX_AMD64_BUILD_RULE,kayteide))
-$(eval $(call LINUX_AMD64_BUILD_RULE,build_kayte))
-$(eval $(call LINUX_AMD64_BUILD_RULE,main_app))
+linux: $(ALL_LINUX_AMD64_TARGETS) $(ALL_LINUX_ARM64_TARGETS)
+	@echo "All Linux builds completed."
 
-$(eval $(call LINUX_ARM64_BUILD_RULE,kaytec))
-$(eval $(call LINUX_ARM64_BUILD_RULE,vb6interpreter))
-$(eval $(call LINUX_ARM64_BUILD_RULE,kayteide))
-$(eval $(call LINUX_ARM64_BUILD_RULE,build_kayte))
-$(eval $(call LINUX_ARM64_BUILD_RULE,main_app))
-
-
-# --- Build Targets by OS/Architecture ---
-
-macos: macos-x86_64 macos-arm64
-	@echo "All macOS native builds completed. Proceeding to universal linking..."
-	# Kayte Compiler Universal
-	lipo -create -output $(kaytec_MACOS_UNIVERSAL_TARGET) $(kaytec_MACOS_X86_64_TARGET) $(kaytec_MACOS_ARM64_TARGET)
-	chmod +x $(kaytec_MACOS_UNIVERSAL_TARGET)
-	
-	# VB6 Interpreter Universal
-	lipo -create -output $(vb6interpreter_MACOS_UNIVERSAL_TARGET) $(vb6interpreter_MACOS_X86_64_TARGET) $(vb6interpreter_MACOS_ARM64_TARGET)
-	chmod +x $(vb6interpreter_MACOS_UNIVERSAL_TARGET)
-
-	# Kayte IDE Universal
-	lipo -create -output $(kayteide_MACOS_UNIVERSAL_TARGET) $(kayteide_MACOS_X86_64_TARGET) $(kayteide_MACOS_ARM64_TARGET)
-	chmod +x $(kayteide_MACOS_UNIVERSAL_TARGET)
-
-	# build_kayte Universal
-	lipo -create -output $(build_kayte_MACOS_UNIVERSAL_TARGET) $(build_kayte_MACOS_X86_64_TARGET) $(build_kayte_MACOS_ARM64_TARGET)
-	chmod +x $(build_kayte_MACOS_UNIVERSAL_TARGET)
-
-	# main_app Universal
-	lipo -create -output $(main_app_MACOS_UNIVERSAL_TARGET) $(main_app_MACOS_X86_64_TARGET) $(main_app_MACOS_ARM64_TARGET)
-	chmod +x $(main_app_MACOS_UNIVERSAL_TARGET)
-
+# Universal macOS binaries
+universal: $(ALL_MACOS_UNIVERSAL_TARGETS)
 	@echo "macOS universal binaries created."
 
-macos-x86_64: $(kaytec_MACOS_X86_64_TARGET) $(vb6interpreter_MACOS_X86_64_TARGET) $(kayteide_MACOS_X86_64_TARGET) $(build_kayte_MACOS_X86_64_TARGET) $(main_app_MACOS_X86_64_TARGET)
-	@echo "All macOS x86_64 binaries built."
+$(BIN_DIR)/%-macos-universal: $(BIN_DIR)/%-macos-x86_64 $(BIN_DIR)/%-macos-arm64
+	@echo "Creating universal binary for $*..."
+	lipo -create -output $@ $< $(word 2,$^) # $< is first prereq, $(word 2,$^) is second
+	chmod +x $@
 
-macos-arm64: $(kaytec_MACOS_ARM64_TARGET) $(vb6interpreter_MACOS_ARM64_TARGET) $(kayteide_MACOS_ARM64_TARGET) $(build_kayte_MACOS_ARM64_TARGET) $(main_app_MACOS_ARM64_TARGET)
-	@echo "All macOS arm64 binaries built."
-
-linux: linux-amd64 linux-arm64
-
-linux-amd64: $(kaytec_LINUX_AMD64_TARGET) $(vb6interpreter_LINUX_AMD64_TARGET) $(kayteide_LINUX_AMD64_TARGET) $(build_kayte_LINUX_AMD64_TARGET) $(main_app_LINUX_AMD64_TARGET)
-	@echo "All Linux AMD64 binaries built."
-
-linux-arm64: $(kaytec_LINUX_ARM64_TARGET) $(vb6interpreter_LINUX_ARM64_TARGET) $(kayteide_LINUX_ARM64_TARGET) $(build_kayte_LINUX_ARM64_TARGET) $(main_app_LINUX_ARM64_TARGET)
-	@echo "All Linux ARM64 binaries built."
 
 # --- Kayte Bytecode Generation ---
 KAYTE_SOURCES = kayte/hello.kayte kayte/world.kayte # Example Kayte source files
 OBJ_FILES = $(patsubst kayte/%.kayte, $(BUILD_DIR)/bytecode_%.o, $(KAYTE_SOURCES))
 
 # This rule depends on the macOS x86_64 kaytec to generate bytecode.
-# If you need to generate bytecode on a Linux agent, you would need a separate rule
-# that uses a Linux-built kaytec.
-$(BUILD_DIR)/bytecode_%.o: kayte/%.kayte $(kaytec_MACOS_X86_64_TARGET) | _CREATE_DIRS
+$(BUILD_DIR)/bytecode_%.o: kayte/%.kayte $(call get_exe_path,kaytec,macos,x86_64) | $(BUILD_DIR)
 	@echo "Generating bytecode for $< and embedding into object file..."
-	$(kaytec_MACOS_X86_64_TARGET) $< -o $(BUILD_DIR)/bytecode_$*.bin
+	$(call get_exe_path,kaytec,macos,x86_64) $< -o $(BUILD_DIR)/bytecode_$*.bin
 	ld -r -b binary -o $@ $(BUILD_DIR)/bytecode_$*.bin
 	rm -f $(BUILD_DIR)/bytecode_$*.bin
 	@echo "Built bytecode object: $@"
-
-
-# --- Directory Creation Helper Target ---
-# This target just ensures the directories exist. It is phony because it doesn't
-# represent actual files to be built, but an action to create directories.
-_CREATE_DIRS:
-	@echo "Ensuring build directories exist ($(BIN_DIR) and $(BUILD_DIR))..."
-	mkdir -p $(BIN_DIR) $(BUILD_DIR)
 
 
 # --- Cleanup ---
@@ -201,21 +166,25 @@ clean:
 	@echo "Cleaning up build artifacts and executables..."
 	rm -rf $(BIN_DIR)
 	rm -rf $(BUILD_DIR)
-	rm -rf $(PROJECT_DIR)/lib # Remove lazbuild temporary directories
 	@echo "Cleanup complete."
 
 # --- Run the Main Application ---
-run: $(main_app_MACOS_UNIVERSAL_TARGET) # Default to run the macOS universal app
-	@echo "Running $(main_app_MACOS_UNIVERSAL_TARGET)..."
-	./$(main_app_MACOS_UNIVERSAL_TARGET)
+run: $(call get_exe_path,main_app,macos,universal) # Default to run the macOS universal app
+	@echo "Running $(call get_exe_path,main_app,macos,universal)..."
+	./$(call get_exe_path,main_app,macos,universal)
 
 # --- Run an x86_64 macOS binary on an Apple Silicon (ARM64) Mac via Rosetta 2 ---
 # This target is only useful when run on an ARM64 macOS machine.
-run-x86_64-on-arm64: $(main_app_MACOS_X86_64_TARGET)
+run-x86_64-on-arm64: $(call get_exe_path,main_app,macos,x86_64)
 	@echo "Attempting to run x86_64 macOS app via Rosetta 2..."
 	@echo "This command will only work on an Apple Silicon Mac with Rosetta 2 installed."
-	arch -x86_64 ./$(main_app_MACOS_X86_64_TARGET)
+	arch -x86_64 ./$(call get_exe_path,main_app,macos,x86_64)
 
-# If you want to run specific Linux builds, you'd define separate 'run-linux-amd64' etc.
-# run-linux-amd64: $(main_app_LINUX_AMD64_TARGET)
-#	./$(main_app_LINUX_AMD64_TARGET)
+# Example for running specific Linux builds
+run-linux-amd64: $(call get_exe_path,main_app,linux,amd64)
+	@echo "Running $(call get_exe_path,main_app,linux,amd64)..."
+	./$(call get_exe_path,main_app,linux,amd64)
+
+run-linux-arm64: $(call get_exe_path,main_app,linux,arm64)
+	@echo "Running $(call get_exe_path,main_app,linux,arm64)..."
+	./$(call get_exe_path,main_app,linux,arm64)
