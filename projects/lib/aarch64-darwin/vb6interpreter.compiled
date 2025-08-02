@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<CONFIG>
-  <Compiler Value="/usr/local/bin/fpc" Date="1621181457"/>
-  <Params Value="-MObjFPC -Scghi -O1 -gw3 -gl -k-weak_framework -kAppKit -k-weak_framework -kUserNotifications -l -vewnhibq -Fi/Users/pedro/Projects/kayte-lang/projects/lib/aarch64-darwin -Fu/Users/pedro/Projects/kayte-lang/projects/ -Fu/Users/pedro/Projects/kayte-lang/source -Fu/Users/pedro/Projects/kayte-lang/Runtime -Fu/Users/pedro/Projects/kayte-lang/Router -Fu/Applications/lazarus/lcl/units/aarch64-darwin/cocoa -Fu/Applications/lazarus/lcl/units/aarch64-darwin -Fu/Applications/lazarus/components/freetype/lib/aarch64-darwin -Fu/Applications/lazarus/components/lazutils/lib/aarch64-darwin -Fu/Applications/lazarus/packager/units/aarch64-darwin -FU/Users/pedro/Projects/kayte-lang/projects/lib/aarch64-darwin/ -FE/Users/pedro/Projects/kayte-lang/projects/ -o/Users/pedro/Projects/kayte-lang/projects/vb6interpreter -dLCL -dLCLcocoa vb6interpreter.lpr"/>
-  <Complete Value="False"/>
-</CONFIG>
