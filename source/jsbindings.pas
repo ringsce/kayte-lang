@@ -14,12 +14,12 @@ const
   {$ELSE} // Intel macOS
     QuickJSLib = 'libquickjs.a'; // Or 'libquickjs.dylib'
   {$ENDIF}
-  {$ELSEIF DEF LINUX} // Uncommented for other platforms
+{$ELSEIF LINUX} // Use ELSEIF directly for platform defines like LINUX, WINDOWS
   QuickJSLib = 'libquickjs.so'; // Linux dynamic library
-{$ELSEIF DEF WINDOWS}
+{$ELSEIF WINDOWS}
   QuickJSLib = 'quickjs.dll'; // Windows dynamic library
-{$ELSE}
-  QuickJSLib = 'libquickjs.so'; // Default fallback for other Unix-like OS
+{$ELSE} // Default fallback for other Unix-like OS
+  QuickJSLib = 'libquickjs.so';
 {$ENDIF}
 
   // This constant needs to be in the 'const' block, not 'type'
@@ -241,3 +241,4 @@ finalization
   // Optional: Free the runtime when the unit unloads
   // DoneJSRuntime; // You might want to control this manually in your main program
 end.
+

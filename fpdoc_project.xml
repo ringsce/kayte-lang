@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<docproject> <!-- Changed from <fpdoc-project> to <docproject> -->
+  <input-dirs>
+    <input-dir value="source"/>
+    <input-dir value="components"/> <!-- Added components directory as input -->
+  </input-dirs>
+  <output-dir value="docs/html"/>
+  <output-format value="html"/>
+  <package-name value="KayteLang"/>
+  <template value="docs/templates/my_html.xml"/>
+  <css-files>
+    <css-file value="docs/css/my_styles.css"/>
+  </css-files>
+  <search-paths>
+    <search-path value="source"/>
+    <!--<search-path value="components"/>-->
+  </search-paths>
+</docproject>
+

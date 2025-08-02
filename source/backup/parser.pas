@@ -5,43 +5,55 @@ unit Parser;
 interface
 
 uses
-  SysUtils, Classes,
-  TokenDefs,       // TToken, TTokenType, GetTokenTypeName
-  Lexer,           // TLexer
-  BytecodeTypes,   // TBCValue, TBCValueType, BCValueToString, TStringIntMap
-  fgl;             // TFPGMap (for conceptual symbol table)
+  SysUtils, Classes, TokenDefs, Lexer; // Include Lexer unit
 
 type
   TParser = class
   private
     FLexer: TLexer;
     FCurrentToken: TToken;
-    FOptionExplicitEnabled: Boolean; // Flag for Option Explicit
-    FSymbolTable: TStringIntMap;    // Conceptual Symbol Table (String -> Index/Type)
+    FPreviousToken: TToken; // Added to store the previously consumed token
 
-    procedure ConsumeToken(ExpectedType: TTokenType);
-    function PeekToken: TToken;
+    procedure Advance;
+    procedure Match(ExpectedType: TTokenType);
+    function Check(TokenType: TTokenType): Boolean;
+    function MatchAny(const Types: array of TTokenType): Boolean;
 
-    procedure ParsePrintStatement;
-    procedure ParseShowStatement;
-    procedure ParseLetStatement(const VarName: String);
-    procedure ParseIfStatement;
-    procedure ParseOptionExplicitStatement;
-    procedure ParseDimStatement;
-    procedure ParseStatement;
+    // Parsing rules (non-terminals)
+    procedure Program;
+    procedure Statement;
+    procedure OptionStatement; // Added for Option Explicit
+    procedure DeclarationStatement;
+    procedure AssignmentStatement;
+    procedure PrintStatement;
+    procedure InputStatement;
+    procedure MsgBoxStatement;
+    procedure CallStatement;
+    procedure GoToStatement;
+    procedure GoSubStatement;
+    procedure ReturnStatement;
+    procedure IfStatement;
+    procedure WhileStatement;
+    procedure ForStatement;
+    procedure SubDefinition;
+    procedure FunctionDefinition;
+    procedure FormDefinition;
+    procedure ShowStatement;
+    procedure HideStatement;
 
-    function ParseExpression: TBCValue;
-    function ParseTerm: TBCValue;
-    function ParseFactor: TBCValue;
+    function Expression: TToken; // Returns the token representing the expression result (e.g., a literal or identifier)
+    function Comparison: TToken;
+    function Term: TToken;
+    function Factor: TToken;
+    function Primary: TToken;
 
-    // Helper for symbol table management
-    function IsVariableDeclared(const VarName: String): Boolean;
-    procedure DeclareVariable(const VarName: String);
+    // Helper for error reporting
+    procedure Error(const Message: String);
 
   public
     constructor Create(ALexer: TLexer);
     destructor Destroy; override;
-    procedure ParseProgram;
+    procedure Parse;
   end;
 
 implementation
@@ -51,836 +63,505 @@ implementation
 constructor TParser.Create(ALexer: TLexer);
 begin
   inherited Create;
-  FLexer := ALexer;
-  FLexer.Reset;
+  FLexer := ALexer; // Parser does not own the lexer
+  // Initialize FCurrentToken and FPreviousToken
+  // Get the first token to start parsing
   FCurrentToken := FLexer.GetNextToken;
-  FOptionExplicitEnabled := False; // Default to OFF, like VB6
-  FSymbolTable := TStringIntMap.Create; // Initialize symbol table
+  FPreviousToken := FCurrentToken; // Initialize previous token
 end;
 
 destructor TParser.Destroy;
 begin
-  FreeAndNil(FSymbolTable); // Free the symbol table
   inherited Destroy;
 end;
 
-procedure TParser.ConsumeToken(ExpectedType: TTokenType);
+procedure TParser.Parse;
+begin
+  Program;
+  if FCurrentToken.TokenType <> tkEndOfFile then
+    Error('Unexpected token at end of program: ' + FCurrentToken.Lexeme);
+end;
+
+procedure TParser.Advance;
+begin
+  FPreviousToken := FCurrentToken; // Save the current token as previous
+  FCurrentToken := FLexer.GetNextToken; // Get the next token
+end;
+
+procedure TParser.Match(ExpectedType: TTokenType);
 begin
   if FCurrentToken.TokenType = ExpectedType then
-    FCurrentToken := FLexer.GetNextToken
+    Advance
   else
     raise Exception.CreateFmt('Parser Error: Expected %s but found %s ("%s") at %d:%d',
       [GetTokenTypeName(ExpectedType),
        GetTokenTypeName(FCurrentToken.TokenType),
        FCurrentToken.Lexeme,
-       FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
+       FLexer.CurrentLine + 1, FLexer.CurrentColumn + 1]); // +1 for 1-based indexing
 end;
 
-function TParser.PeekToken: TToken;
+function TParser.Check(TokenType: TTokenType): Boolean;
 begin
-  Result := FCurrentToken;
+  Result := FCurrentToken.TokenType = TokenType;
 end;
 
-// --- Symbol Table Helpers ---
-function TParser.IsVariableDeclared(const VarName: String): Boolean;
-begin
-  // This line is correct for TFPGMap.ContainsKey.
-  // The error is external to this code.
-  Result := FSymbolTable.ContainsKey(LowerCase(VarName));
-end;
-
-procedure TParser.DeclareVariable(const VarName: String);
-begin
-  // This line is correct for TFPGMap.ContainsKey.
-  // The error is external to this code.
-  if not FSymbolTable.ContainsKey(LowerCase(VarName)) then
-  begin
-    FSymbolTable.Add(LowerCase(VarName), FSymbolTable.Count); // Store dummy index
-    WriteLn(Format('Parser: Declared variable "%s"', [VarName]));
-  end
-  else
-  begin
-    WriteLn(Format('Parser Warning: Variable "%s" already declared. (Ignoring re-declaration)', [VarName]));
-  end;
-end;
-// --- End Symbol Table Helpers ---
-
-
-function TParser.ParseFactor: TBCValue;
+function TParser.MatchAny(const Types: array of TTokenType): Boolean;
 var
-  NumVal: Int64;
-  StrVal: String;
-  BoolVal: Boolean;
-  VarName: String;
+  i: Integer;
 begin
-  case FCurrentToken.TokenType of
-    tkIntegerLiteral:
-      begin
-        NumVal := StrToInt64(FCurrentToken.Lexeme);
-        ConsumeToken(tkIntegerLiteral);
-        Result := CreateBCValueInteger(NumVal);
-      end;
-    tkStringLiteral:
-      begin
-        StrVal := Copy(FCurrentToken.Lexeme, 2, Length(FCurrentToken.Lexeme) - 2);
-        ConsumeToken(tkStringLiteral);
-        Result := CreateBCValueString(StrVal);
-      end;
-    tkBooleanLiteral:
-      begin
-        BoolVal := SameText(FCurrentToken.Lexeme, 'TRUE');
-        ConsumeToken(tkBooleanLiteral);
-        Result := CreateBCValueBoolean(BoolVal);
-      end;
-    tkIdentifier: // If factor is a variable
-      begin
-        VarName := FCurrentToken.Lexeme;
-        // --- Option Explicit Check ---
-        if FOptionExplicitEnabled and not IsVariableDeclared(VarName) then
-          raise Exception.CreateFmt('Parser Error: Variable "%s" not declared (Option Explicit On) at %d:%d',
-            [VarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-        // --- End Option Explicit Check ---
-        WriteLn(Format('Parser Note: Variable reference "%s" found. (Value lookup not implemented)', [VarName]));
-        ConsumeToken(tkIdentifier);
-        Result := CreateBCValueNull; // Placeholder value
-      end;
-    tkParenthesisOpen:
-      begin
-        ConsumeToken(tkParenthesisOpen);
-        Result := ParseExpression;
-        ConsumeToken(tkParenthesisClose);
-      end;
-    else
-      raise Exception.CreateFmt('Parser Error: Unexpected token "%s" when expecting factor at %d:%d',
-        [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-  end;
-end;
-
-
-function TParser.ParseTerm: TBCValue;
-var
-  Left, Right: TBCValue;
-  Op: TToken;
-begin
-  Left := ParseFactor;
-  while (FCurrentToken.TokenType = tkOperator) and
-        (SameText(FCurrentToken.Lexeme, '*') or SameText(FCurrentToken.Lexeme, '/')) do
+  Result := False;
+  for i := Low(Types) to High(Types) do
   begin
-    Op := FCurrentToken;
-    ConsumeToken(tkOperator);
-    Right := ParseFactor;
-    if (Left.ValueType = bcvtInteger) and (Right.ValueType = bcvtInteger) then
+    if FCurrentToken.TokenType = Types[i] then
     begin
-      if Op.Lexeme = '*' then
-        Left.IntValue := Left.IntValue * Right.IntValue
-      else if Op.Lexeme = '/' then
-      begin
-        if Right.IntValue = 0 then
-          raise Exception.Create('Division by zero');
-        Left.IntValue := Left.IntValue div Right.IntValue;
-      end;
-    end
-    else
-      raise Exception.Create('Type mismatch in arithmetic operation');
-  end;
-  Result := Left;
-end;
-
-function TParser.ParseExpression: TBCValue;
-var
-  Left, Right: TBCValue;
-  Op: TToken;
-begin
-  Left := ParseTerm;
-  while (FCurrentToken.TokenType = tkOperator) and
-        (SameText(FCurrentToken.Lexeme, '+') or SameText(FCurrentToken.Lexeme, '-') or
-         SameText(FCurrentToken.Lexeme, '&')) do
-  begin
-    Op := FCurrentToken;
-    ConsumeToken(tkOperator);
-    Right := ParseTerm;
-
-    if Op.Lexeme = '+' then
-    begin
-      if (Left.ValueType = bcvtInteger) and (Right.ValueType = bcvtInteger) then
-        Left.IntValue := Left.IntValue + Right.IntValue
-      else
-        raise Exception.Create('Type mismatch in addition');
-    end
-    else if Op.Lexeme = '-' then
-    begin
-      if (Left.ValueType = bcvtInteger) and (Right.ValueType = bcvtInteger) then
-        Left.IntValue := Left.IntValue - Right.IntValue
-      else
-        raise Exception.Create('Type mismatch in subtraction');
-    end
-    else if Op.Lexeme = '&' then // String concatenation
-    begin
-      Left.StringValue := BCValueToString(Left) + BCValueToString(Right);
-      Left.ValueType := bcvtString;
-    end;
-  end;
-  Result := Left;
-end;
-
-
-procedure TParser.ParsePrintStatement;
-var
-  ExprValue: TBCValue;
-begin
-  ConsumeToken(tkKeyword); // Consume PRINT
-  ExprValue := ParseExpression;
-  WriteLn(Format('Parsed PRINT statement with value: %s (Type: %s)',
-    [BCValueToString(ExprValue),
-     GetBCValueTypeName(ExprValue.ValueType) // <<< FIXED: Using GetBCValueTypeName
-     ]));
-end;
-
-procedure TParser.ParseShowStatement;
-var
-  FormNameToken: TToken;
-begin
-  ConsumeToken(tkKeyword); // Consume SHOW
-  FormNameToken := FCurrentToken;
-  if FormNameToken.TokenType <> tkIdentifier then
-    raise Exception.CreateFmt('Parser Error: Expected form name (identifier) after SHOW at %d:%d',
-      [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-  ConsumeToken(tkIdentifier);
-
-  WriteLn(Format('Parsed SHOW statement for form: %s', [FormNameToken.Lexeme]));
-end;
-
-procedure TParser.ParseLetStatement(const VarName: String);
-var
-  ExprValue: TBCValue;
-begin
-  // --- Option Explicit Check for Assignment ---
-  if FOptionExplicitEnabled and not IsVariableDeclared(VarName) then
-    raise Exception.CreateFmt('Parser Error: Variable "%s" not declared (Option Explicit On) at %d:%d',
-      [VarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-
-  // If Option Explicit is OFF, or if it's ON and variable is declared, then declare/register it.
-  // This also handles implicit declaration if Option Explicit is Off.
-  DeclareVariable(VarName);
-  // --- End Option Explicit Check ---
-
-  ConsumeToken(tkOperator); // Consume '='
-  ExprValue := ParseExpression;
-
-  WriteLn(Format('Parsed LET/Assignment statement: %s = %s (Type: %s)',
-    [VarName, BCValueToString(ExprValue),
-     GetTokenTypeName(ExprValue.ValueType)
-     ]));
-end;
-
-procedure TParser.ParseDimStatement;
-var
-  VarName: String;
-begin
-  ConsumeToken(tkKeyword); // Consume 'DIM'
-
-  // Parse variable name
-  if FCurrentToken.TokenType <> tkIdentifier then
-    raise Exception.CreateFmt('Parser Error: Expected variable name after DIM at %d:%d',
-      [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-
-  VarName := FCurrentToken.Lexeme;
-  ConsumeToken(tkIdentifier);
-
-  // --- Handle Optional 'AS Type' (Conceptual for now) ---
-  // If the next token is 'AS' (which is a tkKeyword in our lexer)
-  if (FCurrentToken.TokenType = tkKeyword) and (SameText(FCurrentToken.Lexeme, 'AS')) then
-  begin
-    ConsumeToken(tkKeyword); // Consume 'AS'
-    // Expect a type identifier (e.g., INTEGER, STRING, BOOLEAN)
-    if FCurrentToken.TokenType <> tkIdentifier then
-      raise Exception.CreateFmt('Parser Error: Expected type name after AS at %d:%d',
-        [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-    WriteLn(Format('Parser Note: Variable "%s" declared AS %s (Type handling not fully implemented)', [VarName, FCurrentToken.Lexeme]));
-    ConsumeToken(tkIdentifier); // Consume the type name
-  end;
-  // --- End Optional 'AS Type' ---
-
-  // Declare the variable in the symbol table
-  DeclareVariable(VarName);
-  WriteLn(Format('Parsed DIM statement for variable: %s', [VarName]));
-
-  // Handle multiple declarations on one line (e.g., DIM A, B, C)
-  while FCurrentToken.TokenType = tkComma do
-  begin
-    ConsumeToken(tkComma);
-    if FCurrentToken.TokenType <> tkIdentifier then
-      raise Exception.CreateFmt('Parser Error: Expected variable name after comma in DIM statement at %d:%d',
-        [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-    VarName := FCurrentToken.Lexeme;
-    ConsumeToken(tkIdentifier);
-    // Handle optional 'AS Type' for subsequent variables if desired (VB6 allows this)
-    if (FCurrentToken.TokenType = tkKeyword) and (SameText(FCurrentToken.Lexeme, 'AS')) then
-    begin
-      ConsumeToken(tkKeyword);
-      if FCurrentToken.TokenType <> tkIdentifier then
-        raise Exception.CreateFmt('Parser Error: Expected type name after AS for "%s" at %d:%d',
-          [VarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-      WriteLn(Format('Parser Note: Variable "%s" declared AS %s (Type handling not fully implemented)', [VarName, FCurrentToken.Lexeme]));
-      ConsumeToken(tkIdentifier);
-    end;
-    DeclareVariable(VarName);
-    WriteLn(Format('Parsed DIM statement for additional variable: %s', [VarName]));
-  end;
-end;
-
-
-procedure TParser.ParseIfStatement;
-var
-  ConditionValue: TBCValue;
-  ThenToken: TToken;
-begin
-  ConsumeToken(tkKeyword); // Consume IF
-
-  ConditionValue := ParseExpression;
-
-  ThenToken := FCurrentToken;
-  if ThenToken.TokenType = tkKeyword then
-  begin
-    if SameText(ThenToken.Lexeme, 'THEN') then
-    begin
-      ConsumeToken(tkKeyword); // Consume THEN
-      if (FCurrentToken.TokenType <> tkEndOfLine) and (FCurrentToken.TokenType <> tkEndOfFile) then
-      begin
-        WriteLn('  (Parsing statement after THEN)');
-        ParseStatement;
-      end;
-    end
-    else
-      raise Exception.CreateFmt('Parser Error: Expected THEN but found "%s" in IF statement at %d:%d',
-        [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-  end
-  else
-    raise Exception.CreateFmt('Parser Error: Expected THEN keyword in IF statement at %d:%d',
-      [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-
-  WriteLn(Format('Parsed IF statement with condition of type: %s', [GetBCValueTypeName(ConditionValue.ValueType)]));
-end;
-
-procedure TParser.ParseOptionExplicitStatement;
-var
-  OptionToken: TToken;
-  ExplicitToken: TToken;
-  StateToken: TToken;
-begin
-  OptionToken := FCurrentToken;
-  ConsumeToken(tkOption); // Consume 'Option'
-
-  ExplicitToken := FCurrentToken;
-  ConsumeToken(tkExplicit); // Consume 'Explicit'
-
-  StateToken := FCurrentToken;
-  if StateToken.TokenType = tkOn then
-  begin
-    FOptionExplicitEnabled := True;
-    ConsumeToken(tkOn);
-    WriteLn('Parser: OPTION EXPLICIT ON detected. All variables must be declared.');
-  end
-  else if StateToken.TokenType = tkOff then
-  begin
-    FOptionExplicitEnabled := False;
-    ConsumeToken(tkOff);
-    WriteLn('Parser: OPTION EXPLICIT OFF detected. Variables do not need explicit declaration.');
-  end
-    // --- Removed the 'else' branch that raised an error here ---
-    // This allows 'Option Explicit' without 'On' or 'Off' to be silently ignored,
-    // which might be desired for partial directives, though not standard VB6 behavior.
-    // If you want to enforce 'On' or 'Off', re-add the 'else' branch here.
-  else
-    raise Exception.CreateFmt('Parser Error: Expected ON or OFF after "Option Explicit" at %d:%d',
-      [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-end;
-
-
-procedure TParser.ParseStatement;
-var
-  CurrentLineNum: Integer;
-  PotentialVarName: String;
-begin
-  CurrentLineNum := FCurrentToken.Line; // Use .Line as per TokenDefs
-  // Skip comments on their own line
-  if FCurrentToken.TokenType = tkComment then
-  begin
-    ConsumeToken(tkComment);
-    if FCurrentToken.TokenType = tkEndOfLine then // If comment occupies full line
-      ConsumeToken(tkEndOfLine);
-    ParseStatement; // Try parsing next statement
-    Exit;
-  end;
-
-  // Process multiple statements on one line separated by ':'
-  while FCurrentToken.TokenType <> tkEndOfLine do
-  begin
-    case FCurrentToken.TokenType of
-      tkKeyword:
-        begin
-          case LowerCase(FCurrentToken.Lexeme) of
-            'print': ParsePrintStatement;
-            'show': ParseShowStatement;
-            'if': ParseIfStatement;
-            'dim': ParseDimStatement; // Handle DIM statement
-            'end': // Handle 'END' as program termination
-              begin
-                ConsumeToken(tkKeyword); // Consume END
-                WriteLn('Parsed END statement. Program will terminate.');
-                Exit; // Stop parsing
-              end;
-            else
-              raise Exception.CreateFmt('Parser Error: Unrecognized keyword "%s" at %d:%d',
-                [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-          end; // case LowerCase(FCurrentToken.Lexeme)
-        end;
-      tkIdentifier: // Could be assignment, or a CALL to a subroutine
-        begin
-          PotentialVarName := FCurrentToken.Lexeme;
-          ConsumeToken(tkIdentifier); // Consume the identifier
-
-          if FCurrentToken.TokenType = tkOperator then
-          begin
-            if FCurrentToken.Lexeme = '=' then
-            begin
-              ParseLetStatement(PotentialVarName); // Call assignment parser
-            end
-            else
-              raise Exception.CreateFmt('Parser Error: Expected "=" after identifier "%s" at %d:%d',
-                [PotentialVarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-          end
-          else
-            raise Exception.CreateFmt('Parser Error: Unexpected token "%s" after identifier "%s". Expected "=" or end of statement. at %d:%d',
-              [FCurrentToken.Lexeme, PotentialVarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-        end;
-      tkOption: // Handle Option Explicit directive
-        ParseOptionExplicitStatement;
-      tkEndOfFile: Exit; // Reached end of file, stop parsing
-
-      else
-        raise Exception.CreateFmt('Parser Error: Unexpected token "%s" at start of statement at %d:%d',
-          [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-    end; // case FCurrentToken.TokenType
-
-    // After parsing a statement, check for ':' for multi-statement lines
-    if FCurrentToken.TokenType = tkColon then
-    begin
-      ConsumeToken(tkColon); // Consume the colon
-    end
-    else if FCurrentToken.TokenType = tkEndOfLine then
-    begin
-      ConsumeToken(tkEndOfLine);
+      Result := True;
       Break;
-    end
-    else if FCurrentToken.TokenType = tkEndOfFile then
-    begin
-      Break; // Exit loop if EOF after statement
-    end
-    else
-    begin
-      raise Exception.CreateFmt('Parser Error: Expected EOL or ":" after statement, but found "%s" at %d:%d',
-        [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
     end;
-  end; // while FCurrentToken.TokenType <> tkEndOfLine
+  end;
+  if Result then Advance;
 end;
 
+procedure TParser.Error(const Message: String);
+begin
+  raise Exception.CreateFmt('Parser Error: %s at %d:%d (Token: "%s" Type: %s)',
+    [Message, FCurrentToken.Line + 1, FCurrentToken.Column + 1, FCurrentToken.Lexeme, GetTokenTypeName(FCurrentToken.TokenType)]);
+end;
 
-procedure TParser.ParseProgram;
+{ Parsing Rules }
+
+procedure TParser.Program;
 begin
   while FCurrentToken.TokenType <> tkEndOfFile do
   begin
-    ParseStatement; // Parse one statement (which might include multiple on a line)
+    Statement;
+    // Consume EndOfLine tokens between statements, but allow EOF immediately after a statement
+    while Check(tkEndOfLine) do
+      Advance;
   end;
-  WriteLn('Program parsing finished.');
+end;
+
+procedure TParser.Statement;
+begin
+  case FCurrentToken.TokenType of
+    tkKeywordOption: OptionStatement; // Handle Option Explicit
+    tkKeyword:
+      case AnsiUpperCase(FCurrentToken.Lexeme) of
+        'REM': Match(tkComment); // REM comments are handled by lexer, but parser consumes if it sees it
+        'DIM', 'REDIM': DeclarationStatement;
+        'PRINT': PrintStatement;
+        'INPUT': InputStatement;
+        'MSGBOX': MsgBoxStatement;
+        'CALL': CallStatement;
+        'GOTO': GoToStatement;
+        'GOSUB': GoSubStatement;
+        'RETURN': ReturnStatement;
+        'IF': IfStatement;
+        'WHILE': WhileStatement;
+        'FOR': ForStatement;
+        'SUB': SubDefinition;
+        'FUNCTION': FunctionDefinition;
+        'FORM': FormDefinition;
+        'SHOW': ShowStatement;
+        'HIDE': HideStatement;
+        'END': // 'END' can be part of 'END SUB', 'END FUNCTION', 'END IF', 'END SELECT', 'END FORM'
+          begin
+            Advance; // Consume 'END'
+            if MatchAny([tkKeyword, tkIdentifier]) then // Check for SUB, FUNCTION, IF, SELECT, FORM
+            begin
+              case AnsiUpperCase(FPreviousToken.Lexeme + ' ' + FCurrentToken.Lexeme) of
+                'END SUB', 'END FUNCTION', 'END IF', 'END SELECT', 'END FORM':
+                  Advance; // Consume the second part (SUB, FUNCTION, IF, SELECT, FORM)
+                else
+                  // It was just 'END' or an invalid combination, treat as a simple END keyword
+                  // For now, we'll just consume the second part if it was a keyword/identifier
+                  // A more robust parser would check for valid combinations.
+              end;
+            end;
+          end;
+        else
+          // If it's a keyword not handled above, it might be an assignment starting with an identifier
+          // or an error. For simplicity, assume it might be an assignment if it's not a known statement start.
+          // This might need refinement for a full VB6 grammar.
+          if Check(tkIdentifier) then
+            AssignmentStatement // Try to parse as assignment if it's an identifier
+          else
+            Error('Unexpected keyword: ' + FCurrentToken.Lexeme);
+      end;
+    tkIdentifier: AssignmentStatement; // Must be an assignment
+    tkEndOfLine: Advance; // Allow empty lines
+    tkComment: Advance; // Allow comments as statements
+    tkEndOfFile: Exit; // Reached end of file, stop parsing statements
+    else
+      Error('Unexpected token at start of statement: ' + FCurrentToken.Lexeme);
+  end;
+end;
+
+procedure TParser.OptionStatement;
+begin
+  Match(tkKeywordOption);
+  Match(tkKeywordExplicit);
+  if MatchAny([tkKeywordOn, tkKeywordOff]) then
+  begin
+    // Option Explicit On/Off consumed
+  end
+  else
+    Error('Expected ON or OFF after OPTION EXPLICIT');
+end;
+
+procedure TParser.DeclarationStatement;
+begin
+  // DIM or REDIM
+  MatchAny([tkKeyword]); // Consumes DIM or REDIM
+  Match(tkIdentifier); // Variable name
+  if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'AS') then
+  begin
+    Advance; // Consume AS
+    Match(tkIdentifier); // Type name (e.g., Integer, String)
+  end;
+end;
+
+procedure TParser.AssignmentStatement;
+begin
+  Match(tkIdentifier); // Variable name
+  Match(tkOperator); // Expect '='
+  Expression; // The value being assigned
+end;
+
+procedure TParser.PrintStatement;
+begin
+  Match(tkKeyword); // Consumes PRINT
+  Expression; // What to print
+  // Optional: multiple expressions separated by commas or semicolons
+  while MatchAny([tkComma, tkColon]) do // Using tkColon for simplicity, could be tkSemicolon if defined
+    Expression;
+end;
+
+procedure TParser.InputStatement;
+begin
+  Match(tkKeyword); // Consumes INPUT
+  if Check(tkStringLiteral) then
+    Advance; // Optional prompt string
+  Match(tkIdentifier); // Variable to store input
+end;
+
+procedure TParser.MsgBoxStatement;
+begin
+  Match(tkKeyword); // Consumes MSGBOX
+  Expression; // Message to display
+  // Optional arguments for MsgBox (buttons, title, etc.)
+  while Check(tkComma) do
+  begin
+    Advance;
+    Expression;
+  end;
+end;
+
+procedure TParser.CallStatement;
+begin
+  Match(tkKeyword); // Consumes CALL
+  Match(tkIdentifier); // Sub/Function name
+  if Check(tkParenthesisOpen) then
+  begin
+    Advance; // Consume '('
+    if not Check(tkParenthesisClose) then
+    begin
+      Expression; // First argument
+      while Check(tkComma) do
+      begin
+        Advance;
+        Expression; // Subsequent arguments
+      end;
+    end;
+    Match(tkParenthesisClose); // Consume ')'
+  end;
+end;
+
+procedure TParser.GoToStatement;
+begin
+  Match(tkKeyword); // Consumes GOTO
+  Match(tkIdentifier); // Label name
+end;
+
+procedure TParser.GoSubStatement;
+begin
+  Match(tkKeyword); // Consumes GOSUB
+  Match(tkIdentifier); // Label name
+end;
+
+procedure TParser.ReturnStatement;
+begin
+  Match(tkKeyword); // Consumes RETURN
+end;
+
+procedure TParser.IfStatement;
+begin
+  Match(tkKeyword); // Consumes IF
+  Expression; // Condition
+  Match(tkKeyword); // Consumes THEN
+  // Single-line IF or block IF
+  if Check(tkEndOfLine) then
+  begin
+    Advance; // Consume EndOfLine for block IF
+    while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'ELSE') or
+               (AnsiUpperCase(FCurrentToken.Lexeme) = 'ELSEIF') or
+               (AnsiUpperCase(FCurrentToken.Lexeme) = 'END') and (AnsiUpperCase(FLexer.GetNextToken.Lexeme) = 'IF')) do
+    begin
+      Statement;
+      while Check(tkEndOfLine) do Advance; // Consume EOLs between statements
+    end;
+
+    // Handle ELSEIF
+    while Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'ELSEIF') do
+    begin
+      Advance; // Consume ELSEIF
+      Expression; // New condition
+      Match(tkKeyword); // Consumes THEN
+      Advance; // Consume EndOfLine
+      while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'ELSE') or
+                 (AnsiUpperCase(FCurrentToken.Lexeme) = 'ELSEIF') or
+                 (AnsiUpperCase(FCurrentToken.Lexeme) = 'END') and (AnsiUpperCase(FLexer.GetNextToken.Lexeme) = 'IF')) do
+      begin
+        Statement;
+        while Check(tkEndOfLine) do Advance;
+      end;
+    end;
+
+    // Handle ELSE
+    if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'ELSE') then
+    begin
+      Advance; // Consume ELSE
+      Advance; // Consume EndOfLine
+      while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END') and (AnsiUpperCase(FLexer.GetNextToken.Lexeme) = 'IF')) do
+      begin
+        Statement;
+        while Check(tkEndOfLine) do Advance;
+      end;
+    end;
+    Match(tkKeyword); // Consume END
+    Match(tkKeyword); // Consume IF
+  end
+  else
+  begin
+    // Single-line IF statement
+    Statement;
+  end;
+end;
+
+procedure TParser.WhileStatement;
+begin
+  Match(tkKeyword); // Consumes WHILE
+  Expression; // Condition
+  Match(tkEndOfLine); // Must be a block WHILE
+  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'WEND')) do
+  begin
+    Statement;
+    while Check(tkEndOfLine) do Advance;
+  end;
+  Match(tkKeyword); // Consumes WEND
+end;
+
+procedure TParser.ForStatement;
+begin
+  Match(tkKeyword); // Consumes FOR
+  Match(tkIdentifier); // Loop variable
+  Match(tkOperator); // Expect '='
+  Expression; // Start value
+  Match(tkKeyword); // Consumes TO
+  Expression; // End value
+  if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'STEP') then
+  begin
+    Advance; // Consume STEP
+    Expression; // Step value
+  end;
+  Match(tkEndOfLine); // Must be a block FOR
+  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'NEXT')) do
+  begin
+    Statement;
+    while Check(tkEndOfLine) do Advance;
+  end;
+  Match(tkKeyword); // Consumes NEXT
+  if Check(tkIdentifier) then
+    Advance; // Optional: consume loop variable name after NEXT
+end;
+
+procedure TParser.SubDefinition;
+begin
+  Match(tkKeyword); // Consumes SUB
+  Match(tkIdentifier); // Sub name
+  Match(tkParenthesisOpen);
+  // Parameters (simplified: just identifiers for now)
+  if Check(tkIdentifier) then
+  begin
+    Advance;
+    while Check(tkComma) do
+    begin
+      Advance;
+      Match(tkIdentifier);
+    end;
+  end;
+  Match(tkParenthesisClose);
+  Match(tkEndOfLine); // End of SUB signature
+  // Body of the sub
+  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END') and (AnsiUpperCase(FLexer.GetNextToken.Lexeme) = 'SUB')) do
+  begin
+    Statement;
+    while Check(tkEndOfLine) do Advance;
+  end;
+  Match(tkKeyword); // Consume END
+  Match(tkKeyword); // Consume SUB
+end;
+
+procedure TParser.FunctionDefinition;
+begin
+  Match(tkKeyword); // Consumes FUNCTION
+  Match(tkIdentifier); // Function name
+  Match(tkParenthesisOpen);
+  // Parameters (simplified: just identifiers for now)
+  if Check(tkIdentifier) then
+  begin
+    Advance;
+    while Check(tkComma) do
+    begin
+      Advance;
+      Match(tkIdentifier);
+    end;
+  end;
+  Match(tkParenthesisClose);
+  if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'AS') then
+  begin
+    Advance; // Consume AS
+    Match(tkIdentifier); // Type name
+  end;
+  Match(tkEndOfLine); // End of FUNCTION signature
+  // Body of the function
+  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END') and (AnsiUpperCase(FLexer.GetNextToken.Lexeme) = 'FUNCTION')) do
+  begin
+    Statement;
+    while Check(tkEndOfLine) do Advance;
+  end;
+  Match(tkKeyword); // Consume END
+  Match(tkKeyword); // Consume FUNCTION
+end;
+
+procedure TParser.FormDefinition;
+begin
+  Match(tkKeyword); // Consumes FORM
+  Match(tkIdentifier); // Form name
+  Match(tkEndOfLine);
+  // Form elements (simplified: any statements within a form block)
+  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END') and (AnsiUpperCase(FLexer.GetNextToken.Lexeme) = 'FORM')) do
+  begin
+    Statement;
+    while Check(tkEndOfLine) do Advance;
+  end;
+  Match(tkKeyword); // Consume END
+  Match(tkKeyword); // Consume FORM
+end;
+
+procedure TParser.ShowStatement;
+begin
+  Match(tkKeyword); // Consumes SHOW
+  Match(tkIdentifier); // Form or control name
+end;
+
+procedure TParser.HideStatement;
+begin
+  Match(tkKeyword); // Consumes HIDE
+  Match(tkIdentifier); // Form or control name
+end;
+
+function TParser.Expression: TToken;
+begin
+  Result := Comparison;
+end;
+
+function TParser.Comparison: TToken;
+var
+  Left: TToken;
+begin
+  Left := Term;
+  while Check(tkOperator) do // First, check if the current token is an operator
+  begin
+    // Now, check if this operator is one of the comparison operators
+    case AnsiUpperCase(FCurrentToken.Lexeme) of
+      '=', '<', '>', '<=', '>=', '<>', 'IS':
+        begin
+          Advance; // Consume the operator (it will now be in FPreviousToken)
+          // Operator := FPreviousToken; // If you need to store it, it's in FPreviousToken
+          Term; // Parse the right operand
+          // In a real parser, you'd build an AST node here using Left, Operator, and the result of Term
+        end;
+      else
+        Break; // Not a comparison operator, exit the loop
+    end;
+  end;
+  Result := Left; // Return the left side of the comparison
+end;
+
+function TParser.Term: TToken;
+var
+  Left: TToken;
+begin
+  Left := Factor;
+  while Check(tkOperator) do // First, check if the current token is an operator
+  begin
+    // Now, check if this operator is one of the addition/subtraction/concatenation operators
+    case AnsiUpperCase(FCurrentToken.Lexeme) of
+      '+', '-', '&': // & for string concatenation
+        begin
+          Advance; // Consume the operator
+          // Operator := FPreviousToken;
+          Factor; // Parse the right operand
+          // Build AST node
+        end;
+      else
+        Break; // Not an addition/subtraction/concatenation operator, exit the loop
+    end;
+  end;
+  Result := Left;
+end;
+
+function TParser.Factor: TToken;
+var
+  Left: TToken;
+begin
+  Left := Primary;
+  while Check(tkOperator) do // First, check if the current token is an operator
+  begin
+    // Now, check if this operator is one of the multiplication/division operators
+    case AnsiUpperCase(FCurrentToken.Lexeme) of
+      '*', '/':
+        begin
+          Advance; // Consume the operator
+          // Operator := FPreviousToken;
+          Primary; // Parse the right operand
+          // Build AST node
+        end;
+      else
+        Break; // Not a multiplication/division operator, exit the loop
+    end;
+  end;
+  Result := Left;
+end;
+
+function TParser.Primary: TToken;
+begin
+  case FCurrentToken.TokenType of
+    tkIntegerLiteral, tkStringLiteral, tkBooleanLiteral, tkIdentifier:
+      begin
+        Result := FCurrentToken;
+        Advance;
+      end;
+    tkParenthesisOpen:
+      begin
+        Advance; // Consume '('
+        Result := Expression;
+        Match(tkParenthesisClose); // Consume ')'
+      end;
+    else
+      Error('Expected expression, found ' + FCurrentToken.Lexeme);
+  end;
 end;
 
 end.
 
-
-function TParser.ParseFactor: TBCValue;
-var
-  NumVal: Int64;
-  StrVal: String;
-  BoolVal: Boolean;
-  VarName: String;
-begin
-  case FCurrentToken.TokenType of
-    tkIntegerLiteral:
-      begin
-        NumVal := StrToInt64(FCurrentToken.Lexeme);
-        ConsumeToken(tkIntegerLiteral);
-        Result := CreateBCValueInteger(NumVal);
-      end;
-    tkStringLiteral:
-      begin
-        StrVal := Copy(FCurrentToken.Lexeme, 2, Length(FCurrentToken.Lexeme) - 2);
-        ConsumeToken(tkStringLiteral);
-        Result := CreateBCValueString(StrVal);
-      end;
-    tkBooleanLiteral:
-      begin
-        BoolVal := SameText(FCurrentToken.Lexeme, 'TRUE');
-        ConsumeToken(tkBooleanLiteral);
-        Result := CreateBCValueBoolean(BoolVal);
-      end;
-    tkIdentifier: // If factor is a variable
-      begin
-        VarName := FCurrentToken.Lexeme;
-        // --- Option Explicit Check ---
-        if FOptionExplicitEnabled and not IsVariableDeclared(VarName) then
-          raise Exception.CreateFmt('Parser Error: Variable "%s" not declared (Option Explicit On) at %d:%d',
-            [VarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-        // --- End Option Explicit Check ---
-        WriteLn(Format('Parser Note: Variable reference "%s" found. (Value lookup not implemented)', [VarName]));
-        ConsumeToken(tkIdentifier);
-        Result := CreateBCValueNull; // Placeholder value
-      end;
-    tkParenthesisOpen:
-      begin
-        ConsumeToken(tkParenthesisOpen);
-        Result := ParseExpression;
-        ConsumeToken(tkParenthesisClose);
-      end;
-    else
-      raise Exception.CreateFmt('Parser Error: Unexpected token "%s" when expecting factor at %d:%d',
-        [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-  end;
-end;
-
-
-function TParser.ParseTerm: TBCValue;
-var
-  Left, Right: TBCValue;
-  Op: TToken;
-begin
-  Left := ParseFactor;
-  while (FCurrentToken.TokenType = tkOperator) and
-        (SameText(FCurrentToken.Lexeme, '*') or SameText(FCurrentToken.Lexeme, '/')) do
-  begin
-    Op := FCurrentToken;
-    ConsumeToken(tkOperator);
-    Right := ParseFactor;
-    if (Left.ValueType = bcvtInteger) and (Right.ValueType = bcvtInteger) then
-    begin
-      if Op.Lexeme = '*' then
-        Left.IntValue := Left.IntValue * Right.IntValue
-      else if Op.Lexeme = '/' then
-      begin
-        if Right.IntValue = 0 then
-          raise Exception.Create('Division by zero');
-        Left.IntValue := Left.IntValue div Right.IntValue;
-      end;
-    end
-    else
-      raise Exception.Create('Type mismatch in arithmetic operation');
-  end;
-  Result := Left;
-end;
-
-function TParser.ParseExpression: TBCValue;
-var
-  Left, Right: TBCValue;
-  Op: TToken;
-begin
-  Left := ParseTerm;
-  while (FCurrentToken.TokenType = tkOperator) and
-        (SameText(FCurrentToken.Lexeme, '+') or SameText(FCurrentToken.Lexeme, '-') or
-         SameText(FCurrentToken.Lexeme, '&')) do
-  begin
-    Op := FCurrentToken;
-    ConsumeToken(tkOperator);
-    Right := ParseTerm;
-
-    if Op.Lexeme = '+' then
-    begin
-      if (Left.ValueType = bcvtInteger) and (Right.ValueType = bcvtInteger) then
-        Left.IntValue := Left.IntValue + Right.IntValue
-      else
-        raise Exception.Create('Type mismatch in addition');
-    end
-    else if Op.Lexeme = '-' then
-    begin
-      if (Left.ValueType = bcvtInteger) and (Right.ValueType = bcvtInteger) then
-        Left.IntValue := Left.IntValue - Right.IntValue
-      else
-        raise Exception.Create('Type mismatch in subtraction');
-    end
-    else if Op.Lexeme = '&' then // String concatenation
-    begin
-      Left.StringValue := BCValueToString(Left) + BCValueToString(Right);
-      Left.ValueType := bcvtString;
-    end;
-  end;
-  Result := Left;
-end;
-
-
-procedure TParser.ParsePrintStatement;
-var
-  ExprValue: TBCValue;
-begin
-  ConsumeToken(tkKeyword); // Consume PRINT
-  ExprValue := ParseExpression;
-  WriteLn(Format('Parsed PRINT statement with value: %s (Type: %s)',
-    [BCValueToString(ExprValue),
-     GetTokenTypeName(ExprValue.ValueType)
-     ]));
-end;
-
-procedure TParser.ParseShowStatement;
-var
-  FormNameToken: TToken;
-begin
-  ConsumeToken(tkKeyword); // Consume SHOW
-  FormNameToken := FCurrentToken;
-  if FormNameToken.TokenType <> tkIdentifier then
-    raise Exception.CreateFmt('Parser Error: Expected form name (identifier) after SHOW at %d:%d',
-      [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-  ConsumeToken(tkIdentifier);
-
-  WriteLn(Format('Parsed SHOW statement for form: %s', [FormNameToken.Lexeme]));
-end;
-
-procedure TParser.ParseLetStatement(const VarName: String);
-var
-  ExprValue: TBCValue;
-begin
-  // --- Option Explicit Check for Assignment ---
-  if FOptionExplicitEnabled and not IsVariableDeclared(VarName) then
-    raise Exception.CreateFmt('Parser Error: Variable "%s" not declared (Option Explicit On) at %d:%d',
-      [VarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-
-  // If Option Explicit is OFF, or if it's ON and variable is declared, then declare/register it.
-  // This also handles implicit declaration if Option Explicit is Off.
-  DeclareVariable(VarName);
-  // --- End Option Explicit Check ---
-
-  ConsumeToken(tkOperator); // Consume '='
-  ExprValue := ParseExpression;
-
-  WriteLn(Format('Parsed LET/Assignment statement: %s = %s (Type: %s)',
-    [VarName, BCValueToString(ExprValue),
-     GetTokenTypeName(ExprValue.ValueType)
-     ]));
-end;
-
-procedure TParser.ParseDimStatement;
-var
-  VarName: String;
-begin
-  ConsumeToken(tkKeyword); // Consume 'DIM'
-
-  // Parse variable name
-  if FCurrentToken.TokenType <> tkIdentifier then
-    raise Exception.CreateFmt('Parser Error: Expected variable name after DIM at %d:%d',
-      [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-
-  VarName := FCurrentToken.Lexeme;
-  ConsumeToken(tkIdentifier);
-
-  // --- Handle Optional 'AS Type' (Conceptual for now) ---
-  // If the next token is 'AS' (which is a tkKeyword in our lexer)
-  if (FCurrentToken.TokenType = tkKeyword) and (SameText(FCurrentToken.Lexeme, 'AS')) then
-  begin
-    ConsumeToken(tkKeyword); // Consume 'AS'
-    // Expect a type identifier (e.g., INTEGER, STRING, BOOLEAN)
-    if FCurrentToken.TokenType <> tkIdentifier then
-      raise Exception.CreateFmt('Parser Error: Expected type name after AS at %d:%d',
-        [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-    WriteLn(Format('Parser Note: Variable "%s" declared AS %s (Type handling not fully implemented)', [VarName, FCurrentToken.Lexeme]));
-    ConsumeToken(tkIdentifier); // Consume the type name
-  end;
-  // --- End Optional 'AS Type' ---
-
-  // Declare the variable in the symbol table
-  DeclareVariable(VarName);
-  WriteLn(Format('Parsed DIM statement for variable: %s', [VarName]));
-
-  // Handle multiple declarations on one line (e.g., DIM A, B, C)
-  while FCurrentToken.TokenType = tkComma do
-  begin
-    ConsumeToken(tkComma);
-    if FCurrentToken.TokenType <> tkIdentifier then
-      raise Exception.CreateFmt('Parser Error: Expected variable name after comma in DIM statement at %d:%d',
-        [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-    VarName := FCurrentToken.Lexeme;
-    ConsumeToken(tkIdentifier);
-    // Handle optional 'AS Type' for subsequent variables if desired (VB6 allows this)
-    if (FCurrentToken.TokenType = tkKeyword) and (SameText(FCurrentToken.Lexeme, 'AS')) then
-    begin
-      ConsumeToken(tkKeyword);
-      if FCurrentToken.TokenType <> tkIdentifier then
-        raise Exception.CreateFmt('Parser Error: Expected type name after AS for "%s" at %d:%d',
-          [VarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-      WriteLn(Format('Parser Note: Variable "%s" declared AS %s (Type handling not fully implemented)', [VarName, FCurrentToken.Lexeme]));
-      ConsumeToken(tkIdentifier);
-    end;
-    DeclareVariable(VarName);
-    WriteLn(Format('Parsed DIM statement for additional variable: %s', [VarName]));
-  end;
-end;
-
-
-procedure TParser.ParseIfStatement;
-var
-  ConditionValue: TBCValue;
-  ThenToken: TToken;
-begin
-  ConsumeToken(tkKeyword); // Consume IF
-
-  ConditionValue := ParseExpression;
-
-  ThenToken := FCurrentToken;
-  if ThenToken.TokenType = tkKeyword then
-  begin
-    if SameText(ThenToken.Lexeme, 'THEN') then
-    begin
-      ConsumeToken(tkKeyword); // Consume THEN
-      if (FCurrentToken.TokenType <> tkEndOfLine) and (FCurrentToken.TokenType <> tkEndOfFile) then
-      begin
-        WriteLn('  (Parsing statement after THEN)');
-        ParseStatement;
-      end;
-    end
-    else
-      raise Exception.CreateFmt('Parser Error: Expected THEN but found "%s" in IF statement at %d:%d',
-        [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-  end
-  else
-    raise Exception.CreateFmt('Parser Error: Expected THEN keyword in IF statement at %d:%d',
-      [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-
-  WriteLn(Format('Parsed IF statement with condition of type: %s', [GetTokenTypeName(ConditionValue.ValueType)]));
-end;
-
-procedure TParser.ParseOptionExplicitStatement;
-var
-  OptionToken: TToken;
-  ExplicitToken: TToken;
-  StateToken: TToken;
-begin
-  OptionToken := FCurrentToken;
-  ConsumeToken(tkOption); // Consume 'Option'
-
-  ExplicitToken := FCurrentToken;
-  ConsumeToken(tkExplicit); // Consume 'Explicit'
-
-  StateToken := FCurrentToken;
-  if StateToken.TokenType = tkOn then
-  begin
-    FOptionExplicitEnabled := True;
-    ConsumeToken(tkOn);
-    WriteLn('Parser: OPTION EXPLICIT ON detected. All variables must be declared.');
-  end
-  else if StateToken.TokenType = tkOff then
-  begin
-    FOptionExplicitEnabled := False;
-    ConsumeToken(tkOff);
-    WriteLn('Parser: OPTION EXPLICIT OFF detected. Variables do not need explicit declaration.');
-  end
-  else
-    raise Exception.CreateFmt('Parser Error: Expected ON or OFF after "Option Explicit" at %d:%d',
-      [FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-end;
-
-
-procedure TParser.ParseStatement;
-var
-  CurrentLineNum: Integer;
-  PotentialVarName: String;
-begin
-  CurrentLineNum := FCurrentToken.Line; // Use .Line as per TokenDefs
-  // Skip comments on their own line
-  if FCurrentToken.TokenType = tkComment then
-  begin
-    ConsumeToken(tkComment);
-    if FCurrentToken.TokenType = tkEndOfLine then // If comment occupies full line
-      ConsumeToken(tkEndOfLine);
-    ParseStatement; // Try parsing next statement
-    Exit;
-  end;
-
-  // Process multiple statements on one line separated by ':'
-  while FCurrentToken.TokenType <> tkEndOfLine do
-  begin
-    case FCurrentToken.TokenType of
-      tkKeyword:
-        begin
-          case LowerCase(FCurrentToken.Lexeme) of
-            'print': ParsePrintStatement;
-            'show': ParseShowStatement;
-            'if': ParseIfStatement;
-            'dim': ParseDimStatement; // Handle DIM statement
-            'end': // Handle 'END' as program termination
-              begin
-                ConsumeToken(tkKeyword); // Consume END
-                WriteLn('Parsed END statement. Program will terminate.');
-                Exit; // Stop parsing
-              end;
-            else
-              raise Exception.CreateFmt('Parser Error: Unrecognized keyword "%s" at %d:%d',
-                [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-          end; // case LowerCase(FCurrentToken.Lexeme)
-        end;
-      tkIdentifier: // Could be assignment, or a CALL to a subroutine
-        begin
-          PotentialVarName := FCurrentToken.Lexeme;
-          ConsumeToken(tkIdentifier); // Consume the identifier
-
-          if FCurrentToken.TokenType = tkOperator then
-          begin
-            if FCurrentToken.Lexeme = '=' then
-            begin
-              ParseLetStatement(PotentialVarName); // Call assignment parser
-            end
-            else
-              raise Exception.CreateFmt('Parser Error: Expected "=" after identifier "%s" at %d:%d',
-                [PotentialVarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-          end
-          else
-            raise Exception.CreateFmt('Parser Error: Unexpected token "%s" after identifier "%s". Expected "=" or end of statement. at %d:%d',
-              [FCurrentToken.Lexeme, PotentialVarName, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-        end;
-      tkOption: // Handle Option Explicit directive
-        ParseOptionExplicitStatement;
-      tkEndOfFile: Exit; // Reached end of file, stop parsing
-
-      else
-        raise Exception.CreateFmt('Parser Error: Unexpected token "%s" at start of statement at %d:%d',
-          [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-    end; // case FCurrentToken.TokenType
-
-    // After parsing a statement, check for ':' for multi-statement lines
-    if FCurrentToken.TokenType = tkColon then
-    begin
-      ConsumeToken(tkColon); // Consume the colon
-    end
-    else if FCurrentToken.TokenType = tkEndOfLine then
-    begin
-      ConsumeToken(tkEndOfLine);
-      Break;
-    end
-    else if FCurrentToken.TokenType = tkEndOfFile then
-    begin
-      Break; // Exit loop if EOF after statement
-    end
-    else
-    begin
-      raise Exception.CreateFmt('Parser Error: Expected EOL or ":" after statement, but found "%s" at %d:%d',
-        [FCurrentToken.Lexeme, FCurrentToken.Line + 1, FCurrentToken.Column + 1]);
-    end;
-  end; // while FCurrentToken.TokenType <> tkEndOfLine
-end;
-
-
-procedure TParser.ParseProgram;
-begin
-  while FCurrentToken.TokenType <> tkEndOfFile do
-  begin
-    ParseStatement; // Parse one statement (which might include multiple on a line)
-  end;
-  WriteLn('Program parsing finished.');
-end;
-
-end.

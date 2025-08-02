@@ -55,7 +55,10 @@ type
     OP_CALL_PROC,      // Call a procedure/function (Operand1: target address)
     OP_RETURN_PROC,    // Return from a procedure/function
     OP_FORM_START,     // Start of a FORM definition block (Operand1: Form ID/Index)
-    OP_FORM_END        // End of a FORM definition block
+    OP_FORM_END ,       // End of a FORM definition block
+    OP_KEY_PRESSED,   // <<< NEW: Check if a key is pressed (non-blocking)
+    OP_READ_KEY       // <<< NEW: Read a key (blocking)
+
   );
 
   {--- 7. Instruction ---}

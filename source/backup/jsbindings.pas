@@ -14,10 +14,10 @@ const
   {$ELSE} // Intel macOS
     QuickJSLib = 'libquickjs.a'; // Or 'libquickjs.dylib'
   {$ENDIF}
-(*{$ELSEIF DEF LINUX} // Uncommented for other platforms
+  {$ELSEIF DEF LINUX} // Uncommented for other platforms
   QuickJSLib = 'libquickjs.so'; // Linux dynamic library
 {$ELSEIF DEF WINDOWS}
-  QuickJSLib = 'quickjs.dll'; // Windows dynamic library *)
+  QuickJSLib = 'quickjs.dll'; // Windows dynamic library
 {$ELSE}
   QuickJSLib = 'libquickjs.so'; // Default fallback for other Unix-like OS
 {$ENDIF}

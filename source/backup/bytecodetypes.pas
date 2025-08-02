@@ -23,7 +23,6 @@ type
     IntValue    : Int64;
     StringValue : String;
     BoolValue   : Boolean;
-    // function AsString: String; // <<< REMOVED
   end;
 
   {--- 3. VM variable alias ---}
@@ -90,25 +89,13 @@ function CreateBCValueString (const S: String): TBCValue;
 function CreateBCValueBoolean(B: Boolean): TBCValue;
 
 { ---------------------------------------------------------------------------
-  ▸  GLOBAL HELPER FUNCTION FOR CONVERSION (REPLACEMENT FOR TBCValue.AsString)
+  ▸  GLOBAL HELPER FUNCTION FOR CONVERSION
   --------------------------------------------------------------------------- }
-// This function is now global and takes a TBCValue as input.
 function BCValueToString(const AValue: TBCValue): String;
+function GetBCValueTypeName(AType: TBCValueType): String; // <<< NEW FUNCTION DECLARATION
 
 implementation
 { --------------------------------------------------------------------------- }
-
-{ TBCValue helpers - AsString implementation removed }
-// function TBCValue.AsString: String;
-// begin
-//   case ValueType of
-//     bcvtNull    : Result := 'NULL';
-//     bcvtInteger : Result := IntToStr(IntValue);
-//     bcvtString  : Result := StringValue;
-//     bcvtBoolean : Result := BoolToStr(BoolValue, True);
-//   end;
-// end;
-
 
 { TVMVariableObject }
 constructor TVMVariableObject.Create;
@@ -185,6 +172,18 @@ begin
     bcvtBoolean : Result := BoolToStr(AValue.BoolValue, True);
   end;
 end;
+
+// <<< NEW FUNCTION IMPLEMENTATION
+function GetBCValueTypeName(AType: TBCValueType): String;
+begin
+  case AType of
+    bcvtNull: Result := 'Null';
+    bcvtInteger: Result := 'Integer';
+    bcvtString: Result := 'String';
+    bcvtBoolean: Result := 'Boolean';
+  end;
+end;
+// End NEW FUNCTION IMPLEMENTATION
 
 end.
 

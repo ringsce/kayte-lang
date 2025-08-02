@@ -106,7 +106,7 @@
       <Unit>
         <Filename Value="../source/tokendefs.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="TokenDefs"/>
+        <UnitName Value="tokenDefs"/>
       </Unit>
       <Unit>
         <Filename Value="../source/umaininterpreterform.pas"/>

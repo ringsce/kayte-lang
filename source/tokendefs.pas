@@ -1,87 +1,96 @@
 unit TokenDefs;
 
-{$mode ObjFPC}{$H+}
+{$mode objfpc}{$H+}
 
 interface
 
 uses
-  Classes, SysUtils;
+  SysUtils; // For String operations if needed, though not strictly for these simple types
 
 type
-
+  // Define the types of tokens our lexer can recognize
   TTokenType = (
-    // Core types for lexer output
-    tkUnknown,
-    tkEndOfLine,    // Represents end of a line
-    tkEndOfFile,    // Represents end of the source file
-    tkComment,      // Single-line comment (e.g., REM, ')
-    tkIdentifier,   // Variable names, form names, control names, function names
-    tkKeyword,      // General keyword (e.g., PRINT, SHOW, IF, THEN, END, SUB, FUNCTION, DIM, AS, REM, etc.)
-    tkIntegerLiteral, // Numeric literal (e.g., 123, 456)
-    tkStringLiteral,  // String literal (e.g., "Hello World")
-    tkBooleanLiteral, // Boolean literal (TRUE, FALSE)
-    tkOperator,       // Arithmetic, comparison, logical, and concatenation operators (+, -, *, /, =, <, >, <=, >=, <>, &, AND, OR, NOT, IS)
+    // Special tokens
+    tkUnknown,        // For unrecognized tokens
+    tkEndOfFile,      // End of input stream
+    tkEndOfLine,      // Newline character (important for VB-like languages)
+    tkComment,        // ' or REM comments
 
-    // Specific delimiter tokens (these are distinct from generic tkOperator)
+    // Literals
+    tkIntegerLiteral, // 123, 456
+    tkStringLiteral,  // "Hello, World!"
+    tkBooleanLiteral, // TRUE, FALSE
+
+    // Identifiers
+    tkIdentifier,     // Variable names, function names, etc.
+
+    // Keywords (basic set, expand as needed)
+    tkKeyword,        // General keyword (e.g., PRINT, INPUT, DIM, IF, THEN, ELSE, WHILE, WEND, SUB, END, CALL, RETURN, SHOW, HIDE)
+
+    // --- Specific Keywords for "Option Explicit On/Off" ---
+    tkKeywordOption,  // OPTION
+    tkKeywordExplicit,// EXPLICIT
+    tkKeywordOn,      // ON
+    tkKeywordOff,     // OFF
+    // --- End Specific Keywords ---
+
+    // Combined keywords for specific statements
+    tkOptionExplicitOn, // OPTION EXPLICIT ON
+    tkOptionExplicitOff,// OPTION EXPLICIT OFF
+
+    // Operators
+    tkOperator,       // +, -, *, /, =, <, >, <=, >=, <>, &, AND, OR, NOT, IS
+
+    // Punctuation
     tkParenthesisOpen,  // (
     tkParenthesisClose, // )
     tkComma,            // ,
     tkDot,              // .
-    tkColon,            // : (for multi-statement lines)
-    tkSemiColon,        // ; (if used for statement termination)
-
-    // --- Tokens for Option Explicit Directive (composite tokens) ---
-    tkOption,           // 'Option' keyword (as a standalone token if not part of directive)
-    tkExplicit,         // 'Explicit' keyword (as a standalone token if not part of directive)
-    tkOn,               // 'On' keyword (as a standalone token if not part of directive)
-    tkOff,              // 'Off' keyword (as a standalone token if not part of directive)
-    tkOptionExplicitOn, // Composite token for "Option Explicit On"
-    tkOptionExplicitOff // Composite token for "Option Explicit Off"
-    // --- End Option Explicit Directive Tokens ---
+    tkColon             // :
   );
 
-  // TToken record to hold token information
+  // Represents a single token found by the lexer
   TToken = record
     TokenType: TTokenType;
-    Line: Integer;    // Line number where the token was found (1-based)
-    Column: Integer;  // Column number where the token starts (1-based)
-    Lexeme: String;   // The actual text of the token
+    Lexeme: String;     // The actual text matched (e.g., "PRINT", "123", "myVar")
+    Line: Integer;      // Line number where the token starts (0-indexed)
+    Column: Integer;    // Column number where the token starts (0-indexed)
   end;
 
-  // --- FUNCTION DECLARATION ---
-  // This function provides a string representation of a TTokenType, useful for debugging.
-  function GetTokenTypeName(ATokenType: TTokenType): String;
+// Helper function to get a string representation of a token type (useful for error messages)
+function GetTokenTypeName(TokenType: TTokenType): String;
+
+// Array for easy lookup of token type names
+const
+  TokenTypeName: array[TTokenType] of String = (
+    'UNKNOWN',
+    'END_OF_FILE',
+    'END_OF_LINE',
+    'COMMENT',
+    'INTEGER_LITERAL',
+    'STRING_LITERAL',
+    'BOOLEAN_LITERAL',
+    'IDENTIFIER',
+    'KEYWORD',
+    'KEYWORD_OPTION',
+    'KEYWORD_EXPLICIT',
+    'KEYWORD_ON',
+    'KEYWORD_OFF',
+    'OPTION_EXPLICIT_ON',
+    'OPTION_EXPLICIT_OFF',
+    'OPERATOR',
+    'PARENTHESIS_OPEN',
+    'PARENTHESIS_CLOSE',
+    'COMMA',
+    'DOT',
+    'COLON'
+  );
 
 implementation
 
-// --- FUNCTION IMPLEMENTATION ---
-function GetTokenTypeName(ATokenType: TTokenType): String;
+function GetTokenTypeName(TokenType: TTokenType): String;
 begin
-  case ATokenType of
-    tkUnknown: Result := 'UNKNOWN';
-    tkEndOfLine: Result := 'END_OF_LINE';
-    tkEndOfFile: Result := 'END_OF_FILE';
-    tkComment: Result := 'COMMENT';
-    tkIdentifier: Result := 'IDENTIFIER';
-    tkKeyword: Result := 'KEYWORD';
-    tkIntegerLiteral: Result := 'INTEGER_LITERAL';
-    tkStringLiteral: Result := 'STRING_LITERAL';
-    tkBooleanLiteral: Result := 'BOOLEAN_LITERAL';
-    tkOperator: Result := 'OPERATOR';
-    tkParenthesisOpen: Result := 'PARENTHESIS_OPEN';
-    tkParenthesisClose: Result := 'PARENTHESIS_CLOSE';
-    tkComma: Result := 'COMMA';
-    tkDot: Result := 'DOT';
-    tkColon: Result := 'COLON';
-    tkSemiColon: Result := 'SEMICOLON';
-    tkOption: Result := 'OPTION_KEYWORD';
-    tkExplicit: Result := 'EXPLICIT_KEYWORD';
-    tkOn: Result := 'ON_KEYWORD';
-    tkOff: Result := 'OFF_KEYWORD';
-    tkOptionExplicitOn: Result := 'OPTION_EXPLICIT_ON_DIRECTIVE';
-    tkOptionExplicitOff: Result := 'OPTION_EXPLICIT_OFF_DIRECTIVE';
-    else Result := 'UNHANDLED_TOKEN_TYPE';
-  end;
+  Result := TokenTypeName[TokenType];
 end;
 
 end.

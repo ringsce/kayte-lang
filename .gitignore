@@ -5,6 +5,7 @@
 # Resource files are binaries containing manifest, project icon and version info.
 # They can not be viewed as text or compared by diff-tools. Consider replacing them with .rc files.
 #*.res
+docs/
 demo/lib
 demo/*.res
 source/lib

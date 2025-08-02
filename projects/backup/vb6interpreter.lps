@@ -7,7 +7,6 @@
       <Unit>
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="44" Y="9"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit>
@@ -32,7 +31,7 @@
         <Filename Value="../source/vbcompiler.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VBCompiler"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="3"/>
         <CursorPos X="38" Y="19"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
@@ -47,12 +46,7 @@
         <Filename Value="../source/jsbindings.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="JSBindings"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="9"/>
-        <TopLine Value="211"/>
-        <CursorPos Y="244"/>
         <UsageCount Value="200"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/wincominterop.pas"/>
@@ -71,7 +65,7 @@
         <Filename Value="../source/bytecodetypes.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="BytecodeTypes"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="159"/>
         <CursorPos X="13" Y="192"/>
         <UsageCount Value="200"/>
@@ -81,7 +75,7 @@
         <Filename Value="../source/bytecodevm.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="BytecodeVM"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="63"/>
         <CursorPos X="95" Y="80"/>
         <UsageCount Value="200"/>
@@ -91,7 +85,7 @@
         <Filename Value="../source/lexer.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Lexer"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="8"/>
         <TopLine Value="149"/>
         <CursorPos X="25" Y="165"/>
         <UsageCount Value="200"/>
@@ -101,7 +95,8 @@
         <Filename Value="../source/parser.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="Parser"/>
-        <EditorIndex Value="8"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="10"/>
         <TopLine Value="534"/>
         <CursorPos Y="567"/>
         <UsageCount Value="200"/>
@@ -123,7 +118,7 @@
         <Filename Value="../source/tokendefs.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="TokenDefs"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="9"/>
         <TopLine Value="64"/>
         <CursorPos Y="97"/>
         <UsageCount Value="200"/>
@@ -151,7 +146,7 @@
         <Filename Value="../source/ukfrmtypes.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UKfrmTypes"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="256"/>
         <CursorPos X="5" Y="289"/>
         <UsageCount Value="200"/>
@@ -161,7 +156,7 @@
         <Filename Value="../source/fkfrmruntime.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="FKfrmRuntime"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="6"/>
         <TopLine Value="20"/>
         <CursorPos Y="47"/>
         <UsageCount Value="200"/>
@@ -177,29 +172,31 @@
         <Filename Value="../Router/ueventrouter.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UEventRouter"/>
-        <EditorIndex Value="-1"/>
+        <EditorIndex Value="1"/>
         <TopLine Value="101"/>
         <CursorPos Y="133"/>
         <UsageCount Value="200"/>
+        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/ukfrmparser.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="UKfrmParser"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="11"/>
         <CursorPos Y="31"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../Renderer/UKfrmRenderer.pas"/>
-        <EditorIndex Value="-1"/>
+        <EditorIndex Value="2"/>
         <TopLine Value="188"/>
         <CursorPos X="5" Y="216"/>
         <UsageCount Value="100"/>
+        <Loaded Value="True"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="18">
+    <JumpHistory HistoryIndex="12">
       <Position>
         <Filename Value="../source/lexer.pas"/>
         <Caret Line="381" TopLine="348"/>
@@ -251,30 +248,6 @@
       <Position>
         <Filename Value="../source/parser.pas"/>
         <Caret Line="485" Column="30" TopLine="467"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="567" TopLine="534"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="38" Column="36" TopLine="6"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="567" TopLine="534"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/jsbindings.pas"/>
-        <Caret Line="17" Column="11" TopLine="210"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/jsbindings.pas"/>
-        <Caret Line="243" Column="5" TopLine="210"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/jsbindings.pas"/>
-        <Caret Line="32" Column="33"/>
       </Position>
     </JumpHistory>
     <RunParams>

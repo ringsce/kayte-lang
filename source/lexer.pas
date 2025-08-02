@@ -24,13 +24,18 @@ type
     function IsLetter(C: Char): Boolean;
     function IsIdentifierStart(C: Char): Boolean;
     function IsIdentifierChar(C: Char): Boolean;
-    function GetTokenType(const S: String): TTokenType; // Moved from BytecodeTypes
+    function GetTokenType(const S: String): TTokenType;
 
   public
     constructor Create(ASourceCode: TStringList);
     destructor Destroy; override;
     procedure Reset;
     function GetNextToken: TToken;
+
+    // --- Added Public Properties for Current Position ---
+    property CurrentLine: Integer read FCurrentLineIndex;
+    property CurrentColumn: Integer read FCurrentCharIndex;
+    // --- End Added Public Properties ---
   end;
 
 implementation
@@ -131,7 +136,6 @@ begin
   Result := IsLetter(C) or IsDigit(C) or (C = '_');
 end;
 
-// Moved from BytecodeTypes.pas
 function TLexer.GetTokenType(const S: String): TTokenType;
 begin
   Result := tkIdentifier; // Default to identifier
@@ -158,10 +162,10 @@ begin
     '.': Result := tkDot;
     ':': Result := tkColon;
     // --- New Keywords for Option Explicit ---
-    'OPTION': Result := tkOption;
-    'EXPLICIT': Result := tkExplicit;
-    'ON': Result := tkOn;
-    'OFF': Result := tkOff;
+    'OPTION': Result := tkKeywordOption; // Changed from tkOption
+    'EXPLICIT': Result := tkKeywordExplicit; // Changed from tkExplicit
+    'ON': Result := tkKeywordOn; // Changed from tkOn
+    'OFF': Result := tkKeywordOff; // Changed from tkOff
     // --- End New Keywords ---
   end;
 end;
@@ -173,9 +177,9 @@ var
   LexemeBuilder: String;
   CurrentTokType: TTokenType;
   // Store current position to rollback if it's not "Option Explicit On/Off"
-  SavedCharIndex : Integer;   // Corrected declaration
-  SavedLineIndex : Integer;   // Corrected declaration
-  SavedLineContent : String;  // Corrected declaration
+  SavedCharIndex : Integer;
+  SavedLineIndex : Integer;
+  SavedLineContent : String;
 begin
   Result.Line := FCurrentLineIndex; // Use .Line and .Column as per TokenDefs
   Result.Column := FCurrentCharIndex;
@@ -203,7 +207,17 @@ begin
   end;
 
   // Handle comments starting with ' or REM
-  if CurrentChar = '''' then // Single quote comment
+  // Check for REM keyword first, as 'REM' is a keyword, but also a comment
+  if (AnsiUpperCase(Copy(FCurrentLine, FCurrentCharIndex + 1, 3)) = 'REM') and
+     ((FCurrentCharIndex + 3 = Length(FCurrentLine)) or (not IsIdentifierChar(FCurrentLine[FCurrentCharIndex + 4]))) then
+  begin
+    LexemeBuilder := Copy(FCurrentLine, FCurrentCharIndex + 1, Length(FCurrentLine) - FCurrentCharIndex);
+    FCurrentCharIndex := Length(FCurrentLine); // Move to end of line
+    Result.TokenType := tkComment;
+    Result.Lexeme := LexemeBuilder;
+    Exit;
+  end
+  else if CurrentChar = '''' then // Single quote comment
   begin
     LexemeBuilder := '';
     while (CurrentChar <> #0) and (FCurrentCharIndex < Length(FCurrentLine)) do
@@ -215,6 +229,7 @@ begin
     Result.Lexeme := LexemeBuilder;
     Exit;
   end;
+
 
   // Handle String Literals
   if CurrentChar = '"' then
@@ -265,12 +280,12 @@ begin
     CurrentTokType := GetTokenType(LexemeBuilder);
 
     // --- Special handling for "Option Explicit On/Off" sequence ---
-    if (CurrentTokType = tkOption) then
+    if (CurrentTokType = tkKeywordOption) then // Changed from tkOption
     begin
       // Store current position to rollback if it's not "Option Explicit On/Off"
-      SavedCharIndex := FCurrentCharIndex;    // Corrected assignment
-      SavedLineIndex := FCurrentLineIndex;    // Corrected assignment
-      SavedLineContent := FCurrentLine;       // Corrected assignment
+      SavedCharIndex := FCurrentCharIndex;
+      SavedLineIndex := FCurrentLineIndex;
+      SavedLineContent := FCurrentLine;
 
       SkipWhitespace; // Skip space after "Option"
       LexemeBuilder := '';
@@ -279,7 +294,7 @@ begin
         LexemeBuilder := LexemeBuilder + CurrentChar;
         Advance;
       end;
-      if GetTokenType(LexemeBuilder) = tkExplicit then
+      if GetTokenType(LexemeBuilder) = tkKeywordExplicit then // Changed from tkExplicit
       begin
         SkipWhitespace; // Skip space after "Explicit"
         LexemeBuilder := '';
@@ -288,13 +303,13 @@ begin
           LexemeBuilder := LexemeBuilder + CurrentChar;
           Advance;
         end;
-        if GetTokenType(LexemeBuilder) = tkOn then
+        if GetTokenType(LexemeBuilder) = tkKeywordOn then // Changed from tkOn
         begin
           Result.TokenType := tkOptionExplicitOn;
           Result.Lexeme := 'Option Explicit On';
           Exit;
         end
-        else if GetTokenType(LexemeBuilder) = tkOff then
+        else if GetTokenType(LexemeBuilder) = tkKeywordOff then // Changed from tkOff
         begin
           Result.TokenType := tkOptionExplicitOff;
           Result.Lexeme := 'Option Explicit Off';
@@ -307,9 +322,9 @@ begin
           FCurrentLineIndex := SavedLineIndex;
           FCurrentLine := SavedLineContent;
           // Re-process "Option" as a regular keyword/identifier
-          Result.TokenType := tkOption;
+          Result.TokenType := tkKeyword; // It's just 'Option' keyword
           Result.Lexeme := 'Option';
-          Advance; // Consume 'Option'
+          // No Advance here, as the token is already formed from the rollback point
           Exit;
         end;
       end
@@ -320,9 +335,9 @@ begin
         FCurrentLineIndex := SavedLineIndex;
         FCurrentLine := SavedLineContent;
         // Re-process "Option" as a regular keyword/identifier
-        Result.TokenType := tkOption;
+        Result.TokenType := tkKeyword; // It's just 'Option' keyword
         Result.Lexeme := 'Option';
-        Advance; // Consume 'Option'
+        // No Advance here, as the token is already formed from the rollback point
         Exit;
       end;
     end;
@@ -343,23 +358,33 @@ begin
     '=': CurrentTokType := tkOperator; // Assignment and equality
     '<':
       begin
-        if PeekChar = '=' then
+        Advance; // Consume '<'
+        if CurrentChar = '=' then
         begin
           CurrentTokType := tkOperator; LexemeBuilder := '<='; Advance;
         end
-        else if PeekChar = '>' then
+        else if CurrentChar = '>' then
         begin
           CurrentTokType := tkOperator; LexemeBuilder := '<>'; Advance;
         end
-        else CurrentTokType := tkOperator;
+        else // It was just '<'
+        begin
+          CurrentTokType := tkOperator;
+          LexemeBuilder := '<';
+        end;
       end;
     '>':
       begin
-        if PeekChar = '=' then
+        Advance; // Consume '>'
+        if CurrentChar = '=' then
         begin
           CurrentTokType := tkOperator; LexemeBuilder := '>='; Advance;
         end
-        else CurrentTokType := tkOperator;
+        else // It was just '>'
+        begin
+          CurrentTokType := tkOperator;
+          LexemeBuilder := '>';
+        end;
       end;
     '&': CurrentTokType := tkOperator; // String concatenation
     '(': CurrentTokType := tkParenthesisOpen;
@@ -372,7 +397,11 @@ begin
         [CurrentChar, Result.Line + 1, Result.Column + 1]);
   end;
 
-  Advance; // Consume the character(s) for the token
+  // If a multi-character operator was handled (e.g., <=, >=, <>), Advance would have already been called.
+  // For single-character operators, we need to advance here.
+  if Length(LexemeBuilder) = 1 then
+    Advance;
+
   Result.TokenType := CurrentTokType;
   Result.Lexeme := LexemeBuilder;
 end;

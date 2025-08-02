@@ -22,7 +22,7 @@ ifeq ($(UNAME_S),Linux)
   COMMON_LDFLAGS := # No specific common linker flags for Linux by default
 else ifeq ($(UNAME_S),Darwin)
   PLATFORM := darwin
-  COMMON_LDFLAGS := -WM-macosx_version_min=10.15 # Common linker flags for macOS
+  COMMON_LDFLAGS := -WM-macosx_version_min=11.0 # Common linker flags for macOS
 else
   $(error Unsupported OS: $(UNAME_S). Please add specific rules for it.)
 endif

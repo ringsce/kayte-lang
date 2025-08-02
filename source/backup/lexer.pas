@@ -172,13 +172,10 @@ var
   StartCol: Integer;
   LexemeBuilder: String;
   CurrentTokType: TTokenType;
-
   // Store current position to rollback if it's not "Option Explicit On/Off"
-  SavedCharIndex : FCurrentCharIndex;
-  SavedLineIndex : FCurrentLineIndex;
-  SavedLineContent : FCurrentLine;
-
-
+  SavedCharIndex : Integer;   // Corrected declaration
+  SavedLineIndex : Integer;   // Corrected declaration
+  SavedLineContent : String;  // Corrected declaration
 begin
   Result.Line := FCurrentLineIndex; // Use .Line and .Column as per TokenDefs
   Result.Column := FCurrentCharIndex;
@@ -270,6 +267,11 @@ begin
     // --- Special handling for "Option Explicit On/Off" sequence ---
     if (CurrentTokType = tkOption) then
     begin
+      // Store current position to rollback if it's not "Option Explicit On/Off"
+      SavedCharIndex := FCurrentCharIndex;    // Corrected assignment
+      SavedLineIndex := FCurrentLineIndex;    // Corrected assignment
+      SavedLineContent := FCurrentLine;       // Corrected assignment
+
       SkipWhitespace; // Skip space after "Option"
       LexemeBuilder := '';
       while IsIdentifierChar(CurrentChar) do
@@ -376,3 +378,4 @@ begin
 end;
 
 end.
+
