@@ -8,8 +8,8 @@
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="96"/>
-        <CursorPos X="5" Y="124"/>
+        <TopLine Value="89"/>
+        <CursorPos X="5" Y="102"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit>
@@ -203,7 +203,7 @@
         <UsageCount Value="100"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="28">
+    <JumpHistory HistoryIndex="27">
       <Position>
         <Filename Value="../source/lexer.pas"/>
         <Caret Line="381" TopLine="348"/>
@@ -315,10 +315,6 @@
       <Position>
         <Filename Value="vb6interpreter.lpr"/>
         <Caret Line="103" Column="5" TopLine="86"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="102" Column="5" TopLine="89"/>
       </Position>
     </JumpHistory>
     <RunParams>

@@ -11,15 +11,13 @@ const
 {$IFDEF DARWIN} // Covers both Intel and ARM macOS
   {$IFDEF CPUARM64} // Specific to Apple Silicon (ARM64)
     QuickJSLib = 'libquickjs.a'; // Or 'libquickjs.dylib' if you build it dynamically
-  {$ELSE} // Intel macOS
+  {$ELSE} // Intel macOS - keeping this for completeness within DARWIN, but the user requested ARM64 focus
     QuickJSLib = 'libquickjs.a'; // Or 'libquickjs.dylib'
   {$ENDIF}
-{$ELSEIF LINUX} // Use ELSEIF directly for platform defines like LINUX, WINDOWS
-  QuickJSLib = 'libquickjs.so'; // Linux dynamic library
-{$ELSEIF WINDOWS}
-  QuickJSLib = 'quickjs.dll'; // Windows dynamic library
-{$ELSE} // Default fallback for other Unix-like OS
-  QuickJSLib = 'libquickjs.so';
+{$ELSE} // This block now acts as a catch-all if not DARWIN, but the intent is ARM64 specific.
+        // For a strictly ARM64-only unit, you might remove the outer ELSE and just define QuickJSLib directly.
+        // However, keeping the IFDEF DARWIN structure is safer for compilation if CPUARM64 isn't defined.
+  QuickJSLib = 'libquickjs.a'; // Fallback for non-DARWIN or non-ARM64, but effectively unused if strictly ARM64 target.
 {$ENDIF}
 
   // This constant needs to be in the 'const' block, not 'type'
@@ -217,7 +215,7 @@ begin
   // THIS IS NOT ROBUST FOR PRODUCTION! Use JS_SetOpaque for proper linking in QuickJS.
   // It's better to create a custom JS class or use JS_SetOpaque for robust linking.
   // But for quick example:
-  JS_SetPropertyStr(ctx, jsObj, PAnsiChar(AnsiString(PascalObjKey)), JS_NewFloat64(NativeUInt(PascalObj) as Double)); // FIX: Corrected call
+  JS_SetPropertyStr(ctx, jsObj, PAnsiChar(AnsiString(PascalObjKey)), JS_NewFloat64(Double(NativeUInt(PascalObj)))); // FIX: Corrected type cast
 end;
 
 function GetNativePascalObject(ctx: PJSContext; jsObj: JSValue): TObject;

@@ -121,6 +121,8 @@ begin
     Vars.Free;
     Subs.Free;
     Stack.Free;
+    MyParser.Free; // Free the parser (which doesn't own lexer)
+    MyLexer.Free;  // Free the lexer
     RuntimeForms.Free; // Free runtime forms
   end;
 

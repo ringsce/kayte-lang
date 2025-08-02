@@ -11,15 +11,13 @@ const
 {$IFDEF DARWIN} // Covers both Intel and ARM macOS
   {$IFDEF CPUARM64} // Specific to Apple Silicon (ARM64)
     QuickJSLib = 'libquickjs.a'; // Or 'libquickjs.dylib' if you build it dynamically
-  {$ELSE} // Intel macOS
+  {$ELSE} // Intel macOS - keeping this for completeness within DARWIN, but the user requested ARM64 focus
     QuickJSLib = 'libquickjs.a'; // Or 'libquickjs.dylib'
   {$ENDIF}
-  {$ELSEIF DEF LINUX} // Uncommented for other platforms
-  QuickJSLib = 'libquickjs.so'; // Linux dynamic library
-{$ELSEIF DEF WINDOWS}
-  QuickJSLib = 'quickjs.dll'; // Windows dynamic library
-{$ELSE}
-  QuickJSLib = 'libquickjs.so'; // Default fallback for other Unix-like OS
+{$ELSE} // This block now acts as a catch-all if not DARWIN, but the intent is ARM64 specific.
+        // For a strictly ARM64-only unit, you might remove the outer ELSE and just define QuickJSLib directly.
+        // However, keeping the IFDEF DARWIN structure is safer for compilation if CPUARM64 isn't defined.
+  QuickJSLib = 'libquickjs.a'; // Fallback for non-DARWIN or non-ARM64, but effectively unused if strictly ARM64 target.
 {$ENDIF}
 
   // This constant needs to be in the 'const' block, not 'type'
@@ -241,3 +239,4 @@ finalization
   // Optional: Free the runtime when the unit unloads
   // DoneJSRuntime; // You might want to control this manually in your main program
 end.
+
