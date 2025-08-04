@@ -110,7 +110,7 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="12"/>
         <TopLine Value="2"/>
-        <CursorPos X="3" Y="28"/>
+        <CursorPos X="18" Y="25"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -330,6 +330,10 @@
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="../source/lexer.pas"/>
+        <Caret Line="192" Column="31" TopLine="160"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/lexer.pas"/>
       </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
@@ -442,10 +446,6 @@
       <Position>
         <Filename Value="kayte.lpr"/>
         <Caret Line="652" Column="29" TopLine="627"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="25" Column="18" TopLine="2"/>
       </Position>
     </JumpHistory>
     <RunParams>

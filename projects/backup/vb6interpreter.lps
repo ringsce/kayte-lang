@@ -8,7 +8,7 @@
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="25"/>
+        <CursorPos X="3" Y="7"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit>
@@ -211,7 +211,7 @@
         <UnitName Value="InterpreterCore"/>
         <EditorIndex Value="1"/>
         <CursorPos X="7" Y="154"/>
-        <UsageCount Value="23"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>

@@ -170,9 +170,6 @@
         <DebugInfoType Value="dsDwarf3"/>
       </Debugging>
     </Linking>
-    <Other>
-      <CustomOptions Value="./custom.sh"/>
-    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions>

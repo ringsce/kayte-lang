@@ -47,7 +47,6 @@ type
 
     // Loads a TByteCodeProgram object from a binary file.
     function LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
-  end;
 
     constructor Create(const AppName, AppVersion: string);
     procedure ParseArgs;
