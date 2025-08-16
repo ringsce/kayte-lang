@@ -8,7 +8,7 @@
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="3" Y="7"/>
+        <CursorPos X="24"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit>
@@ -25,7 +25,10 @@
         <Filename Value="../source/interpretercore.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="InterpreterCore"/>
-        <UsageCount Value="200"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="7" Y="154"/>
+        <UsageCount Value="23"/>
+        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/dhtml.pas"/>
@@ -204,15 +207,6 @@
         <TopLine Value="188"/>
         <CursorPos X="5" Y="216"/>
         <UsageCount Value="100"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../source/interpretercore.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="InterpreterCore"/>
-        <EditorIndex Value="1"/>
-        <CursorPos X="7" Y="154"/>
-        <UsageCount Value="21"/>
-        <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">

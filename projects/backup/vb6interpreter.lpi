@@ -148,11 +148,6 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="UKfrmParser"/>
       </Unit>
-      <Unit>
-        <Filename Value="../source/interpretercore.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="InterpreterCore"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -170,6 +165,9 @@
         <DebugInfoType Value="dsDwarf3"/>
       </Debugging>
     </Linking>
+    <Other>
+      <CustomOptions Value="-order_file /Users/pedro/Projects/kayte-lang/projects/symbol_order.fpc"/>
+    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions>

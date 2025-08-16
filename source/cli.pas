@@ -4,17 +4,46 @@ unit CLI;
 
 interface
 
- uses
-  SysUtils, Classes,
-  BytecodeTypes in '../source/BytecodeTypes.pas',        // For TByteCodeProgram
-  Bytecode in '../source/ByteCode.pas', // Assuming TBytecodeGenerator is here
-  KayteParser in '../source/kayteparser.pas', // Assuming TKayteParser is here
-  Lexer,            // For TLexer
-  Parser,           // For TParser
-  VirtualMachine in '../source/virtualmachine.pas'; // Assuming TVirtualMachine is here
+uses
+  SysUtils, Classes, Generics.Collections,
+  BytecodeTypes in '../source/BytecodeTypes.pas',
+  Bytecode in '../source/ByteCode.pas',
+  KayteParser in '../source/kayteparser.pas',
+  Lexer,
+  Parser,
+  VirtualMachine in '../source/virtualmachine.pas';
 
 type
-  TBytecodeGenerator = class
+
+  TVirtualMachine = class
+  public
+    //constructor Create;override; // <-- no parameters
+    procedure Run;
+  end;
+
+  // Define TByteCodeProgram before it is used
+TByteCodeProgram = class
+public
+  ProgramTitle: string;
+  Instructions: array of TBCInstruction;
+  StringLiterals: TStringList;
+  IntegerLiterals: array of Int64;
+
+  // Maps are now TStringList with key-value pairs stored in the object list
+  VariableMap: TStringList;
+  SubroutineMap: TStringList;
+  FormMap: TStringList;
+public
+  constructor Create;
+  destructor Destroy; override;
+end;
+
+  TBytecodeGenerator = class(TObject)
+  public
+        procedure SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: String);
+        function LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
+
+  end;
 
   TCLIOptions = record
     ShowHelp: Boolean;
@@ -36,24 +65,39 @@ type
     procedure CompileKayteFile(const InputFile, OutputFile: string);
     procedure RunBytecodeFile(const BytecodeFile: string);
   public
-        constructor Create;
-    destructor Destroy; override;
-
-    // Compiles a Kayte source file into a TByteCodeProgram object in memory.
-    function CompileSource(const SourceFilePath: String): TByteCodeProgram;
-
-    // Saves a TByteCodeProgram object to a binary file.
-    procedure SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: String);
-
-    // Loads a TByteCodeProgram object from a binary file.
-    function LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
-
     constructor Create(const AppName, AppVersion: string);
+    destructor Destroy; override;
+    function CompileSource(const SourceFilePath: String): TByteCodeProgram;
+    procedure SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: String);
+    function LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
     procedure ParseArgs;
     procedure Execute;
   end;
 
 implementation
+
+
+{ TByteCodeProgram }
+
+constructor TByteCodeProgram.Create;
+begin
+  inherited Create;
+  // Initialize TStringList members
+  StringLiterals := TStringList.Create;
+  VariableMap := TStringList.Create;
+  SubroutineMap := TStringList.Create;
+  FormMap := TStringList.Create;
+end;
+
+destructor TByteCodeProgram.Destroy;
+begin
+  // Free TStringList members
+  StringLiterals.Free;
+  VariableMap.Free;
+  SubroutineMap.Free;
+  FormMap.Free;
+  inherited Destroy;
+end;
 
 { TCLIHandler }
 
@@ -99,6 +143,7 @@ var
   I: Integer;
   Key: AnsiString;
   Value: LongInt;
+  LObject: Pointer; // Correctly use Pointer for non-object data
 begin
   FileStream := TFileStream.Create(OutputFilePath, fmCreate);
   try
@@ -134,50 +179,60 @@ begin
     if Len > 0 then
       FileStream.Write(AProgram.IntegerLiterals[0], Len * SizeOf(Int64)); // Write all integers at once
 
-    // 5. Write VariableMap (TFPGMap<AnsiString, LongInt>)
+    // 5. Write VariableMap (TStringList with Objects)
     Len := AProgram.VariableMap.Count;
-    FileStream.Write(Len, SizeOf(Len)); // Write number of entries in the map
-    for Key in AProgram.VariableMap.Keys do // Iterate through keys
+    FileStream.Write(Len, SizeOf(Len)); // Write number of entries in the list
+    for I := 0 to Len - 1 do
     begin
-      Value := AProgram.VariableMap.Items[Key]; // Get the value for the current key
+      Key := AProgram.VariableMap.Names[I];
+      LObject := AProgram.VariableMap.Objects[I];
+      Value := LongInt(LObject); // Correct type cast from Pointer to LongInt
 
       // Write key (string)
-      I := Length(Key); // Reuse I for key string length
-      FileStream.Write(I, SizeOf(I));
-      if I > 0 then
-        FileStream.Write(Key[1], I);
+      Len := Length(Key);
+      FileStream.Write(Len, SizeOf(Len));
+      if Len > 0 then
+        FileStream.Write(Key[1], Len);
 
       // Write value (LongInt)
       FileStream.Write(Value, SizeOf(Value));
     end;
 
-    // 6. Write SubroutineMap (TFPGMap<AnsiString, LongInt>)
+    // 6. Write SubroutineMap (TStringList with Objects)
     Len := AProgram.SubroutineMap.Count;
     FileStream.Write(Len, SizeOf(Len)); // Write number of entries
-    for Key in AProgram.SubroutineMap.Keys do
+    for I := 0 to Len - 1 do
     begin
-      Value := AProgram.SubroutineMap.Items[Key];
+      Key := AProgram.SubroutineMap.Names[I];
+      LObject := AProgram.SubroutineMap.Objects[I];
+      Value := LongInt(LObject); // Correct type cast from Pointer to LongInt
 
-      I := Length(Key);
-      FileStream.Write(I, SizeOf(I));
-      if I > 0 then
-        FileStream.Write(Key[1], I);
+      // Write key (string)
+      Len := Length(Key);
+      FileStream.Write(Len, SizeOf(Len));
+      if Len > 0 then
+        FileStream.Write(Key[1], Len);
 
+      // Write value (LongInt)
       FileStream.Write(Value, SizeOf(Value));
     end;
 
-    // 7. Write FormMap (TFPGMap<AnsiString, LongInt>)
+    // 7. Write FormMap (TStringList with Objects)
     Len := AProgram.FormMap.Count;
     FileStream.Write(Len, SizeOf(Len)); // Write number of entries
-    for Key in AProgram.FormMap.Keys do
+    for I := 0 to Len - 1 do
     begin
-      Value := AProgram.FormMap.Items[Key];
+      Key := AProgram.FormMap.Names[I];
+      LObject := AProgram.FormMap.Objects[I];
+      Value := LongInt(LObject); // Correct type cast from Pointer to LongInt
 
-      I := Length(Key);
-      FileStream.Write(I, SizeOf(I));
-      if I > 0 then
-        FileStream.Write(Key[1], I);
+      // Write key (string)
+      Len := Length(Key);
+      FileStream.Write(Len, SizeOf(Len));
+      if Len > 0 then
+        FileStream.Write(Key[1], Len);
 
+      // Write value (LongInt)
       FileStream.Write(Value, SizeOf(Value));
     end;
 
@@ -195,7 +250,6 @@ var
   Key: AnsiString;
   Value: LongInt;
   ProgramTitleBuffer: String;
-  InstructionCount: LongInt;
 begin
   Result := TByteCodeProgram.Create;
 
@@ -233,45 +287,49 @@ begin
     if Len > 0 then
       FileStream.Read(Result.IntegerLiterals[0], Len * SizeOf(Int64)); // Read all integers at once
 
-    // 5. Read VariableMap (TFPGMap<AnsiString, LongInt>)
-    FileStream.Read(Len, SizeOf(Len)); // Read number of entries in the map
+    // 5. Read VariableMap (TStringList with Objects)
+    FileStream.Read(Len, SizeOf(Len)); // Read number of entries in the list
     for I := 0 to Len - 1 do
     begin
       // Read key (string)
-      FileStream.Read(InstructionCount, SizeOf(InstructionCount)); // Reuse InstructionCount for key string length
-      SetLength(Key, InstructionCount);
-      if InstructionCount > 0 then
-        FileStream.Read(Key[1], InstructionCount);
+      FileStream.Read(Value, SizeOf(Value)); // Read key string length
+      SetLength(Key, Value);
+      if Value > 0 then
+        FileStream.Read(Key[1], Value);
 
       // Read value (LongInt)
       FileStream.Read(Value, SizeOf(Value));
-      Result.VariableMap.Add(Key, Value);
+      Result.VariableMap.AddObject(Key, TObject(Pointer(Value))); // Corrected cast: LongInt -> Pointer -> TObject
     end;
 
-    // 6. Read SubroutineMap (TFPGMap<AnsiString, LongInt>)
+    // 6. Read SubroutineMap (TStringList with Objects)
     FileStream.Read(Len, SizeOf(Len)); // Read number of entries
     for I := 0 to Len - 1 do
     begin
-      FileStream.Read(InstructionCount, SizeOf(InstructionCount));
-      SetLength(Key, InstructionCount);
-      if InstructionCount > 0 then
-        FileStream.Read(Key[1], InstructionCount);
-
+      // Read key (string)
       FileStream.Read(Value, SizeOf(Value));
-      Result.SubroutineMap.Add(Key, Value);
+      SetLength(Key, Value);
+      if Value > 0 then
+        FileStream.Read(Key[1], Value);
+
+      // Read value (LongInt)
+      FileStream.Read(Value, SizeOf(Value));
+      Result.SubroutineMap.AddObject(Key, TObject(Pointer(Value))); // Corrected cast
     end;
 
-    // 7. Read FormMap (TFPGMap<AnsiString, LongInt>)
+    // 7. Read FormMap (TStringList with Objects)
     FileStream.Read(Len, SizeOf(Len)); // Read number of entries
     for I := 0 to Len - 1 do
     begin
-      FileStream.Read(InstructionCount, SizeOf(InstructionCount));
-      SetLength(Key, InstructionCount);
-      if InstructionCount > 0 then
-        FileStream.Read(Key[1], InstructionCount);
-
+      // Read key (string)
       FileStream.Read(Value, SizeOf(Value));
-      Result.FormMap.Add(Key, Value);
+      SetLength(Key, Value);
+      if Value > 0 then
+        FileStream.Read(Key[1], Value);
+
+      // Read value (LongInt)
+      FileStream.Read(Value, SizeOf(Value));
+      Result.FormMap.AddObject(Key, TObject(Pointer(Value))); // Corrected cast
     end;
 
   finally
@@ -279,10 +337,9 @@ begin
   end;
 end;
 
+
 procedure TCLIHandler.RunBytecodeFile(const BytecodeFile: string);
 var
-  BytecodeGen: TBytecodeGenerator; // Used for loading the bytecode program
-  KayteProgram: TByteCodeProgram;
   VM: TVirtualMachine;
 begin
   // Check if the bytecode file is provided and exists
@@ -297,47 +354,39 @@ begin
     Exit;
   end;
 
-  BytecodeGen := TBytecodeGenerator.Create;
-  try
-    if FOptions.Verbose then
-      Writeln('Loading bytecode file: ', BytecodeFile);
+  if FOptions.Verbose then
+    Writeln('Loading and executing bytecode from file: ', BytecodeFile);
 
-    // Step 1: Load the TByteCodeProgram object from the bytecode file
+  // Step 1: Create the VM and pass the file path to its constructor.
+  // The VM will now handle loading the bytecode program internally.
+  try
+    VM := TVirtualMachine.Create(BytecodeFile); // Pass the file path
+  except
+    on E: Exception do
+    begin
+      Writeln('Error: Failed to create VM and load bytecode: ', E.Message);
+      Exit;
+    end;
+  end;
+
+  // Step 2: Run the virtual machine.
+  try
+    // Run the virtual machine with the loaded bytecode
     try
-      KayteProgram := BytecodeGen.LoadProgramFromFile(BytecodeFile);
+      VM.Run;
     except
       on E: Exception do
       begin
-        Writeln('Error: Failed to load bytecode: ', E.Message);
+        Writeln('Error: Execution failed: ', E.Message);
         Exit;
       end;
     end;
 
     if FOptions.Verbose then
-      Writeln('Executing bytecode...');
-
-    // Step 2: Create the VM with the loaded TByteCodeProgram
-    VM := TVirtualMachine.Create(KayteProgram); // Pass the program object
-    try
-      // Run the virtual machine with the loaded bytecode
-      try
-        VM.Run;
-      except
-        on E: Exception do
-        begin
-          Writeln('Error: Execution failed: ', E.Message);
-          Exit;
-        end;
-      end;
-
-      if FOptions.Verbose then
-        Writeln('Execution completed successfully.');
-    finally
-      // VM takes ownership of KayteProgram, so it will free it.
-      VM.Free;
-    end;
+      Writeln('Execution completed successfully.');
   finally
-    BytecodeGen.Free;
+    // Free the VM. The VM will handle freeing the TByteCodeProgram object.
+    VM.Free;
   end;
 end;
 

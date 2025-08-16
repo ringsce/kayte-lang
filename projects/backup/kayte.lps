@@ -8,7 +8,7 @@
         <Filename Value="kayte.lpr"/>
         <IsPartOfProject Value="True"/>
         <TopLine Value="627"/>
-        <CursorPos X="29" Y="652"/>
+        <CursorPos Y="652"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
       </Unit>
@@ -109,8 +109,8 @@
         <UnitName Value="CLI"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="12"/>
-        <TopLine Value="2"/>
-        <CursorPos X="18" Y="25"/>
+        <TopLine Value="3"/>
+        <CursorPos X="7" Y="20"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -214,7 +214,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="6"/>
         <TopLine Value="27"/>
-        <CursorPos X="35" Y="43"/>
+        <CursorPos Y="43"/>
         <UsageCount Value="251"/>
         <Loaded Value="True"/>
       </Unit>
@@ -232,7 +232,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="3"/>
         <TopLine Value="38"/>
-        <CursorPos X="38" Y="56"/>
+        <CursorPos X="24" Y="56"/>
         <UsageCount Value="251"/>
         <Loaded Value="True"/>
       </Unit>
@@ -297,8 +297,8 @@
         <UnitName Value="Parser"/>
         <EditorIndex Value="2"/>
         <TopLine Value="72"/>
-        <CursorPos X="26" Y="89"/>
-        <UsageCount Value="40"/>
+        <CursorPos X="5" Y="89"/>
+        <UsageCount Value="41"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -306,146 +306,153 @@
         <UnitName Value="TokenDefs"/>
         <EditorIndex Value="8"/>
         <TopLine Value="41"/>
-        <CursorPos X="10" Y="58"/>
-        <UsageCount Value="40"/>
+        <CursorPos X="7" Y="58"/>
+        <UsageCount Value="41"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/bytecodetypes.pas"/>
         <UnitName Value="BytecodeTypes"/>
         <EditorIndex Value="14"/>
-        <TopLine Value="156"/>
-        <CursorPos Y="189"/>
-        <UsageCount Value="40"/>
+        <TopLine Value="159"/>
+        <CursorPos X="14" Y="192"/>
+        <UsageCount Value="41"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/lexer.pas"/>
         <UnitName Value="Lexer"/>
         <EditorIndex Value="13"/>
-        <UsageCount Value="39"/>
+        <UsageCount Value="40"/>
         <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/Applications/lazarus/fpc/3.2.2/sources/rtl/inc/objpas.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="306"/>
+        <CursorPos X="27" Y="323"/>
+        <UsageCount Value="10"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="../source/lexer.pas"/>
-        <Caret Line="192" Column="31" TopLine="160"/>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="229" TopLine="196"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="176" Column="16" TopLine="160"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="264" Column="28" TopLine="249"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="248" Column="24" TopLine="231"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="388" TopLine="355"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="176" Column="16" TopLine="160"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="229" TopLine="198"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="230" TopLine="197"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="326" TopLine="293"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="37" Column="5" TopLine="21"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="329" TopLine="296"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="79" Column="5" TopLine="61"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="23" Column="3"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="79" Column="29" TopLine="62"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="83" Column="3" TopLine="66"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="18" Column="3" TopLine="3"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="73" Column="29" TopLine="56"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="75" Column="13" TopLine="58"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="38" Column="9" TopLine="26"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="82" TopLine="55"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="83" TopLine="59"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="95" TopLine="63"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="376" Column="27" TopLine="359"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="400" TopLine="367"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="376" Column="47" TopLine="359"/>
       </Position>
       <Position>
         <Filename Value="../source/lexer.pas"/>
       </Position>
       <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="110" Column="21" TopLine="84"/>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="22" Column="7"/>
       </Position>
       <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="497" TopLine="464"/>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="382" Column="47" TopLine="365"/>
       </Position>
       <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="96" Column="24" TopLine="75"/>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="350" Column="9" TopLine="350"/>
       </Position>
       <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="490" Column="5" TopLine="457"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="87" Column="26" TopLine="70"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="580" TopLine="547"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="884" Column="7" TopLine="851"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="88" Column="26" TopLine="71"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="331" TopLine="331"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="190" TopLine="157"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/bytecodetypes.pas"/>
-        <Caret Line="189" TopLine="156"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="91" Column="6" TopLine="72"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="236" TopLine="216"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="90" TopLine="71"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="106" TopLine="73"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="89" Column="26" TopLine="72"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="275" TopLine="252"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/tokendefs.pas"/>
-        <Caret Line="58" Column="10" TopLine="41"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="362" Column="110" TopLine="346"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="333" TopLine="327"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="363" Column="5" TopLine="333"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="89" Column="26" TopLine="72"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="275" TopLine="252"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="107" TopLine="74"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="89" Column="26" TopLine="72"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="107" TopLine="74"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="89" Column="26" TopLine="72"/>
-      </Position>
-      <Position>
-        <Filename Value="kayte.lpr"/>
-        <Caret Line="652" Column="29" TopLine="627"/>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="20" Column="33" TopLine="4"/>
       </Position>
     </JumpHistory>
     <RunParams>

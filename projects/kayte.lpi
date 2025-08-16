@@ -181,6 +181,9 @@
       <OtherUnitFiles Value="../source"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
+    <Other>
+      <CustomOptions Value="-WM10.15"/>
+    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions>
