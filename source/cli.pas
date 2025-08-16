@@ -76,7 +76,6 @@ end;
 
 implementation
 
-
 { TByteCodeProgram }
 
 constructor TByteCodeProgram.Create;
@@ -98,6 +97,8 @@ begin
   FormMap.Free;
   inherited Destroy;
 end;
+
+
 
 { TCLIHandler }
 
@@ -136,110 +137,6 @@ begin
   Writeln(FAppName, ' version ', FAppVersion);
 end;
 
-procedure TBytecodeGenerator.SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: String);
-var
-  FileStream: TFileStream;
-  Len: LongInt;
-  I: Integer;
-  Key: AnsiString;
-  Value: LongInt;
-  LObject: Pointer; // Correctly use Pointer for non-object data
-begin
-  FileStream := TFileStream.Create(OutputFilePath, fmCreate);
-  try
-    // --- Full Serialization of TByteCodeProgram ---
-
-    // 1. Write ProgramTitle
-    Len := Length(AProgram.ProgramTitle);
-    FileStream.Write(Len, SizeOf(Len)); // Write length of string
-    if Len > 0 then
-      FileStream.Write(AProgram.ProgramTitle[1], Len); // Write string data
-
-    // 2. Write Instructions
-    Len := Length(AProgram.Instructions);
-    FileStream.Write(Len, SizeOf(Len)); // Write number of instructions
-    if Len > 0 then
-      FileStream.Write(AProgram.Instructions[0], Len * SizeOf(TBCInstruction)); // Write all instructions at once
-
-    // 3. Write StringLiterals (TStringList)
-    Len := AProgram.StringLiterals.Count;
-    FileStream.Write(Len, SizeOf(Len)); // Write number of string literals
-    for I := 0 to Len - 1 do
-    begin
-      Key := AProgram.StringLiterals[I]; // Use Key variable for string to write
-      Value := Length(Key); // Reuse Value for string length
-      FileStream.Write(Value, SizeOf(Value)); // Write length of current string
-      if Value > 0 then
-        FileStream.Write(Key[1], Value); // Write string data
-    end;
-
-    // 4. Write IntegerLiterals (dynamic array of Int64)
-    Len := Length(AProgram.IntegerLiterals);
-    FileStream.Write(Len, SizeOf(Len)); // Write number of integer literals
-    if Len > 0 then
-      FileStream.Write(AProgram.IntegerLiterals[0], Len * SizeOf(Int64)); // Write all integers at once
-
-    // 5. Write VariableMap (TStringList with Objects)
-    Len := AProgram.VariableMap.Count;
-    FileStream.Write(Len, SizeOf(Len)); // Write number of entries in the list
-    for I := 0 to Len - 1 do
-    begin
-      Key := AProgram.VariableMap.Names[I];
-      LObject := AProgram.VariableMap.Objects[I];
-      Value := LongInt(LObject); // Correct type cast from Pointer to LongInt
-
-      // Write key (string)
-      Len := Length(Key);
-      FileStream.Write(Len, SizeOf(Len));
-      if Len > 0 then
-        FileStream.Write(Key[1], Len);
-
-      // Write value (LongInt)
-      FileStream.Write(Value, SizeOf(Value));
-    end;
-
-    // 6. Write SubroutineMap (TStringList with Objects)
-    Len := AProgram.SubroutineMap.Count;
-    FileStream.Write(Len, SizeOf(Len)); // Write number of entries
-    for I := 0 to Len - 1 do
-    begin
-      Key := AProgram.SubroutineMap.Names[I];
-      LObject := AProgram.SubroutineMap.Objects[I];
-      Value := LongInt(LObject); // Correct type cast from Pointer to LongInt
-
-      // Write key (string)
-      Len := Length(Key);
-      FileStream.Write(Len, SizeOf(Len));
-      if Len > 0 then
-        FileStream.Write(Key[1], Len);
-
-      // Write value (LongInt)
-      FileStream.Write(Value, SizeOf(Value));
-    end;
-
-    // 7. Write FormMap (TStringList with Objects)
-    Len := AProgram.FormMap.Count;
-    FileStream.Write(Len, SizeOf(Len)); // Write number of entries
-    for I := 0 to Len - 1 do
-    begin
-      Key := AProgram.FormMap.Names[I];
-      LObject := AProgram.FormMap.Objects[I];
-      Value := LongInt(LObject); // Correct type cast from Pointer to LongInt
-
-      // Write key (string)
-      Len := Length(Key);
-      FileStream.Write(Len, SizeOf(Len));
-      if Len > 0 then
-        FileStream.Write(Key[1], Len);
-
-      // Write value (LongInt)
-      FileStream.Write(Value, SizeOf(Value));
-    end;
-
-  finally
-    FileStream.Free;
-  end;
-end;
 
 // --- LoadProgramFromFile (needs to be updated to match the new save format) ---
 function TBytecodeGenerator.LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
@@ -248,7 +145,7 @@ var
   Len: LongInt;
   I: Integer;
   Key: AnsiString;
-  Value: LongInt;
+  Value: Pointer; // Changed type to Pointer to match the object field
   ProgramTitleBuffer: String;
 begin
   Result := TByteCodeProgram.Create;
@@ -265,73 +162,160 @@ begin
     Result.ProgramTitle := ProgramTitleBuffer;
 
     // 2. Read Instructions
-    FileStream.Read(Len, SizeOf(Len)); // Read number of instructions
+    FileStream.Read(Len, SizeOf(Len));
     SetLength(Result.Instructions, Len);
     if Len > 0 then
-      FileStream.Read(Result.Instructions[0], Len * SizeOf(TBCInstruction)); // Read all instructions at once
+      FileStream.Read(Result.Instructions[0], Len * SizeOf(TBCInstruction));
 
-    // 3. Read StringLiterals (TStringList)
-    FileStream.Read(Len, SizeOf(Len)); // Read number of string literals
+    // 3. Read StringLiterals
+    FileStream.Read(Len, SizeOf(Len));
     for I := 0 to Len - 1 do
     begin
-      FileStream.Read(Value, SizeOf(Value)); // Reuse Value for string length
-      SetLength(Key, Value); // Reuse Key for string buffer
-      if Value > 0 then
-        FileStream.Read(Key[1], Value);
+      FileStream.Read(Len, SizeOf(Len)); // Read string length directly into Len
+      SetLength(Key, Len);
+      if Len > 0 then
+        FileStream.Read(Key[1], Len);
       Result.StringLiterals.Add(Key);
     end;
 
-    // 4. Read IntegerLiterals (dynamic array of Int64)
-    FileStream.Read(Len, SizeOf(Len)); // Read number of integer literals
+    // 4. Read IntegerLiterals
+    FileStream.Read(Len, SizeOf(Len));
     SetLength(Result.IntegerLiterals, Len);
     if Len > 0 then
-      FileStream.Read(Result.IntegerLiterals[0], Len * SizeOf(Int64)); // Read all integers at once
+      FileStream.Read(Result.IntegerLiterals[0], Len * SizeOf(Int64));
 
-    // 5. Read VariableMap (TStringList with Objects)
-    FileStream.Read(Len, SizeOf(Len)); // Read number of entries in the list
+    // 5. Read VariableMap
+    FileStream.Read(Len, SizeOf(Len));
     for I := 0 to Len - 1 do
     begin
-      // Read key (string)
-      FileStream.Read(Value, SizeOf(Value)); // Read key string length
-      SetLength(Key, Value);
-      if Value > 0 then
-        FileStream.Read(Key[1], Value);
+      FileStream.Read(Len, SizeOf(Len));
+      SetLength(Key, Len);
+      if Len > 0 then
+        FileStream.Read(Key[1], Len);
 
-      // Read value (LongInt)
-      FileStream.Read(Value, SizeOf(Value));
-      Result.VariableMap.AddObject(Key, TObject(Pointer(Value))); // Corrected cast: LongInt -> Pointer -> TObject
+      FileStream.Read(Value, SizeOf(Value)); // Read directly into a pointer
+      Result.VariableMap.AddObject(Key, TObject(Value)); // Cast Pointer to TObject
     end;
 
-    // 6. Read SubroutineMap (TStringList with Objects)
-    FileStream.Read(Len, SizeOf(Len)); // Read number of entries
+    // 6. Read SubroutineMap
+    FileStream.Read(Len, SizeOf(Len));
     for I := 0 to Len - 1 do
     begin
-      // Read key (string)
-      FileStream.Read(Value, SizeOf(Value));
-      SetLength(Key, Value);
-      if Value > 0 then
-        FileStream.Read(Key[1], Value);
+      FileStream.Read(Len, SizeOf(Len));
+      SetLength(Key, Len);
+      if Len > 0 then
+        FileStream.Read(Key[1], Len);
 
-      // Read value (LongInt)
       FileStream.Read(Value, SizeOf(Value));
-      Result.SubroutineMap.AddObject(Key, TObject(Pointer(Value))); // Corrected cast
+      Result.SubroutineMap.AddObject(Key, TObject(Value));
     end;
 
-    // 7. Read FormMap (TStringList with Objects)
-    FileStream.Read(Len, SizeOf(Len)); // Read number of entries
+    // 7. Read FormMap
+    FileStream.Read(Len, SizeOf(Len));
     for I := 0 to Len - 1 do
     begin
-      // Read key (string)
-      FileStream.Read(Value, SizeOf(Value));
-      SetLength(Key, Value);
-      if Value > 0 then
-        FileStream.Read(Key[1], Value);
+      FileStream.Read(Len, SizeOf(Len));
+      SetLength(Key, Len);
+      if Len > 0 then
+        FileStream.Read(Key[1], Len);
 
-      // Read value (LongInt)
       FileStream.Read(Value, SizeOf(Value));
-      Result.FormMap.AddObject(Key, TObject(Pointer(Value))); // Corrected cast
+      Result.FormMap.AddObject(Key, TObject(Value));
     end;
 
+  finally
+    FileStream.Free;
+  end;
+end;
+
+// Generator
+procedure TBytecodeGenerator.SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: String);
+var
+  FileStream: TFileStream;
+  Len: LongInt;
+  I: Integer;
+  Key: AnsiString;
+  Value: LongInt;
+  LObject: Pointer;
+begin
+  FileStream := TFileStream.Create(OutputFilePath, fmCreate);
+  try
+    // --- Full Serialization of TByteCodeProgram ---
+
+    // 1. Write ProgramTitle
+    Len := Length(AProgram.ProgramTitle);
+    FileStream.Write(Len, SizeOf(Len));
+    if Len > 0 then
+      FileStream.Write(AProgram.ProgramTitle[1], Len);
+
+    // 2. Write Instructions
+    Len := Length(AProgram.Instructions);
+    FileStream.Write(Len, SizeOf(Len));
+    if Len > 0 then
+      FileStream.Write(AProgram.Instructions[0], Len * SizeOf(TBCInstruction));
+
+    // 3. Write StringLiterals
+    Len := AProgram.StringLiterals.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to Len - 1 do
+    begin
+      Key := AProgram.StringLiterals[I];
+      Value := Length(Key);
+      FileStream.Write(Value, SizeOf(Value));
+      if Value > 0 then
+        FileStream.Write(Key[1], Value);
+    end;
+
+    // 4. Write IntegerLiterals
+    Len := Length(AProgram.IntegerLiterals);
+    FileStream.Write(Len, SizeOf(Len));
+    if Len > 0 then
+      FileStream.Write(AProgram.IntegerLiterals[0], Len * SizeOf(Int64));
+
+    // 5. Write VariableMap (TStringList with Objects)
+    Len := AProgram.VariableMap.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to Len - 1 do
+    begin
+      Key := AProgram.VariableMap.Names[I];
+      LObject := AProgram.VariableMap.Objects[I];
+      Value := LongInt(LObject);
+      Len := Length(Key);
+      FileStream.Write(Len, SizeOf(Len));
+      if Len > 0 then
+        FileStream.Write(Key[1], Len);
+      FileStream.Write(Value, SizeOf(Value));
+    end;
+
+    // 6. Write SubroutineMap
+    Len := AProgram.SubroutineMap.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to Len - 1 do
+    begin
+      Key := AProgram.SubroutineMap.Names[I];
+      LObject := AProgram.SubroutineMap.Objects[I];
+      Value := LongInt(LObject);
+      Len := Length(Key);
+      FileStream.Write(Len, SizeOf(Len));
+      if Len > 0 then
+        FileStream.Write(Key[1], Len);
+      FileStream.Write(Value, SizeOf(Value));
+    end;
+
+    // 7. Write FormMap
+    Len := AProgram.FormMap.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to Len - 1 do
+    begin
+      Key := AProgram.FormMap.Names[I];
+      LObject := AProgram.FormMap.Objects[I];
+      Value := LongInt(LObject);
+      Len := Length(Key);
+      FileStream.Write(Len, SizeOf(Len));
+      if Len > 0 then
+        FileStream.Write(Key[1], Len);
+      FileStream.Write(Value, SizeOf(Value));
+    end;
   finally
     FileStream.Free;
   end;

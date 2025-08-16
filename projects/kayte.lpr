@@ -33,7 +33,8 @@ uses
   kayte_compiler in '../kayte_compiler.pas',
   kayte_runtime in '../source/kayte_runtime.pas',
   kayte_loader in '../source/kayte_loader.pas',
-  kayte_vm in '../source/kayte_vm.pas'
+  kayte_vm in '../source/kayte_vm.pas',
+  jvm in '../jvm/jvm.pas'
   //kayte_syntax in '../source/KayteSyntax.pas'
   //bytecode_embed in '../source/bytecode_embed.pas'
   //kayte_parser in '../source/kayte_parser.pas',

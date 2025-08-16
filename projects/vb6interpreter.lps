@@ -8,7 +8,7 @@
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="24"/>
+        <CursorPos X="42" Y="10"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit>
@@ -34,8 +34,8 @@
         <Filename Value="../source/dhtml.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="11"/>
-        <TopLine Value="94"/>
-        <CursorPos X="83" Y="111"/>
+        <TopLine Value="89"/>
+        <CursorPos X="28" Y="106"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit>
@@ -212,10 +212,6 @@
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="vb6interpreter.lpr"/>
-        <Caret Line="102" Column="5" TopLine="89"/>
-      </Position>
-      <Position>
-        <Filename Value="vb6interpreter.lpr"/>
         <Caret Line="103" Column="5" TopLine="86"/>
       </Position>
       <Position>
@@ -329,6 +325,10 @@
       <Position>
         <Filename Value="vb6interpreter.lpr"/>
         <Caret Line="9" Column="5" TopLine="2"/>
+      </Position>
+      <Position>
+        <Filename Value="vb6interpreter.lpr"/>
+        <Caret Line="10" Column="49"/>
       </Position>
     </JumpHistory>
     <RunParams>

@@ -169,6 +169,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="KayteSyntax"/>
       </Unit>
+      <Unit>
+        <Filename Value="../jvm/jvm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="JVM"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -178,7 +183,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../source"/>
+      <OtherUnitFiles Value="../source;../jvm"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Other>

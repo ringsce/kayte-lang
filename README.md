@@ -1,29 +1,35 @@
-## Build and Test Status
+# Kayte Lang
 
 [![CircleCI](https://circleci.com/gh/ringsce/kayte-lang/tree/main.svg?style=svg)](https://circleci.com/gh/ringsce/kayte-lang/tree/main)  
 ![macOS Passing](https://img.shields.io/badge/macOS-Passing-brightgreen)  
 ![Linux Passing](https://img.shields.io/badge/Linux-Passing-brightgreen)  
 ![Windows Passing](https://img.shields.io/badge/Windows-Passing-brightgreen)
-```markdown
-Functions in Kayte Lang are defined using the `function` keyword.
+
+---
+
+**Kayte Lang** is a modern **experimental programming language** designed for building applications **quickly, efficiently, and cross-platform**.  
+
+It compiles into **bytecode** that runs on the **Kayte Virtual Machine (KVM)**, ensuring portability across macOS, Linux, and Windows.
+
+---
+
+## 🚀 Language Overview
+
+### 1. Functions
 
 ```kayte
 function greet() {
     print("Hello, World from Kayte Lang!");
 }
-```
+````
 
-### 2. Variable Declaration
-
-Variables are declared using the `var` keyword.
+### 2. Variables
 
 ```kayte
 var name = "Kayte Lang";
 ```
 
-### 3. Conditional Logic
-
-Conditional statements are handled using `if` and `else`.
+### 3. Conditionals
 
 ```kayte
 if (name == "Kayte Lang") {
@@ -35,8 +41,6 @@ if (name == "Kayte Lang") {
 
 ### 4. Loops
 
-Kayte Lang supports `for` loops for iteration.
-
 ```kayte
 for (var i = 0; i < 10; i++) {
     print(i);
@@ -44,8 +48,6 @@ for (var i = 0; i < 10; i++) {
 ```
 
 ### 5. Error Handling
-
-Error handling is done using `try` and `catch` blocks.
 
 ```kayte
 try {
@@ -55,9 +57,9 @@ try {
 }
 ```
 
-## Example: A Simple Kayte Lang Script
+---
 
-Here's an example of a simple UI script written in Kayte Lang:
+## 🎨 Example: Simple UI Script
 
 ```kayte
 window main {
@@ -79,28 +81,29 @@ function showMessage() {
 }
 ```
 
-This script defines a basic window with a button that prints "Button clicked!" to the console when clicked.
+➡️ Defines a **basic window with a button**. When clicked, it runs `showMessage()`.
 
-## Bytecode Compilation and Execution
+---
 
-Kayte Lang compiles its source files into bytecode, which is then executed by the Kayte Virtual Machine. The VM ensures cross-platform compatibility and optimized performance.
+## ⚡ Bytecode Compilation & Execution
 
-### Bytecode Example
+Kayte Lang compiles its `.kayte` source files into **bytecode**, then runs them inside the **KVM**.
 
-Below is an example of how a Kayte Lang script gets compiled into bytecode.
+### Example Bytecode
 
 ```plaintext
-BYTECODE INSTRUCTION SAMPLE:
-LOAD_CONST   0 (Button clicked!)
-CALL_FUNCTION 1
+LOAD_CONST     0 (Button clicked!)
+CALL_FUNCTION  1
 RETURN_VALUE
 ```
 
-This makes it possible to run Kayte Lang scripts efficiently on multiple platforms without the overhead of high-level interpretation.
+This makes Kayte Lang **fast, lightweight, and portable**.
 
-## UI Component Definition
+---
 
-One of the standout features of Kayte Lang is its ability to define UI components using XML and DTD. This method ensures that the UI is both structured and easily maintainable.
+## 🖼️ Declarative UI with XML
+
+Kayte Lang also supports **XML/DTD-style UI definitions**:
 
 ```xml
 <window title="Kayte Lang UI" width="800" height="600">
@@ -108,34 +111,38 @@ One of the standout features of Kayte Lang is its ability to define UI component
 </window>
 ```
 
-With this structured format, complex UIs can be built and maintained in a consistent and readable way.
+A clean, structured way to build **cross-platform user interfaces**.
 
-## Roadmap for Kayte Lang
+---
 
-Kayte Lang is currently in its Proof of Concept phase, but there are ambitious plans for future development, including:
+## 📌 Roadmap
 
-- **Advanced Type System**: Adding support for a stronger type system to improve safety and performance.
-- **Optimized VM**: Further enhancements to the Kayte VM to boost speed and efficiency.
-- **Standard Libraries**: Expanding Kayte Lang’s ecosystem with libraries for common tasks like file handling, networking, and more.
-- **Cross-Platform UI Toolkit**: Developing a unified UI framework to build applications for multiple platforms with a single codebase.
+* ✅ Proof-of-Concept VM
+* 🚧 Advanced Type System → safer & faster programs
+* 🚧 Optimized VM → better runtime performance
+* 🚧 Standard Libraries → file handling, networking, utilities
+* 🚧 Cross-Platform UI Toolkit → **build once, run everywhere**
 
+---
 
-## Get Involved
+## 🤝 Get Involved
 
-Kayte Lang is an open-source project, and contributions are welcome! Whether you're interested in improving the language, building libraries, or providing feedback, you can get involved.
+Kayte Lang is **open-source** — we welcome contributors of all levels!
 
-### GitHub Repositories:
+* **Tilde Desktop (Kayte IDE / Environment)**: [ringsce/tilde-desktop](https://github.com/ringsce/tilde-desktop)
+* **Kayte Lang Compiler & VM**: [ringsce/kayte-lang](https://github.com/ringsce/kayte-lang)
 
-- **Tilde Desktop (Kayte Lang Environment)**: [https://github.com/ringsce/tilde-desktop](https://github.com/ringsce/tilde-desktop)
-- **Kayte Lang Language**: [https://github.com/ringsce/kayte-lang](https://github.com/ringsce/kayte-lang)
+Ways to help:
 
-By contributing to these repositories, you can help shape the future of Kayte Lang.
+* Improve the language & VM
+* Build standard libraries
+* Share feedback & ideas
 
-## Conclusion
+---
 
-Kayte Lang is a promising new language that simplifies modern application development without sacrificing power or performance. With its clean syntax, bytecode execution, and cross-platform support, it has the potential to become a valuable tool for developers across various domains. 
+## ✨ Conclusion
 
-As Kayte Lang continues to evolve, its flexibility and ease of use will make it a compelling choice for developers looking to build both simple and complex applications.
+Kayte Lang is in its **Proof of Concept (PoC)** stage — but its **clean syntax**, **bytecode execution**, and **UI-first approach** make it a strong foundation for a **modern, cross-platform development ecosystem**.
 
-Stay tuned for more updates as Kayte Lang moves beyond its PoC phase into full-scale development!
-```
+Stay tuned — we’re just getting started! 🚀
+

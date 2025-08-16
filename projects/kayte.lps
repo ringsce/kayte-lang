@@ -7,8 +7,8 @@
       <Unit>
         <Filename Value="kayte.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="627"/>
-        <CursorPos Y="652"/>
+        <TopLine Value="25"/>
+        <CursorPos X="26" Y="37"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
       </Unit>
@@ -108,9 +108,9 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="CLI"/>
         <IsVisibleTab Value="True"/>
-        <EditorIndex Value="12"/>
-        <TopLine Value="359"/>
-        <CursorPos Y="392"/>
+        <EditorIndex Value="13"/>
+        <TopLine Value="331"/>
+        <CursorPos X="47" Y="347"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -135,11 +135,11 @@
       <Unit>
         <Filename Value="../source/virtualmachine.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="-1"/>
-        <WindowIndex Value="-1"/>
-        <TopLine Value="-1"/>
-        <CursorPos X="-1" Y="-1"/>
+        <UnitName Value="VirtualMachine"/>
+        <EditorIndex Value="14"/>
+        <CursorPos X="8" Y="17"/>
         <UsageCount Value="220"/>
+        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/xmlparser.pas"/>
@@ -162,7 +162,7 @@
       <Unit>
         <Filename Value="../source/c99.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="11"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -187,20 +187,18 @@
       <Unit>
         <Filename Value="../source/c_backend.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="15"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="104"/>
         <CursorPos X="12" Y="122"/>
         <UsageCount Value="303"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/kayte_parser.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="16"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="20"/>
         <CursorPos X="29" Y="37"/>
         <UsageCount Value="257"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/bytecode_embed.pas"/>
@@ -212,7 +210,7 @@
       <Unit>
         <Filename Value="kayte_compiler.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="27"/>
         <CursorPos Y="43"/>
         <UsageCount Value="251"/>
@@ -221,7 +219,7 @@
       <Unit>
         <Filename Value="../source/kayte_runtime.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="8"/>
         <TopLine Value="4"/>
         <CursorPos Y="38"/>
         <UsageCount Value="251"/>
@@ -231,15 +229,15 @@
         <Filename Value="../source/kayte_loader.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="38"/>
-        <CursorPos X="24" Y="56"/>
+        <TopLine Value="4"/>
+        <CursorPos Y="34"/>
         <UsageCount Value="251"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/kayte_vm.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="6"/>
         <CursorPos Y="41"/>
         <UsageCount Value="250"/>
         <Loaded Value="True"/>
@@ -263,10 +261,9 @@
       </Unit>
       <Unit>
         <Filename Value="../source/sys_mac.pas"/>
-        <EditorIndex Value="17"/>
+        <EditorIndex Value="-1"/>
         <CursorPos Y="6"/>
         <UsageCount Value="116"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/sys_ios.pas"/>
@@ -278,7 +275,7 @@
       </Unit>
       <Unit>
         <Filename Value="../source/basic.pas"/>
-        <EditorIndex Value="11"/>
+        <EditorIndex Value="12"/>
         <TopLine Value="68"/>
         <CursorPos X="10" Y="84"/>
         <UsageCount Value="172"/>
@@ -286,7 +283,7 @@
       </Unit>
       <Unit>
         <Filename Value="../source/n64.pas"/>
-        <EditorIndex Value="9"/>
+        <EditorIndex Value="10"/>
         <TopLine Value="25"/>
         <CursorPos Y="44"/>
         <UsageCount Value="158"/>
@@ -304,7 +301,7 @@
       <Unit>
         <Filename Value="../source/tokendefs.pas"/>
         <UnitName Value="TokenDefs"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="9"/>
         <TopLine Value="41"/>
         <CursorPos X="7" Y="58"/>
         <UsageCount Value="41"/>
@@ -313,16 +310,16 @@
       <Unit>
         <Filename Value="../source/bytecodetypes.pas"/>
         <UnitName Value="BytecodeTypes"/>
-        <EditorIndex Value="14"/>
+        <EditorIndex Value="16"/>
         <TopLine Value="159"/>
-        <CursorPos X="14" Y="192"/>
+        <CursorPos Y="192"/>
         <UsageCount Value="41"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/lexer.pas"/>
         <UnitName Value="Lexer"/>
-        <EditorIndex Value="13"/>
+        <EditorIndex Value="15"/>
         <UsageCount Value="40"/>
         <Loaded Value="True"/>
       </Unit>
@@ -333,108 +330,25 @@
         <CursorPos X="27" Y="323"/>
         <UsageCount Value="10"/>
       </Unit>
+      <Unit>
+        <Filename Value="../jvm/jvm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="JVM"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="54"/>
+        <CursorPos X="5" Y="87"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="/Applications/lazarus/fpc/3.2.2/sources/rtl/objpas/objpas.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="306"/>
+        <CursorPos X="27" Y="323"/>
+        <UsageCount Value="10"/>
+      </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="229" TopLine="196"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="176" Column="16" TopLine="160"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="264" Column="28" TopLine="249"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="248" Column="24" TopLine="231"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="388" TopLine="355"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="176" Column="16" TopLine="160"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="229" TopLine="198"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="230" TopLine="197"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="326" TopLine="293"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="37" Column="5" TopLine="21"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="329" TopLine="296"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="79" Column="5" TopLine="61"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="23" Column="3"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="79" Column="29" TopLine="62"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="83" Column="3" TopLine="66"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="18" Column="3" TopLine="3"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="73" Column="29" TopLine="56"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="75" Column="13" TopLine="58"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="38" Column="9" TopLine="26"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="82" TopLine="55"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="83" TopLine="59"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="95" TopLine="63"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="376" Column="27" TopLine="359"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="400" TopLine="367"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/cli.pas"/>
-        <Caret Line="376" Column="47" TopLine="359"/>
-      </Position>
       <Position>
         <Filename Value="../source/lexer.pas"/>
       </Position>
@@ -453,6 +367,104 @@
       <Position>
         <Filename Value="../source/cli.pas"/>
         <Caret Line="20" Column="7" TopLine="3"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="392" TopLine="359"/>
+      </Position>
+      <Position>
+        <Filename Value="../jvm/jvm.pas"/>
+        <Caret Line="70" Column="5" TopLine="37"/>
+      </Position>
+      <Position>
+        <Filename Value="kayte.lpr"/>
+        <Caret Line="37" Column="26" TopLine="25"/>
+      </Position>
+      <Position>
+        <Filename Value="../jvm/jvm.pas"/>
+        <Caret Line="70" Column="5" TopLine="37"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/kayte_loader.pas"/>
+        <Caret Line="34" Column="9" TopLine="32"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="433" TopLine="400"/>
+      </Position>
+      <Position>
+        <Filename Value="../jvm/jvm.pas"/>
+        <Caret Line="89" Column="5" TopLine="56"/>
+      </Position>
+      <Position>
+        <Filename Value="../jvm/jvm.pas"/>
+        <Caret Line="87" Column="5" TopLine="54"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="139" Column="30" TopLine="122"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="317" Column="51" TopLine="301"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="302" Column="49" TopLine="286"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="317" Column="51" TopLine="301"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="139" TopLine="107"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="346" Column="47" TopLine="330"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/lexer.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/virtualmachine.pas"/>
+        <Caret Line="21" Column="8"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="80" TopLine="70"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/virtualmachine.pas"/>
+        <Caret Line="45" TopLine="12"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/virtualmachine.pas"/>
+        <Caret Line="13" Column="16"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/virtualmachine.pas"/>
+        <Caret Line="8" Column="84"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/virtualmachine.pas"/>
+        <Caret Line="27" Column="27" TopLine="10"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/virtualmachine.pas"/>
+        <Caret Line="20" Column="6" TopLine="4"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/virtualmachine.pas"/>
+        <Caret Line="18" Column="6"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/virtualmachine.pas"/>
+        <Caret Line="17" Column="8"/>
       </Position>
     </JumpHistory>
     <RunParams>

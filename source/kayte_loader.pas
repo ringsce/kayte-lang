@@ -31,6 +31,7 @@ begin
   FreeOnTerminate := True;
 end;
 
+
 procedure TCompileTask.Execute;
 var
   Output: string;

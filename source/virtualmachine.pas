@@ -5,18 +5,22 @@ unit VirtualMachine;
 interface
 
 uses
-  SysUtils;
+  SysUtils, Classes,   BytecodeTypes; // Add the unit that defines TByteCodeProgram
 
 type
-  TVirtualMachine = class
-  private
-    // Add fields to store the bytecode, registers, etc.
-  public
-    procedure LoadBytecode(const FileName: string);
-    procedure Run;
-  end;
+  TVirtualMachine = class(TObject)
+   private
+     FProgram: TByteCodeProgram;
+     FInstructionPointer: LongInt;
+   public
+     // New constructor to load a file
+     //constructor Create(const BytecodeFilePath: string);
+     procedure LoadBytecode(const FileName: string);
 
+     procedure Run;
+   end;
 implementation
+
 
 { TVirtualMachine }
 

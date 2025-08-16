@@ -4,10 +4,10 @@ program vb6interpreter;
 
 uses
   SysUtils, Classes, StrUtils, Contnrs, // <- Contnrs gives you TStack,
-  //InterpreterUtils in '../source/InterpreterUtils.pas',
+  InterpreterUtils in '../source/InterpreterUtils.pas',
   InterpreterCore, fgl, VBCompiler, Forms, Interfaces,
   BytecodeTypes, BytecodeVM, Lexer,             // Your new lexer unit
-  Parser, TokenDefs,StdCtrls, UKfrmParser;
+  Parser, TokenDefs,StdCtrls, UKfrmParser, dhtml;
   //, SynVBHighlighter;
   // dhtml enable when its right, dhtml is webasm technology not ready
 
