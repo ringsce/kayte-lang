@@ -1,108 +1,109 @@
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.util.Stack;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+
+// Define a simple Instruction class to hold opcode and operand
+class Instruction {
+    private int opcode;
+    private int operand;
+
+    public Instruction(int opcode, int operand) {
+        this.opcode = opcode;
+        this.operand = operand;
+    }
+
+    public int getOpcode() { return opcode; }
+    public int getOperand() { return operand; }
+}
 
 public class KayteVM {
 
+    // VM State
+    private static Stack<Object> stack;
+    private static List<String> stringLiterals;
+    private static List<Long> integerLiterals;
+    private static List<Instruction> instructions;
+    private static int instructionPointer;
+
+    // Bytecode constants (replace with your actual opcode values)
+    private static final int OP_LOAD_CONST = 0;
+    private static final int OP_CALL_FUNCTION = 1;
+    private static final int OP_RETURN = 2;
+    private static final int OP_ADD = 3;
+    private static final int OP_PRINT = 4;
+    private static final int OP_HALT = 5;
+
     public static void execute(byte[] kayteBytecode) {
-        // Create a stream to read the byte array
+        // --- 1. Deserialization ---
         ByteArrayInputStream bais = new ByteArrayInputStream(kayteBytecode);
         DataInputStream dis = new DataInputStream(bais);
 
         try {
-            // Reconstruct the program from the byte stream
-            System.out.println("Deserializing Kayte bytecode...");
-
-            // 1. Read ProgramTitle
+            // Read ProgramTitle (for demo purposes, not used in execution)
             int titleLength = dis.readInt();
-            byte[] titleBytes = new byte[titleLength];
-            if (titleLength > 0) {
-                dis.readFully(titleBytes);
-            }
-            String programTitle = new String(titleBytes, "UTF-8");
-            System.out.println("Program Title: " + programTitle);
+            dis.skipBytes(titleLength);
 
-            // 2. Read Instructions
+            // Read Instructions
             int instructionCount = dis.readInt();
-            System.out.println("Instructions count: " + instructionCount);
-            if (instructionCount > 0) {
-                byte[] instructionsBytes = new byte[instructionCount * 8]; // Assuming 8 bytes per instruction
-                dis.readFully(instructionsBytes);
-                // instructions list would be built here from bytes
+            instructions = new ArrayList<>();
+            for (int i = 0; i < instructionCount; i++) {
+                int opcode = dis.readInt();
+                int operand = dis.readInt();
+                instructions.add(new Instruction(opcode, operand));
             }
 
-            // 3. Read StringLiterals
+            // Read StringLiterals
             int stringLiteralCount = dis.readInt();
-            System.out.println("String literals count: " + stringLiteralCount);
+            stringLiterals = new ArrayList<>();
             for (int i = 0; i < stringLiteralCount; i++) {
                 int strLen = dis.readInt();
                 byte[] strBytes = new byte[strLen];
-                if (strLen > 0) {
-                    dis.readFully(strBytes);
-                }
-                String str = new String(strBytes, "UTF-8");
-                // Add to a list of string literals
+                dis.readFully(strBytes);
+                stringLiterals.add(new String(strBytes, "UTF-8"));
             }
 
-            // 4. Read IntegerLiterals
+            // Read IntegerLiterals
             int intLiteralCount = dis.readInt();
-            System.out.println("Integer literals count: " + intLiteralCount);
-            if (intLiteralCount > 0) {
-                for (int i = 0; i < intLiteralCount; i++) {
-                    long intValue = dis.readLong();
-                    // Add to a list of integer literals
-                }
+            integerLiterals = new ArrayList<>();
+            for (int i = 0; i < intLiteralCount; i++) {
+                integerLiterals.add(dis.readLong());
             }
 
-            // 5. Read VariableMap
-            int variableMapCount = dis.readInt();
-            System.out.println("Variable map entries: " + variableMapCount);
-            for (int i = 0; i < variableMapCount; i++) {
-                int keyLen = dis.readInt();
-                byte[] keyBytes = new byte[keyLen];
-                if (keyLen > 0) {
-                    dis.readFully(keyBytes);
+            // (Add logic to read VariableMap, SubroutineMap, etc. here)
+
+            // --- 2. VM Execution ---
+            stack = new Stack<>();
+            instructionPointer = 0;
+
+            System.out.println("Starting VM Execution...");
+
+            while (instructionPointer < instructions.size()) {
+                Instruction currentInstruction = instructions.get(instructionPointer);
+                instructionPointer++; // Increment before executing
+
+                switch (currentInstruction.getOpcode()) {
+                    case OP_LOAD_CONST:
+                        // Push a constant (either string or integer)
+                        // A more complex VM would need to differentiate types
+                        stack.push(stringLiterals.get(currentInstruction.getOperand()));
+                        break;
+                    case OP_PRINT:
+                        // Pop a value from the stack and print it
+                        System.out.println(stack.pop());
+                        break;
+                    case OP_HALT:
+                        System.out.println("VM Halted.");
+                        return; // Exit the execution loop
+                    default:
+                        System.err.println("Unknown opcode: " + currentInstruction.getOpcode());
+                        return;
                 }
-                String key = new String(keyBytes, "UTF-8");
-                int value = dis.readInt();
-                // Add to a map of variables
             }
-
-            // 6. Read SubroutineMap
-            int subroutineMapCount = dis.readInt();
-            System.out.println("Subroutine map entries: " + subroutineMapCount);
-            for (int i = 0; i < subroutineMapCount; i++) {
-                int keyLen = dis.readInt();
-                byte[] keyBytes = new byte[keyLen];
-                if (keyLen > 0) {
-                    dis.readFully(keyBytes);
-                }
-                String key = new String(keyBytes, "UTF-8");
-                int value = dis.readInt();
-                // Add to a map of subroutines
-            }
-
-            // 7. Read FormMap
-            int formMapCount = dis.readInt();
-            System.out.println("Form map entries: " + formMapCount);
-            for (int i = 0; i < formMapCount; i++) {
-                int keyLen = dis.readInt();
-                byte[] keyBytes = new byte[keyLen];
-                if (keyLen > 0) {
-                    dis.readFully(keyBytes);
-                }
-                String key = new String(keyBytes, "UTF-8");
-                int value = dis.readInt();
-                // Add to a map of forms
-            }
-
-            System.out.println("Deserialization complete.");
-
-            // Run the Kayte bytecode
-            // Your VM execution logic would go here
-            // Example:
-            // runVM(instructions, stringLiterals, etc.);
-
         } catch (IOException e) {
             System.err.println("Failed to deserialize Kayte bytecode: " + e.getMessage());
         } finally {

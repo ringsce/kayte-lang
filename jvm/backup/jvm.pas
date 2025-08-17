@@ -6,7 +6,7 @@ interface
 
 uses
   SysUtils, Classes,
-  JNIWrapper; // Assumes a JNI wrapper library is available
+  JNIWrapper; // Assume JNIWrapper is a unit that encapsulates JNI calls
 
 type
   TJVM = class(TObject)
@@ -27,14 +27,15 @@ constructor TJVM.Create;
 begin
   inherited Create;
   // Initialize the JVM instance using JNI functions
-  // FVM and FEnv would be populated here
-  JNI_CreateJavaVM(FVM, FEnv, ...);
+  // This is a complex task. You'll need to link with jvm.lib and call JNI_CreateJavaVM.
+  // FVM and FEnv would be populated here.
+  // JNI_CreateJavaVM(FVM, FEnv, ...);
 end;
 
 destructor TJVM.Destroy;
 begin
   // Shut down the JVM
-  FVM.DestroyJavaVM;
+  // FVM.DestroyJavaVM;
   inherited Destroy;
 end;
 
@@ -59,17 +60,14 @@ begin
   end;
 
   // Step 2: Bridge to the Java VM
-  // This is a placeholder for your JNI initialization code
-  // which you would normally handle in the constructor
   if FEnv = nil then
     raise Exception.Create('JVM environment not initialized.');
 
   // Step 3: Find the Java class and method
-  KayteVMClass := FEnv.FindClass('KayteVM'); // Your Java class name
+  KayteVMClass := FEnv.FindClass('KayteVM');
   if KayteVMClass = nil then
     raise Exception.Create('KayteVM class not found in JVM.');
 
-  // Look for a method that takes a byte array
   ExecuteMethodID := FEnv.GetStaticMethodID(KayteVMClass, 'execute', '([B)V');
   if ExecuteMethodID = nil then
     raise Exception.Create('execute method not found in KayteVM class.');
