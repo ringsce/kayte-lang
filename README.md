@@ -97,7 +97,7 @@ function showMessage() {
 ## ⚡ Bytecode Compilation & Execution
 
 **Implemented:** The compiler and VM can generate and execute bytecode.
-**Implemented:** The VM can now **load and save bytecode to/from a file**.
+**Implemented:** The VM can now load and save bytecode to/from a file.
 
 This makes Kayte Lang **fast, lightweight, and portable**.
 
@@ -135,11 +135,35 @@ form LoginWindow {
 
 -----
 
+## ⚙️ JVM Interoperability (JNI) Test 🟡
+
+**Partially Implemented:** A crucial step toward wider platform adoption is the ability to run Kayte bytecode on the JVM. The JNI bridge is now in the **testing phase**.
+
+**Test Objective:** Verify that a compiled Kayte program can be loaded from a file, passed to a Java VM as a byte array, and successfully deserialized and executed within a Java class.
+
+### Test Architecture
+
+  * **Pascal-side (`JVM.pas`):** Reads the compiled `.kbyte` file into a `TBytes` array and uses JNI to call a static Java method.
+  * **Java-side (`KayteVM.java`):** A static method `execute()` receives the byte array, deserializes the Kayte program, and prepares it for execution.
+
+### Test Status
+
+  * ✅ **Bytecode serialization:** Kayte programs are correctly saved to a binary file.
+  * ✅ **File loading:** The Pascal code can read the entire `.kbyte` file into a byte array.
+  * ✅ **JNI bridge:** The `JNI_CreateJavaVM` and `CallStaticVoidMethod` calls are successfully linking the Pascal application to the JVM.
+  * ✅ **Java Deserialization:** The `KayteVM.java` class can correctly read the bytecode stream and reconstruct the program's components (title, instructions, literals, etc.).
+  * 🚧 **Execution:** The VM execution logic within the Java environment is currently being built and tested.
+
+This JNI test confirms the technical feasibility of running Kayte on a platform as robust as the JVM, opening the door for future integration with Java libraries and frameworks.
+
+-----
+
 ## 📌 Roadmap
 
   * ✅ Proof-of-Concept VM
   * ✅ Bytecode File I/O (save/load)
   * ✅ Declarative UI with `.kfrm` files
+  * ✅ JVM Interoperability (JNI) Test
   * 🚧 Advanced Type System → safer & faster programs
   * 🚧 Optimized VM → better runtime performance
   * 🚧 Standard Libraries → file handling, networking, utilities
