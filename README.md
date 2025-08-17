@@ -30,9 +30,9 @@ function greet() {
 var name = "Kayte Lang";
 ```
 
-### 3\. Conditionals 🟡
+### 3\. Conditionals ✅
 
-**Partially Implemented:** The core `if/else` logic is implemented.
+**Implemented:** The core `if/else` logic, including support for `if`, `else if`, and `else` statements, is now fully functional.
 
 ```kayte
 if (name == "Kayte Lang") {
@@ -72,21 +72,21 @@ try {
 
 ```kayte
 window main {
-  title: "Kayte Lang Demo"
-  width: 800
-  height: 600
-  
-  content {
-    button {
-      id: "btnClickMe"
-      text: "Click Me!"
-      onclick: showMessage()
+    title: "Kayte Lang Demo"
+    width: 800
+    height: 600
+
+    content {
+        button {
+            id: "btnClickMe"
+            text: "Click Me!"
+            onclick: showMessage()
+        }
     }
-  }
 }
 
 function showMessage() {
-  print("Button clicked!");
+    print("Button clicked!");
 }
 ```
 
@@ -119,32 +119,34 @@ RETURN_VALUE
 
 ```kayte
 form LoginWindow {
-  title: "User Login"
-  width: 400
-  height: 250
-  
-  layout: VBox {
-    label { text: "Please enter your credentials" }
-    textfield { id: "usernameInput" }
-    textfield { id: "passwordInput" type: Password }
-    button { id: "loginButton" text: "Log In" onclick: handleLogin() }
-    label { id: "messageLabel" text: "" }
-  }
+    title: "User Login"
+    width: 400
+    height: 250
+
+    layout: VBox {
+        label { text: "Please enter your credentials" }
+        textfield { id: "usernameInput" }
+        textfield { id: "passwordInput" type: Password }
+        button { id: "loginButton" text: "Log In" onclick: handleLogin() }
+        label { id: "messageLabel" text: "" }
+    }
 }
 ```
 
 -----
 
-## ⚙️ JVM Interoperability (JNI) Test 🟡
+## ⚙️ JVM Interoperability (JNI) Test ✅
 
-**Partially Implemented:** A crucial step toward wider platform adoption is the ability to run Kayte bytecode on the JVM. The JNI bridge is now in the **testing phase**.
+**Implemented and Tested:** A crucial step toward wider platform adoption is the ability to run Kayte bytecode on the JVM. The JNI bridge is fully functional.
 
-**Test Objective:** Verify that a compiled Kayte program can be loaded from a file, passed to a Java VM as a byte array, and successfully deserialized and executed within a Java class.
+### Test Objective
+
+Verify that a compiled Kayte program can be loaded from a file, passed to a Java VM as a byte array, and successfully deserialized and executed within a Java class.
 
 ### Test Architecture
 
   * **Pascal-side (`JVM.pas`):** Reads the compiled `.kbyte` file into a `TBytes` array and uses JNI to call a static Java method.
-  * **Java-side (`KayteVM.java`):** A static method `execute()` receives the byte array, deserializes the Kayte program, and prepares it for execution.
+  * **Java-side (`KayteVM.java`):** A static method `execute()` receives the byte array, deserializes the Kayte program, and runs the VM execution logic.
 
 ### Test Status
 
@@ -152,7 +154,7 @@ form LoginWindow {
   * ✅ **File loading:** The Pascal code can read the entire `.kbyte` file into a byte array.
   * ✅ **JNI bridge:** The `JNI_CreateJavaVM` and `CallStaticVoidMethod` calls are successfully linking the Pascal application to the JVM.
   * ✅ **Java Deserialization:** The `KayteVM.java` class can correctly read the bytecode stream and reconstruct the program's components (title, instructions, literals, etc.).
-  * 🚧 **Execution:** The VM execution logic within the Java environment is currently being built and tested.
+  * ✅ **Execution:** The VM execution logic within the Java environment is implemented and has successfully run basic test cases, confirming the feasibility of a JVM-based KVM.
 
 This JNI test confirms the technical feasibility of running Kayte on a platform as robust as the JVM, opening the door for future integration with Java libraries and frameworks.
 
