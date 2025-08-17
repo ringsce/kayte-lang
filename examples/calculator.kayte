@@ -1,0 +1,30 @@
+// Declare a global variable to hold the total
+var total = 0;
+
+// A function to add a number to the total
+function addToTotal(number) {
+  total = total + number;
+}
+
+// The main program logic
+function main() {
+  // Declare local variables
+  var x = 10;
+  var y = 20;
+  var sum = 0;
+
+  // Perform a simple calculation and print the result
+  sum = x + y;
+  print("The sum of x and y is: " + sum);
+
+  // Use a for loop to call the function repeatedly
+  for i from 1 to 5 {
+    addToTotal(i);
+  }
+
+  // Print the final total
+  print("The final total from the loop is: " + total);
+}
+
+// Start the program
+call main();

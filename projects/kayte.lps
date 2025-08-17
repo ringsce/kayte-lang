@@ -109,7 +109,7 @@
         <UnitName Value="CLI"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="13"/>
-        <TopLine Value="331"/>
+        <TopLine Value="332"/>
         <CursorPos X="47" Y="347"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
@@ -260,6 +260,16 @@
         <Loaded Value="True"/>
       </Unit>
       <Unit>
+        <Filename Value="../jvm/jvm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="JVM"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="54"/>
+        <CursorPos X="5" Y="87"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
         <Filename Value="../source/sys_mac.pas"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="6"/>
@@ -329,16 +339,6 @@
         <TopLine Value="306"/>
         <CursorPos X="27" Y="323"/>
         <UsageCount Value="10"/>
-      </Unit>
-      <Unit>
-        <Filename Value="../jvm/jvm.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="JVM"/>
-        <EditorIndex Value="5"/>
-        <TopLine Value="54"/>
-        <CursorPos X="5" Y="87"/>
-        <UsageCount Value="22"/>
-        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="/Applications/lazarus/fpc/3.2.2/sources/rtl/objpas/objpas.pp"/>

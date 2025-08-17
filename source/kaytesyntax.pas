@@ -1,4 +1,4 @@
-unit KayteSyntax ;
+unit KayteSyntax;
 
 {$mode objfpc}{$H+}
 

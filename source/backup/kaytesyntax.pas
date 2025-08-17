@@ -22,7 +22,7 @@ const
   COLOR_IDENT   = #27'[0;37m'; // white
 
 const
-  KayteKeywords: array[0..11] of string = (
+  KayteKeywords: array[0..13] of string = (
     'let', 'fn', 'return', 'if', 'else', 'try', 'foreach',
     'while', 'for', 'in', 'match', 'import', 'do',
   );

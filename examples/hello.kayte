@@ -1,0 +1,8 @@
+// Define a function named main
+function main() {
+  // Use the print command to output text
+  print("Hello, World!");
+}
+
+// Call the main function to start the program
+call main();

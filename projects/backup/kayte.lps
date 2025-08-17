@@ -107,6 +107,7 @@
         <Filename Value="../source/cli.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="CLI"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="13"/>
         <TopLine Value="331"/>
         <CursorPos X="47" Y="347"/>
@@ -135,7 +136,6 @@
         <Filename Value="../source/virtualmachine.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VirtualMachine"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="14"/>
         <CursorPos X="8" Y="17"/>
         <UsageCount Value="220"/>
