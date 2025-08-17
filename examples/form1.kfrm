@@ -1,0 +1,46 @@
+// File: login.kfrm
+
+// The top-level container for the entire UI
+form LoginWindow {
+  // UI properties like title and size
+  title: "User Login"
+  width: 400
+  height: 250
+  
+  // The layout for the form, using a vertical box layout
+  layout: VBox {
+    // A label to instruct the user
+    label {
+      text: "Please enter your credentials"
+      align: Center
+    }
+    
+    // A text input field for the username
+    textfield {
+      id: "usernameInput"
+      placeholder: "Username"
+    }
+    
+    // A text input field for the password, with obscured text
+    textfield {
+      id: "passwordInput"
+      placeholder: "Password"
+      type: Password
+    }
+    
+    // A button to submit the form
+    button {
+      id: "loginButton"
+      text: "Log In"
+      // The on-click event handler points to a function in the script
+      onclick: handleLogin()
+    }
+    
+    // A label to display messages or errors
+    label {
+      id: "messageLabel"
+      text: ""
+      color: "red"
+    }
+  }
+}

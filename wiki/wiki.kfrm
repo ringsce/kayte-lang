@@ -1,0 +1,49 @@
+// File: wiki.kfrm
+
+// A declarative form to represent our wiki UI
+form WikiApp {
+  title: "Kayte Wiki"
+  width: 1024
+  height: 768
+
+  layout: HBox {
+    // Left-hand side panel for page list
+    panel {
+      width: 200
+      height: 100%
+      layout: VBox {
+        label { text: "Pages" }
+        listbox { id: "pageList" }
+      }
+    }
+    
+    // Main content area
+    panel {
+      width: 100%
+      height: 100%
+      layout: VBox {
+        // A display area for the current page content
+        textarea {
+          id: "pageContent"
+          // Set to read-only initially
+          readonly: true
+        }
+
+        // A button to switch to edit mode
+        button {
+          id: "editButton"
+          text: "Edit"
+          onclick: enableEditing()
+        }
+
+        // A button to save the page (initially hidden)
+        button {
+          id: "saveButton"
+          text: "Save"
+          hidden: true
+          onclick: savePage()
+        }
+      }
+    }
+  }
+}

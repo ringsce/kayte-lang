@@ -1,0 +1,70 @@
+// File: wiki.kayte
+
+// A global map to hold our wiki pages in memory (Title -> Content)
+var wikiPages = createMap();
+
+// This function runs when the application starts
+function main() {
+  // Add some initial content
+  wikiPages.set("Welcome", "Hello! This is the first page of our Kayte wiki demo.");
+  wikiPages.set("About", "Kayte is a dynamic language with a declarative UI system.");
+  wikiPages.set("Syntax", "Learn about variables, functions, and loops.");
+
+  // Load the initial page and populate the listbox
+  loadPage("Welcome");
+  updatePageList();
+}
+
+// Function to update the page list UI component
+function updatePageList() {
+  var pages = getComponent("pageList");
+  pages.clear();
+  for pageTitle in wikiPages.keys() {
+    pages.addItem(pageTitle);
+  }
+}
+
+// Function to handle loading a specific page
+function loadPage(pageTitle) {
+  var contentArea = getComponent("pageContent");
+  contentArea.text = wikiPages.get(pageTitle);
+}
+
+// Event handler for when a user clicks on a page title
+function onPageSelected() {
+  var pageList = getComponent("pageList");
+  var selectedTitle = pageList.getSelectedItem();
+  loadPage(selectedTitle);
+}
+
+// Function to enable editing mode
+function enableEditing() {
+  var contentArea = getComponent("pageContent");
+  var editButton = getComponent("editButton");
+  var saveButton = getComponent("saveButton");
+
+  contentArea.readonly = false;
+  editButton.hidden = true;
+  saveButton.hidden = false;
+}
+
+// Function to save the edited page content
+function savePage() {
+  var contentArea = getComponent("pageContent");
+  var editButton = getComponent("editButton");
+  var saveButton = getComponent("saveButton");
+  var selectedTitle = getComponent("pageList").getSelectedItem();
+  
+  // Save the new content
+  wikiPages.set(selectedTitle, contentArea.text);
+  
+  // Return to view mode
+  contentArea.readonly = true;
+  editButton.hidden = false;
+  saveButton.hidden = true;
+  
+  print("Page '" + selectedTitle + "' has been saved!");
+}
+
+// Call main to start the application
+call main();
