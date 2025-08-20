@@ -146,13 +146,34 @@ end;
 // Parsing Rules
 //----------------------------------------------------------------------
 
+(*
+  Procedure: TParser.LProgram
+  Description:
+    This is the main entry point for parsing a Kayte program. It first checks
+    for and handles any top-level directives like 'option explicit' before
+    proceeding to parse the main statements and declarations.
+
+  Changes:
+    - Added a check for the 'option' keyword at the very beginning of the
+      program, ensuring that the directive is handled correctly and is not
+      mistaken for a standard instruction.
+*)
 procedure TParser.LProgram;
 begin
-  while FCurrentToken.TokenType <> tkEndOfFile do
+  // First, check for program-level options like 'option explicit'.
+  // This must be done before parsing any statements to prevent the
+  // directive from being treated as an unknown instruction.
+  if Check(tkKeywordOption) then
   begin
+    OptionStatement;
+  end;
+
+  // Now, parse the rest of the program, which should consist of
+  // declarations, subroutines, function definitions, and statements.
+  while not Check(tkEndOfFile) do
+  begin
+    // Call the main statement-parsing procedure.
     Statement;
-    while Check(tkEndOfLine) do
-      Advance;
   end;
 end;
 
@@ -165,16 +186,42 @@ begin
   // a specific TStatementNode (e.g., TAssignmentStatementNode) here.
 end;
 
+(* Options ON/OFF *)
 procedure TParser.OptionStatement;
 begin
   Match(tkKeywordOption);
-  Match(tkKeywordExplicit);
-  if MatchAny([tkKeywordOn, tkKeywordOff]) then
-  begin
-    // Option Explicit On/Off consumed
-  end
+
+  case CurrentToken.Kind of
+    tkKeywordExplicit:
+      begin
+        Match(tkKeywordExplicit);
+        if MatchAny([tkKeywordOn, tkKeywordOff]) then
+          ExplicitMode := (LastToken.Kind = tkKeywordOn)
+        else
+          Error('Expected ON or OFF after OPTION EXPLICIT');
+      end;
+
+    tkKeywordStrict:
+      begin
+        Match(tkKeywordStrict);
+        if MatchAny([tkKeywordOn, tkKeywordOff]) then
+          StrictMode := (LastToken.Kind = tkKeywordOn)
+        else
+          Error('Expected ON or OFF after OPTION STRICT');
+      end;
+
+    tkKeywordCompare:
+      begin
+        Match(tkKeywordCompare);
+        if MatchAny([tkKeywordText, tkKeywordBinary]) then
+          CompareMode := LastToken.Kind
+        else
+          Error('Expected TEXT or BINARY after OPTION COMPARE');
+      end;
+
   else
-    Error('Expected ON or OFF after OPTION EXPLICIT');
+    Error('Unknown OPTION directive');
+  end;
 end;
 
 procedure TParser.DeclarationStatement;
@@ -480,6 +527,7 @@ begin
     Result := Primary;
   end;
 end;
+
 function TParser.Primary: TExpressionNode;
 var
   Token: TToken;

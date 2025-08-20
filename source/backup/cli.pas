@@ -11,6 +11,7 @@ uses
   KayteParser in '../source/kayteparser.pas',
   Lexer,
   Parser,
+  SimpleHTTPServer in '../source/SimpleHTTPServer.pas',
   VirtualMachine in '../source/virtualmachine.pas';
 
 type
@@ -53,6 +54,8 @@ type
     RunBytecode: Boolean;
     InputFile: string;
     OutputFile: string;
+    StartHttpServer: Boolean; // <-- Add this line
+
   end;
 
   TCLIHandler = class
@@ -309,6 +312,30 @@ begin
   inherited Destroy;
 end;
 
+(*
+  Procedure: InitializeCLIHandler
+  Description:
+    This is the main entry point for the command-line interface. It creates an
+    instance of TCLIHandler, parses the command-line arguments, and executes
+    the appropriate action (e.g., compile, run, show help).
+
+    It includes a robust try...finally block to ensure that the TCLIHandler
+    object is always freed from memory, preventing resource leaks. The outer
+    try...except block handles any exceptions that occur during execution,
+    providing a clean, user-friendly error message.
+*)
+
+
+(*
+  Procedure: TCLIHandler.ShowHelp
+  Description:
+    Displays the command-line tool's help message, including all available
+    options and their descriptions. This procedure is a method of the
+    TCLIHandler class.
+
+  Changes:
+    - Added the '--http' option to the help message.
+*)
 procedure TCLIHandler.ShowHelp;
 begin
   Writeln('Usage: ', FAppName, ' [OPTIONS] [FILE]');
@@ -320,13 +347,61 @@ begin
   Writeln('  --compile <file> Compile a .kayte source file to bytecode');
   Writeln('  --run <file>     Run a bytecode (.bytecode) file');
   Writeln('  -o <file>        Specify the output bytecode file when compiling');
-  Writeln('  --http           Starts a simple HTTP server'); // <-- Add this line
+  Writeln('  --http           Starts a simple HTTP server'); // <-- New line added
 
   Writeln;
   Writeln('If no --compile or --run option is given, FILE is assumed to be a Kayte source file to compile.');
   Writeln('Default output file for compilation is <input_file_name>.bytecode');
   Writeln;
 end;
+
+(*
+  Procedure: InitializeCLIHandler
+  Description:
+    This is the main entry point for the command-line interface. It creates an
+    instance of TCLIHandler, parses the command-line arguments, and executes
+    the appropriate action (e.g., compile, run, show help).
+
+    It includes a robust try...finally block to ensure that the TCLIHandler
+    object is always freed from memory, preventing resource leaks. The outer
+    try...except block handles any exceptions that occur during execution,
+    providing a clean, user-friendly error message.
+*)
+procedure InitializeCLIHandler;
+var
+  CLIHandler: TCLIHandler;
+begin
+  // Create an instance of the CLI handler class with application details.
+  // 'kreatyveC' is the application name and '1.10.3' is the version number.
+  CLIHandler := TCLIHandler.Create('kreatyveC', '1.10.3');
+  try
+    try
+      Writeln('Parsing command-line arguments...');
+      // Call the method to parse the arguments.
+      CLIHandler.ParseArgs;
+
+      Writeln('Executing command...');
+      // Call the method to execute the command.
+      CLIHandler.Execute;
+
+      Writeln('CLI command executed successfully.');
+    except
+      on E: Exception do
+      begin
+        // Handle any exceptions that occur during parsing or execution.
+        Writeln('Error while handling CLI: ', E.Message);
+        Writeln('Usage: kc [options]');
+        Writeln('Try "kc --help" for more information.');
+        Exit; // Exit the procedure after displaying the error.
+      end;
+    end;
+  finally
+    // Ensure the CLIHandler object is properly destroyed, regardless of
+    // whether an error occurred.
+    CLIHandler.Free;
+  end;
+end;
+
 
 procedure TCLIHandler.ShowVersion;
 begin
@@ -380,6 +455,104 @@ begin
     Writeln('Server stopped.');
   end;
 end;
+
+
+(*
+  Procedure: TCLIHandler.ParseArgs
+  Description:
+    This procedure parses the command-line arguments and sets the
+    corresponding options in the FOptions record.
+
+  Changes:
+    - The --http argument is now properly parsed and handled.
+*)
+procedure TCLIHandler.ParseArgs;
+var
+  I: Integer;
+  IsPositionalFile: Boolean;
+begin
+  IsPositionalFile := False;
+  FOptions.InputFile := '';
+  FOptions.OutputFile := '';
+
+  I := 1;
+  while I <= ParamCount do
+  begin
+    if (ParamStr(I) = '--help') then
+    begin
+      FOptions.ShowHelp := True;
+    end
+    else if (ParamStr(I) = '-v') or (ParamStr(I) = '--version') then
+    begin
+      FOptions.ShowVersion := True;
+    end
+    else if (ParamStr(I) = '--verbose') then
+    begin
+      FOptions.Verbose := True;
+    end
+    else if (ParamStr(I) = '--compile') then
+    begin
+      FOptions.CompileKayte := True;
+      if I + 1 <= ParamCount then
+      begin
+        Inc(I);
+        FOptions.InputFile := ParamStr(I);
+      end
+      else
+      begin
+        Error('Missing file path for --compile option');
+      end;
+    end
+    else if (ParamStr(I) = '--run') then
+    begin
+      FOptions.RunBytecode := True;
+      if I + 1 <= ParamCount then
+      begin
+        Inc(I);
+        FOptions.InputFile := ParamStr(I);
+      end
+      else
+      begin
+        Error('Missing file path for --run option');
+      end;
+    end
+    else if (ParamStr(I) = '-o') then
+    begin
+      if I + 1 <= ParamCount then
+      begin
+        Inc(I);
+        FOptions.OutputFile := ParamStr(I);
+      end
+      else
+      begin
+        Error('Missing file path for -o option');
+      end;
+    end
+    else if (ParamStr(I) = '--http') then
+    begin
+      FOptions.StartHttpServer := True;
+    end
+    else if (I = ParamCount) and (not IsPositionalFile) then
+    begin
+      // Treat the last parameter as the first non-option argument as the input file
+      FOptions.InputFile := ParamStr(I);
+      IsPositionalFile := True;
+    end
+    else
+      Writeln('Unknown option or unexpected argument: ', ParamStr(I));
+
+    Inc(I);
+  end;
+
+  // If a positional file was given and no action was specified, default to compile
+  if IsPositionalFile and (not FOptions.CompileKayte) and (not FOptions.RunBytecode) then
+  begin
+    FOptions.CompileKayte := True;
+    if FOptions.Verbose then
+      Writeln('Info: No action specified, defaulting to --compile for input file: ', FOptions.InputFile);
+  end;
+end;
+
 
 
 procedure TCLIHandler.CompileKayteFile(const InputFile, OutputFile: string);

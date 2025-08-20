@@ -234,32 +234,6 @@ begin
   end;
 end;
 
-procedure InitializeCLIHandler;
-var
-  CLIHandler: TCLIHandler; // Declare CLIHandler as a local variable
-begin
-  CLIHandler := TCLIHandler.Create('kreatyveC', '1.10.3'); // Instantiate the object with command-line tool info
-  try
-    try
-      Writeln('Parsing command-line arguments...');
-      CLIHandler.ParseArgs;  // Parse command-line arguments
-      Writeln('Executing command...');
-      CLIHandler.Execute;    // Execute the appropriate command
-      Writeln('CLI command executed successfully.');
-    except
-      on E: Exception do
-      begin
-        // Display error message and usage hints to the user
-        Writeln('Error while handling CLI: ', E.Message);
-        Writeln('Usage: kc [options]');
-        Writeln('Try "kc --help" for more information.');
-        Exit; // Exit the procedure if an error occurs
-      end;
-    end;
-  finally
-    CLIHandler.Free; // Ensure the object is freed after use
-  end;
-end;
 
 procedure ParseAndRunDTD;
 const
@@ -318,23 +292,15 @@ end;
 
 var
   KayteConverter: TKayte2PCE;
-  LibraryPath: string;
 
 {$R *.res}
 
+
+
+
 begin
-    (*WriteLn('Enter the library file path to load:');
-  ReadLn(LibraryPath);*)
-
-  // Safe load
-  if not LoadLibraryFile(LibraryPath, lmSafe) then
-    WriteLn('Safe load failed for ', LibraryPath);
-
-  // Unsafe load
-  if not LoadLibraryFile(LibraryPath, lmUnsafe) then
-    WriteLn('Unsafe load failed for ', LibraryPath);
-  // Initialize the CLI handler and process arguments
-  InitializeCLIHandler;
+   // Initialize the CLI handler and process arguments
+  //InitializeCLIHandler;
 
   // Parse and process DTD
   //ParseAndRunDTD;
@@ -354,13 +320,13 @@ begin
   //DownloadMapsFromGitHubRepo('https://github.com/username/repo-name/archive/main.zip');
 
   // Call the procedure with the update URL
-  CheckForUpdates('https://example.com/updates/info');
+  //CheckForUpdates('https://example.com/updates/info');
 
   // Example call to SaveKayteFileToBytecode
   SaveKayteFileToBytecode('example.kayte', 'example.bytecode');
 
   // Example call to CreatePK3File
-  CreatePK3File('example.txt', 'example.pk3');
+  //CreatePK3File('example.txt', 'example.pk3');
 
   try
     KayteConverter := TKayte2PCE.Create('/path/to/pceas'); // Specify assembler path

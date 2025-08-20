@@ -1,4 +1,3 @@
-'option explicit On
 
 ' A program to calculate the factorial of a number.
 ' This is an excellent example for bytecode compilation
