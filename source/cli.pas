@@ -206,6 +206,7 @@ var
   Len: LongInt;
   I, KeyLength: Integer;
   Key: AnsiString;
+  PtrVal: NativeInt; // CORRECTED: Moved the declaration here
 begin
   FileStream := TFileStream.Create(OutputFilePath, fmCreate);
   try
@@ -244,15 +245,14 @@ begin
     FileStream.Write(Len, SizeOf(Len));
     for I := 0 to AProgram.VariableMap.Count - 1 do
     begin
-      Key := AProgram.VariableMap.Keys[I];
+      Key := AProgram.VariableMap.Strings[I];
       KeyLength := Length(Key);
       FileStream.Write(KeyLength, SizeOf(KeyLength));
       if KeyLength > 0 then
         FileStream.Write(Key[1], KeyLength);
 
-      // Write the object's pointer, this is not portable but works for the current use case
-      Len := LongInt(AProgram.VariableMap.Objects[I]);
-      FileStream.Write(Len, SizeOf(Len));
+      PtrVal := NativeInt(AProgram.VariableMap.Objects[I]);
+      FileStream.Write(PtrVal, SizeOf(PtrVal));
     end;
 
     // 6. Write SubroutineMap
@@ -260,14 +260,14 @@ begin
     FileStream.Write(Len, SizeOf(Len));
     for I := 0 to AProgram.SubroutineMap.Count - 1 do
     begin
-      Key := AProgram.SubroutineMap.Keys[I];
+      Key := AProgram.SubroutineMap.Strings[I];
       KeyLength := Length(Key);
       FileStream.Write(KeyLength, SizeOf(KeyLength));
       if KeyLength > 0 then
         FileStream.Write(Key[1], KeyLength);
 
-      Len := LongInt(AProgram.SubroutineMap.Objects[I]);
-      FileStream.Write(Len, SizeOf(Len));
+      PtrVal := NativeInt(AProgram.SubroutineMap.Objects[I]);
+      FileStream.Write(PtrVal, SizeOf(PtrVal));
     end;
 
     // 7. Write FormMap
@@ -275,16 +275,15 @@ begin
     FileStream.Write(Len, SizeOf(Len));
     for I := 0 to AProgram.FormMap.Count - 1 do
     begin
-      Key := AProgram.FormMap.Keys[I];
+      Key := AProgram.FormMap.Strings[I];
       KeyLength := Length(Key);
       FileStream.Write(KeyLength, SizeOf(KeyLength));
       if KeyLength > 0 then
         FileStream.Write(Key[1], KeyLength);
 
-      Len := LongInt(AProgram.FormMap.Objects[I]);
-      FileStream.Write(Len, SizeOf(Len));
+      PtrVal := NativeInt(AProgram.FormMap.Objects[I]);
+      FileStream.Write(PtrVal, SizeOf(PtrVal));
     end;
-
   finally
     FileStream.Free;
   end;
@@ -334,6 +333,7 @@ end;
 
 procedure TCLIHandler.CompileKayteFile(const InputFile, OutputFile: string);
 var
+  SourceCode: TStringList;
   Lexer: TLexer;
   Parser: TParser;
 begin
@@ -344,17 +344,30 @@ begin
   end;
 
   Writeln('Compiling ', InputFile, '...');
-  try
-    Lexer := TLexer.Create(InputFile);
-    Parser := TParser.Create(Lexer);
-    //
-    // Perform compilation here
-    //
-    Writeln('Compilation successful!');
 
+  SourceCode := TStringList.Create;
+  try
+    // 1. Load the entire file content into a TStringList
+    SourceCode.LoadFromFile(InputFile);
+
+    // 2. Create the Lexer, passing the source code
+    Lexer := TLexer.Create(SourceCode);
+    try
+      // 3. Create the Parser, passing the Lexer
+      Parser := TParser.Create(Lexer);
+      try
+        //
+        // Perform compilation here using the Parser object
+        //
+        Writeln('Compilation successful!');
+      finally
+        Parser.Free;
+      end;
+    finally
+      Lexer.Free;
+    end;
   finally
-    Lexer.Free;
-    Parser.Free;
+    SourceCode.Free;
   end;
 end;
 

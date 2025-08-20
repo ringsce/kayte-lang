@@ -1,26 +1,41 @@
-// Program that uses conditional compilation for different compilers
-program CrossPlatform;
+unit CrossPlatform;
 
-// In some cases, FPC needs a specific unit for console I/O,
-// while Delphi often doesn't need an explicit 'uses' clause for this.
-{$IFDEF FPC}
+{$mode objfpc} // Recommended for cross-platform compatibility with FPC
+{$H+} // Enable {$H+} for FPC to use ansistring/string compatibility
+
+interface
+
 uses
-  SysUtils;
-{$ENDIF}
+  SysUtils, Classes;
 
 // A function to handle platform-specific file paths.
 function GetUserHomePath: string;
+
+// A function to show compiler-specific integer and pointer sizes.
+procedure PrintArchitectureInfo;
+
+// A function to handle platform-specific string conversions.
+procedure ProcessStrings;
+
+procedure PrintCompilerInfo;
+
+procedure LogDebugInfo(const S: string);
+
+implementation
+
+// The implementation section contains the code for the procedures and functions declared in the interface.
+
+function GetUserHomePath: string;
 begin
+  // On Windows, the home directory is often stored in the HOMEPATH env var.
   {$IFDEF MSWINDOWS}
-    // On Windows, the home directory is often stored in the HOMEPATH env var.
-    Result := GetEnvironmentVariable('HOMEPATH');
+  Result := GetEnvironmentVariable('HOMEPATH');
   {$ELSE}
-    // On Linux and macOS, it's typically in the HOME env var.
-    Result := GetEnvironmentVariable('HOME');
+  // On Linux and macOS, it's typically in the HOME env var.
+  Result := GetEnvironmentVariable('HOME');
   {$ENDIF}
 end;
 
-// A function to show compiler-specific integer and pointer sizes.
 procedure PrintArchitectureInfo;
 begin
   WriteLn('--- Architecture Information ---');
@@ -37,7 +52,6 @@ begin
   WriteLn('');
 end;
 
-// A function to handle platform-specific string conversions.
 procedure ProcessStrings;
 var
   S: string;
@@ -47,12 +61,12 @@ begin
   // Delphi's standard string is Unicode (AnsiString on older versions),
   // while FPC defaults to AnsiString.
   {$IFDEF DELPHI}
-    // We can use WideString for explicit UTF-16 on Delphi
-    WriteLn('Delphi-specific string processing (Unicode assumed): ' + S);
+  // We can use WideString for explicit UTF-16 on Delphi
+  WriteLn('Delphi-specific string processing (Unicode assumed): ' + S);
   {$ENDIF}
   {$IFDEF FPC}
-    // FPC has different functions for string handling depending on the version and mode.
-    WriteLn('FPC-specific string processing (AnsiString assumed): ' + S);
+  // FPC has different functions for string handling depending on the version and mode.
+  WriteLn('FPC-specific string processing (AnsiString assumed): ' + S);
   {$ENDIF}
   WriteLn('');
 end;
@@ -96,14 +110,5 @@ begin
   WriteLn('');
 end;
 
-begin
-  PrintCompilerInfo;
-  PrintArchitectureInfo;
-  ProcessStrings;
-  LogDebugInfo('This is a debug message.');
-
-  WriteLn('User Home Path: ' + GetUserHomePath);
-  WriteLn('Press Enter to exit.');
-  ReadLn;
 end.
 

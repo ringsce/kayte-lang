@@ -1,0 +1,43 @@
+option explicit On
+
+' A program to calculate the factorial of a number.
+' This is an excellent example for bytecode compilation
+' as it involves variable manipulation and a loop.
+
+sub main()
+
+    ' Declare a variable to store the number from the user.
+    ' This will require your compiler to allocate space for an integer.
+    dim myNumber as integer
+    
+    ' Declare a variable to hold the calculated factorial.
+    ' It's initialized to 1 because 0! (zero factorial) is 1.
+    dim myFactorial as integer
+    myFactorial = 1
+    
+    ' Prompt the user for input.
+    ' The compiler must generate bytecode to display this text and
+    ' then read the user's input.
+    print "Enter a non-negative number to calculate its factorial:"
+    input myNumber
+
+    ' Use an if-then-else block to handle invalid input.
+    ' Your compiler needs to handle conditional jumps and branching for this.
+    if myNumber < 0 then
+        print "Error: Factorial is not defined for negative numbers."
+    else
+        ' Use a for-loop to perform the calculation.
+        ' This requires bytecode for loop initialization,
+        ' conditional checks, and incrementing a counter.
+        for i = 1 to myNumber
+            myFactorial = myFactorial * i
+        next i
+        
+        ' Print the final result.
+        ' The compiler must generate instructions to retrieve
+        ' the values of myNumber and myFactorial and format them for display.
+        print "The factorial of " & myNumber & " is " & myFactorial
+    end if
+
+end sub
+

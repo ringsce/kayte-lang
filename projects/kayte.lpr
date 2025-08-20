@@ -34,7 +34,8 @@ uses
   kayte_runtime in '../source/kayte_runtime.pas',
   kayte_loader in '../source/kayte_loader.pas',
   kayte_vm in '../source/kayte_vm.pas',
-  jvm in '../jvm/jvm.pas', AST, CrossPlatform
+  //jvm in '../jvm/jvm.pas',
+  AST
   //kayte_syntax in '../source/KayteSyntax.pas'
   //bytecode_embed in '../source/bytecode_embed.pas'
   //kayte_parser in '../source/kayte_parser.pas',
@@ -237,7 +238,7 @@ procedure InitializeCLIHandler;
 var
   CLIHandler: TCLIHandler; // Declare CLIHandler as a local variable
 begin
-  CLIHandler := TCLIHandler.Create('kc', '1.10.0'); // Instantiate the object with command-line tool info
+  CLIHandler := TCLIHandler.Create('kreatyveC', '1.10.3'); // Instantiate the object with command-line tool info
   try
     try
       Writeln('Parsing command-line arguments...');
@@ -383,7 +384,7 @@ begin
   InitializeCLIHandler;
 
   // Parse and process DTD
-  ParseAndRunDTD;
+  //ParseAndRunDTD;
 
   // Save Kayte source file to bytecode (commented out, can be enabled as needed)
   // SourceFile := 'example.kyte';
@@ -391,13 +392,13 @@ begin
   // SaveKayteFileToBytecode(SourceFile, OutputFile);
 
   // Start the HTTP server
-  StartHTTPServer;
+  //StartHTTPServer;
 
   // Initialize and run the virtual machine
   InitializeAndRunVM;
 
   // Call the procedure with a GitHub repository URL
-  DownloadMapsFromGitHubRepo('https://github.com/username/repo-name/archive/main.zip');
+  //DownloadMapsFromGitHubRepo('https://github.com/username/repo-name/archive/main.zip');
 
   // Call the procedure with the update URL
   CheckForUpdates('https://example.com/updates/info');
@@ -474,6 +475,96 @@ begin
     end;
 end.
 
+
+(*
+  Procedure to parse and handle the 'uses' statement.
+
+  This procedure performs the following steps:
+  1. Matches the 'uses' keyword.
+  2. Enters a loop to parse a comma-separated list of unit names.
+  3. For each unit name, it attempts to find and load the corresponding source file.
+  4. It recursively calls the parser on the new unit's source code, effectively
+     importing its declarations into the current compilation scope.
+  5. It handles errors for missing files or incorrect syntax.
+
+  Assumes the existence of a file resolution mechanism (e.g., a function that
+  maps a unit name like 'SysUtils' to a file path like 'SysUtils.pas' in a
+  known library directory).
+*)
+procedure TParser.UsesStatement;
+var
+  UnitNameToken: TToken;
+  UnitFileName: string;
+begin
+  // 1. Match the 'uses' keyword.
+  Match(tkUses);
+
+  // 2. Loop through a comma-separated list of unit names.
+  repeat
+    // Check if the current token is a valid identifier for a unit name.
+    if FCurrentToken.TokenType <> tkIdentifier then
+    begin
+      Error('Expected a unit name (identifier) after uses statement');
+      Break; // Exit the loop on error
+    end;
+
+    UnitNameToken := FCurrentToken;
+    Advance; // Consume the unit name identifier
+
+    // We can add a check here to prevent circular dependencies.
+    // Example: if FImportedUnits.Contains(UnitNameToken.Lexeme) then continue;
+
+    // 3. Resolve the unit name to a file path.
+    // This is a placeholder for a real file resolution function.
+    // For a simple case, you might just append '.pas' and look in the current directory.
+    UnitFileName := UnitNameToken.Lexeme + '.pas';
+
+    // 4. Load the unit and recursively call the parser on it.
+    try
+      if FileExists(UnitFileName) then
+      begin
+        // Create a new lexer for the unit file.
+        // It's crucial to save and restore the state of the current parser.
+        var OldLexer := FLexer;
+        var OldCurrentToken := FCurrentToken;
+        var OldPreviousToken := FPreviousToken;
+
+        // Initialize a new lexer for the imported file.
+        FLexer := TLexer.Create(UnitFileName);
+        Advance; // Get the first token of the new file
+
+        // Recursively call the main parsing procedure for the imported unit.
+        // This is where the actual importing happens.
+        LProgram; // Assuming LProgram is the entry point for parsing a source file.
+
+        // Restore the parser's state after the unit is done.
+        FLexer.Free;
+        FLexer := OldLexer;
+        FCurrentToken := OldCurrentToken;
+        FPreviousToken := OldPreviousToken;
+
+        // A better approach would be to pass the new lexer instance to the recursive call,
+        // and have LProgram manage its own state, but this demonstrates the concept.
+      end
+      else
+      begin
+        Error('Unit file not found: ' + UnitFileName);
+      end;
+    except
+      on E: Exception do
+      begin
+        Error('Error processing unit ' + UnitNameToken.Lexeme + ': ' + E.Message);
+      end;
+    end;
+
+  // 5. Check for a comma to continue the list.
+  until not MatchAny([tkComma]);
+
+  // Match the final semicolon.
+  Match(tkSemicolon);
+end;
+
+
 // Function for addition
 function Add(a, b: Integer): Integer;
 begin
@@ -528,12 +619,25 @@ end;
 
 (* Commands on the fly *)
 
-(* if else procedure*)
+(*
+    This procedure has been improved to use explicit jump instructions
+    for conditional logic, which is more efficient and scalable.
+
+    Assumptions:
+    - The TInstruction type now includes an Operand field, e.g.,
+      type
+        TInstruction = record
+          Opcode: TBytecodeOpcode;
+          Operand: Integer;
+        end;
+    - The compiler is responsible for calculating and placing the correct
+      jump target addresses in the Operand field during compilation.
+*)
 procedure TVirtualMachine.ExecuteInstruction(Instruction: TInstruction);
 var
   Condition: Boolean;
 begin
-  case Instruction of
+  case Instruction.Opcode of
     NOP: Writeln('Executing NOP (No Operation)');
     LOAD: Writeln('Executing LOAD');
     ADD: Writeln('Executing ADD');
@@ -543,29 +647,37 @@ begin
       Writeln('Executing HALT');
       FRunning := False;
     end;
-    IF_COND:
+
+    // IF-ELSE logic handled with explicit jumps
+    JUMP_IF_FALSE:
     begin
-      // Example: Check if Register 0 > 0 (This is just a placeholder condition)
-      Condition := FRegisters[0] > 0;
+      // Pop the condition from the stack. Let's assume 0 is false, 1 is true.
+      // We will need to have a pop function to get the value from the stack.
+      // For this example, we'll use a placeholder variable.
+      Condition := FStack.Pop() <> 0;
+
+      // If the condition is false, jump to the address specified in the operand.
+      // This address points to the start of the 'else' block or the 'endif'.
       if not Condition then
       begin
-        // Skip to the next ELSE or ENDIF
-        repeat
-          Inc(FPC);
-        until (FMemory[FPC] = Ord(ELSE_COND)) or (FMemory[FPC] = Ord(ENDIF));
+        FPC := Instruction.Operand;
       end;
+      // If true, we simply continue to the next instruction (the 'if' block)
     end;
-    ELSE_COND:
+
+    JUMP:
     begin
-      // Skip to the ENDIF
-      repeat
-        Inc(FPC);
-      until FMemory[FPC] = Ord(ENDIF);
+      // This is a simple, unconditional jump.
+      // It's used after the 'if' block to skip over the 'else' block.
+      FPC := Instruction.Operand;
     end;
+
+    // We can use a simple NOP for ENDIF. It's just a marker for the compiler.
     ENDIF:
-      ; // No operation, just a marker for end of IF
-  else
-    Writeln('Unknown instruction');
+      ; // No operation, the jumps handle the control flow
+
+    else
+      Writeln('Unknown instruction');
   end;
 end;
 

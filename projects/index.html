@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Simple Web Page</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col justify-center items-center p-4">
+
+    <!-- Main Content Container -->
+    <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-2xl mx-auto flex flex-col gap-6">
+
+        <!-- Header Section -->
+        <header class="text-center pb-4 border-b-2 border-gray-200">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Welcome!</h1>
+            <p class="text-lg text-gray-600">This is a modern, responsive web page.</p>
+        </header>
+
+        <!-- Body Section -->
+        <main class="flex-grow">
+            <h2 class="text-2xl font-semibold mb-3">About This Page</h2>
+            <p class="text-gray-700 leading-relaxed mb-4">
+                This document is a demonstration of a clean, responsive web page built with HTML and Tailwind CSS. The design adapts automatically to different screen sizes, ensuring a great experience on both mobile devices and desktops.
+            </p>
+            <p class="text-gray-700 leading-relaxed">
+                The content is structured logically with clear headings and paragraphs, making it easy to read. This is a great starting point for any web project.
+            </p>
+        </main>
+
+        <!-- Button Section -->
+        <div class="flex justify-center mt-4">
+            <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-full transition duration-300 transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                Learn More
+            </button>
+        </div>
+
+        <!-- Footer Section -->
+        <footer class="pt-4 border-t-2 border-gray-200 text-center text-sm text-gray-500 mt-6">
+            <p>&copy; 2024 Simple Web Page. All rights reserved.</p>
+        </footer>
+
+    </div>
+
+</body>
+</html>
+

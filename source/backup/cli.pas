@@ -112,6 +112,183 @@ begin
   inherited Destroy;
 end;
 
+{ TBytecodeGenerator }
+
+function TBytecodeGenerator.LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
+var
+  FileStream: TFileStream;
+  Len: LongInt;
+  I, KeyLength: Integer;
+  Key: AnsiString;
+  Value: Pointer;
+  ProgramTitleBuffer: string;
+begin
+  Result := TByteCodeProgram.Create;
+
+  FileStream := TFileStream.Create(InputFilePath, fmOpenRead or fmShareDenyWrite);
+  try
+    // --- Full Deserialization of TByteCodeProgram ---
+
+    // 1. Read ProgramTitle
+    FileStream.Read(Len, SizeOf(Len));
+    SetLength(ProgramTitleBuffer, Len);
+    if Len > 0 then
+      FileStream.Read(ProgramTitleBuffer[1], Len);
+    Result.ProgramTitle := ProgramTitleBuffer;
+
+    // 2. Read Instructions
+    FileStream.Read(Len, SizeOf(Len));
+    SetLength(Result.Instructions, Len);
+    if Len > 0 then
+      FileStream.Read(Result.Instructions[0], Len * SizeOf(TBCInstruction));
+
+    // 3. Read StringLiterals
+    FileStream.Read(Len, SizeOf(Len));
+    for I := 0 to Len - 1 do
+    begin
+      FileStream.Read(KeyLength, SizeOf(KeyLength));
+      SetLength(Key, KeyLength);
+      if KeyLength > 0 then
+        FileStream.Read(Key[1], KeyLength);
+      Result.StringLiterals.Add(Key);
+    end;
+
+    // 4. Read IntegerLiterals
+    FileStream.Read(Len, SizeOf(Len));
+    SetLength(Result.IntegerLiterals, Len);
+    if Len > 0 then
+      FileStream.Read(Result.IntegerLiterals[0], Len * SizeOf(Int64));
+
+    // 5. Read VariableMap
+    FileStream.Read(Len, SizeOf(Len));
+    for I := 0 to Len - 1 do
+    begin
+      FileStream.Read(KeyLength, SizeOf(KeyLength));
+      SetLength(Key, KeyLength);
+      if KeyLength > 0 then
+        FileStream.Read(Key[1], KeyLength);
+      FileStream.Read(Value, SizeOf(Value));
+      Result.VariableMap.AddObject(Key, TObject(Value));
+    end;
+
+    // 6. Read SubroutineMap
+    FileStream.Read(Len, SizeOf(Len));
+    for I := 0 to Len - 1 do
+    begin
+      FileStream.Read(KeyLength, SizeOf(KeyLength));
+      SetLength(Key, KeyLength);
+      if KeyLength > 0 then
+        FileStream.Read(Key[1], KeyLength);
+      FileStream.Read(Value, SizeOf(Value));
+      Result.SubroutineMap.AddObject(Key, TObject(Value));
+    end;
+
+    // 7. Read FormMap
+    FileStream.Read(Len, SizeOf(Len));
+    for I := 0 to Len - 1 do
+    begin
+      FileStream.Read(KeyLength, SizeOf(KeyLength));
+      SetLength(Key, KeyLength);
+      if KeyLength > 0 then
+        FileStream.Read(Key[1], KeyLength);
+      FileStream.Read(Value, SizeOf(Value));
+      Result.FormMap.AddObject(Key, TObject(Value));
+    end;
+
+  finally
+    FileStream.Free;
+  end;
+end;
+
+procedure TBytecodeGenerator.SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: String);
+var
+  FileStream: TFileStream;
+  Len: LongInt;
+  I, KeyLength: Integer;
+  Key: AnsiString;
+  PtrVal: NativeInt; // CORRECTED: Moved the declaration here
+begin
+  FileStream := TFileStream.Create(OutputFilePath, fmCreate);
+  try
+    // 1. Write ProgramTitle
+    Len := Length(AProgram.ProgramTitle);
+    FileStream.Write(Len, SizeOf(Len));
+    if Len > 0 then
+      FileStream.Write(AProgram.ProgramTitle[1], Len);
+
+    // 2. Write Instructions
+    Len := Length(AProgram.Instructions);
+    FileStream.Write(Len, SizeOf(Len));
+    if Len > 0 then
+      FileStream.Write(AProgram.Instructions[0], Len * SizeOf(TBCInstruction));
+
+    // 3. Write StringLiterals
+    Len := AProgram.StringLiterals.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to AProgram.StringLiterals.Count - 1 do
+    begin
+      Key := AProgram.StringLiterals[I];
+      KeyLength := Length(Key);
+      FileStream.Write(KeyLength, SizeOf(KeyLength));
+      if KeyLength > 0 then
+        FileStream.Write(Key[1], KeyLength);
+    end;
+
+    // 4. Write IntegerLiterals
+    Len := Length(AProgram.IntegerLiterals);
+    FileStream.Write(Len, SizeOf(Len));
+    if Len > 0 then
+      FileStream.Write(AProgram.IntegerLiterals[0], Len * SizeOf(Int64));
+
+    // 5. Write VariableMap
+    Len := AProgram.VariableMap.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to AProgram.VariableMap.Count - 1 do
+    begin
+      Key := AProgram.VariableMap.Strings[I];
+      KeyLength := Length(Key);
+      FileStream.Write(KeyLength, SizeOf(KeyLength));
+      if KeyLength > 0 then
+        FileStream.Write(Key[1], KeyLength);
+
+      PtrVal := NativeInt(AProgram.VariableMap.Objects[I]);
+      FileStream.Write(PtrVal, SizeOf(PtrVal));
+    end;
+
+    // 6. Write SubroutineMap
+    Len := AProgram.SubroutineMap.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to AProgram.SubroutineMap.Count - 1 do
+    begin
+      Key := AProgram.SubroutineMap.Strings[I];
+      KeyLength := Length(Key);
+      FileStream.Write(KeyLength, SizeOf(KeyLength));
+      if KeyLength > 0 then
+        FileStream.Write(Key[1], KeyLength);
+
+      PtrVal := NativeInt(AProgram.SubroutineMap.Objects[I]);
+      FileStream.Write(PtrVal, SizeOf(PtrVal));
+    end;
+
+    // 7. Write FormMap
+    Len := AProgram.FormMap.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to AProgram.FormMap.Count - 1 do
+    begin
+      Key := AProgram.FormMap.Strings[I];
+      KeyLength := Length(Key);
+      FileStream.Write(KeyLength, SizeOf(KeyLength));
+      if KeyLength > 0 then
+        FileStream.Write(Key[1], KeyLength);
+
+      PtrVal := NativeInt(AProgram.FormMap.Objects[I]);
+      FileStream.Write(PtrVal, SizeOf(PtrVal));
+    end;
+  finally
+    FileStream.Free;
+  end;
+end;
+
 { TCLIHandler }
 
 constructor TCLIHandler.Create(const AppName, AppVersion: string);
@@ -192,7 +369,6 @@ begin
 
   Writeln('Running ', BytecodeFile, '...');
   try
-    // The call to create the TVirtualMachine instance.
     VM := TVirtualMachine.Create(BytecodeFile);
     VM.Run;
     Writeln('Execution finished.');

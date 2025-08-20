@@ -1,76 +1,49 @@
-# Kayte Lang
+Kayte Lang
+Kayte Lang is a modern experimental programming language designed for building applications quickly, efficiently, and cross-platform.
 
-[](https://circleci.com/gh/ringsce/kayte-lang/tree/main)
+It compiles into bytecode that runs on the Kayte Virtual Machine (KVM), ensuring portability across macOS, Linux, and Windows.
 
------
+🚀 Language Overview
+1. Functions 🟢
+Implemented: Function definition and calls are fully functional.
 
-**Kayte Lang** is a modern **experimental programming language** designed for building applications **quickly, efficiently, and cross-platform**.
-
-It compiles into **bytecode** that runs on the **Kayte Virtual Machine (KVM)**, ensuring portability across macOS, Linux, and Windows.
-
------
-
-## 🚀 Language Overview
-
-### 1\. Functions 🟢
-
-**Implemented:** Function definition and calls are fully functional.
-
-```kayte
 function greet() {
     print("Hello, World from Kayte Lang!");
 }
-```
 
-### 2\. Variables 🟢
+2. Variables 🟢
+Implemented: Variable declaration and assignment are functional.
 
-**Implemented:** Variable declaration and assignment are functional.
-
-```kayte
 var name = "Kayte Lang";
-```
 
-### 3\. Conditionals ✅
+3. Conditionals ✅
+Implemented: The core if/else logic, including support for if, else if, and else statements, is now highly efficient. The compiler and VM use explicit jump instructions (e.g., JUMP_IF_FALSE, JUMP) instead of simple markers, which provides a significant boost in performance and reliability for conditional branching.
 
-**Implemented:** The core `if/else` logic, including support for `if`, `else if`, and `else` statements, is now fully functional.
-
-```kayte
 if (name == "Kayte Lang") {
     print("Welcome to Kayte Lang!");
 } else {
     print("Unknown language");
 }
-```
 
-### 4\. Loops 🟡
+4. Loops 🟡
+Partially Implemented: The basic for loop is implemented.
 
-**Partially Implemented:** The basic `for` loop is implemented.
-
-```kayte
 for (var i = 0; i < 10; i++) {
     print(i);
 }
-```
 
-### 5\. Error Handling 🟡
+5. Error Handling 🟡
+Partially Implemented: The try-catch mechanism is in the proof-of-concept stage.
 
-**Partially Implemented:** The `try-catch` mechanism is in the proof-of-concept stage.
-
-```kayte
 try {
     var result = riskyOperation();
 } catch (error) {
     print("An error occurred: " + error);
 }
-```
 
------
+🎨 Example: Simple UI Script
+Implemented: The declarative UI syntax is implemented. You can define windows, buttons, and bind events to functions.
 
-## 🎨 Example: Simple UI Script
-
-**Implemented:** The declarative UI syntax is implemented. You can define windows, buttons, and bind events to functions.
-
-```kayte
 window main {
     title: "Kayte Lang Demo"
     width: 800
@@ -88,36 +61,48 @@ window main {
 function showMessage() {
     print("Button clicked!");
 }
-```
 
-➡️ Defines a **basic window with a button**. When clicked, it runs `showMessage()`.
+➡️ Defines a basic window with a button. When clicked, it runs showMessage().
 
------
+⚡ Bytecode Compilation & Execution
+Implemented: The compiler and VM can generate and execute bytecode.
+Implemented: The VM can now load and save bytecode to/from a file.
 
-## ⚡ Bytecode Compilation & Execution
+This makes Kayte Lang fast, lightweight, and portable.
 
-**Implemented:** The compiler and VM can generate and execute bytecode.
-**Implemented:** The VM can now load and save bytecode to/from a file.
+Example Bytecode Program
+This is an example of a simple factorial calculator written in Kayte, which is a great test for bytecode generation.
 
-This makes Kayte Lang **fast, lightweight, and portable**.
+' Factorial Calculator in Kayte
+sub main()
+    dim myNumber as integer
+    dim myFactorial as integer
+    myFactorial = 1
+    
+    print "Enter a non-negative number:"
+    input myNumber
 
-### Example Bytecode
+    if myNumber < 0 then
+        print "Error: Factorial is not defined for negative numbers."
+    else
+        for i = 1 to myNumber
+            myFactorial = myFactorial * i
+        next i
+        
+        print "The factorial of " & myNumber & " is " & myFactorial
+    end if
+end sub
 
-```plaintext
+Example Bytecode
 LOAD_CONST      0 (Button clicked!)
 CALL_FUNCTION   1
 RETURN_VALUE
-```
 
------
+🖼️ Declarative UI with .kfrm Files and XML
+Implemented: The .kfrm file format for declarative UI is now supported. This enables a clean, structured way to build cross-platform user interfaces. The XML example is a style you are considering, but the .kfrm style is the one that's currently implemented.
 
-## 🖼️ Declarative UI with `.kfrm` Files and XML
+Example login.kfrm
 
-**Implemented:** The `.kfrm` file format for declarative UI is now supported. This enables a clean, structured way to build **cross-platform user interfaces**. The XML example is a style you are considering, but the `.kfrm` style is the one that's currently implemented.
-
-**Example `login.kfrm`**
-
-```kayte
 form LoginWindow {
     title: "User Login"
     width: 400
@@ -131,65 +116,64 @@ form LoginWindow {
         label { id: "messageLabel" text: "" }
     }
 }
-```
 
------
+⚙️ JVM Interoperability (JNI) Test ✅
+Implemented and Tested: A crucial step toward wider platform adoption is the ability to run Kayte bytecode on the JVM. The JNI bridge is fully functional.
 
-## ⚙️ JVM Interoperability (JNI) Test ✅
-
-**Implemented and Tested:** A crucial step toward wider platform adoption is the ability to run Kayte bytecode on the JVM. The JNI bridge is fully functional.
-
-### Test Objective
-
+Test Objective
 Verify that a compiled Kayte program can be loaded from a file, passed to a Java VM as a byte array, and successfully deserialized and executed within a Java class.
 
-### Test Architecture
+Test Architecture
+Pascal-side (JVM.pas): Reads the compiled .kbyte file into a TBytes array and uses JNI to call a static Java method.
 
-  * **Pascal-side (`JVM.pas`):** Reads the compiled `.kbyte` file into a `TBytes` array and uses JNI to call a static Java method.
-  * **Java-side (`KayteVM.java`):** A static method `execute()` receives the byte array, deserializes the Kayte program, and runs the VM execution logic.
+Java-side (KayteVM.java): A static method execute() receives the byte array, deserializes the Kayte program, and runs the VM execution logic.
 
-### Test Status
+Test Status
+✅ Bytecode serialization: Kayte programs are correctly saved to a binary file.
 
-  * ✅ **Bytecode serialization:** Kayte programs are correctly saved to a binary file.
-  * ✅ **File loading:** The Pascal code can read the entire `.kbyte` file into a byte array.
-  * ✅ **JNI bridge:** The `JNI_CreateJavaVM` and `CallStaticVoidMethod` calls are successfully linking the Pascal application to the JVM.
-  * ✅ **Java Deserialization:** The `KayteVM.java` class can correctly read the bytecode stream and reconstruct the program's components (title, instructions, literals, etc.).
-  * ✅ **Execution:** The VM execution logic within the Java environment is implemented and has successfully run basic test cases, confirming the feasibility of a JVM-based KVM.
+✅ File loading: The Pascal code can read the entire .kbyte file into a byte array.
+
+✅ JNI bridge: The JNI_CreateJavaVM and CallStaticVoidMethod calls are successfully linking the Pascal application to the JVM.
+
+✅ Java Deserialization: The KayteVM.java class can correctly read the bytecode stream and reconstruct the program's components (title, instructions, literals, etc.).
+
+✅ Execution: The VM execution logic within the Java environment is implemented and has successfully run basic test cases, confirming the feasibility of a JVM-based KVM.
 
 This JNI test confirms the technical feasibility of running Kayte on a platform as robust as the JVM, opening the door for future integration with Java libraries and frameworks.
 
------
+📌 Roadmap
+✅ Proof-of-Concept VM
 
-## 📌 Roadmap
+✅ Bytecode File I/O (save/load)
 
-  * ✅ Proof-of-Concept VM
-  * ✅ Bytecode File I/O (save/load)
-  * ✅ Declarative UI with `.kfrm` files
-  * ✅ JVM Interoperability (JNI) Test
-  * 🚧 Advanced Type System → safer & faster programs
-  * 🚧 Optimized VM → better runtime performance
-  * 🚧 Standard Libraries → file handling, networking, utilities
-  * 🚧 Cross-Platform UI Toolkit → **build once, run everywhere**
+✅ Declarative UI with .kfrm files
 
------
+✅ JVM Interoperability (JNI) Test
 
-## 🤝 Get Involved
+🚧 Advanced Type System → safer & faster programs
 
-Kayte Lang is **open-source** — we welcome contributors of all levels\!
+🚧 Optimized VM → better runtime performance
 
-  * **Tilde Desktop (Kayte IDE / Environment)**: [ringsce/tilde-desktop](https://github.com/ringsce/tilde-desktop)
-  * **Kayte Lang Compiler & VM**: [ringsce/kayte-lang](https://github.com/ringsce/kayte-lang)
+🚧 Standard Libraries → file handling, networking, utilities
+
+🚧 Cross-Platform UI Toolkit → build once, run everywhere
+
+🤝 Get Involved
+Kayte Lang is open-source — we welcome contributors of all levels!
+
+Tilde Desktop (Kayte IDE / Environment): ringsce/tilde-desktop
+
+Kayte Lang Compiler & VM: ringsce/kayte-lang
 
 Ways to help:
 
-  * Improve the language & VM
-  * Build standard libraries
-  * Share feedback & ideas
+Improve the language & VM
 
------
+Build standard libraries
 
-## ✨ Conclusion
+Share feedback & ideas
 
-Kayte Lang is in its **Proof of Concept (PoC)** stage — but its **clean syntax**, **bytecode execution**, and **UI-first approach** make it a strong foundation for a **modern, cross-platform development ecosystem**.
+✨ Conclusion
+Kayte Lang is in its Proof of Concept (PoC) stage — but its clean syntax, bytecode execution, and UI-first approach make it a strong foundation for a modern, cross-platform development ecosystem.
 
-Stay tuned — we’re just getting started\! 🚀
+Stay tuned — we’re just getting started! 🚀
