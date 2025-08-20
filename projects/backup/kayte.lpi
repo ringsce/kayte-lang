@@ -110,6 +110,7 @@
       <Unit>
         <Filename Value="../source/virtualmachine.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="VirtualMachine"/>
       </Unit>
       <Unit>
         <Filename Value="../source/xmlparser.pas"/>
@@ -173,6 +174,11 @@
         <Filename Value="../jvm/jvm.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="JVM"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/ast.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="AST"/>
       </Unit>
     </Units>
   </ProjectOptions>

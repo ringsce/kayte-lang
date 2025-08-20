@@ -3,31 +3,42 @@ unit AST;
 interface
 
 uses
-  SysUtils;
+  SysUtils, Classes; // Added 'Classes' to resolve TList
 
-// Forward declarations to handle circular references if needed
+// Define the core AST node types as classes
 type
-  TExpressionNode = class;
-  TStatementNode = class;
-  TStatementNodeList = class;
-
-// Define the core AST node types as classes or records
-type
-  TExpressionNode = record
+  // Define TExpressionNode as a class
+  TExpressionNode = class
     // Fields to hold expression data, e.g.,
     // FType: TNodeType;
     // FValue: TValue;
   end;
 
-  TStatementNode = record
+  // Define TStatementNode as a class
+  TStatementNode = class
     // Fields to hold statement data, e.g.,
     // FKind: TStatementKind;
   end;
 
+  // A list to hold multiple statement nodes
   TStatementNodeList = class(TList)
-    // A list to hold multiple statement nodes
+    function Add(AStatement: TStatementNode): Integer;
+    function GetItem(Index: Integer): TStatementNode;
+    property Items[Index: Integer]: TStatementNode read GetItem; default;
   end;
 
 implementation
+
+{ TStatementNodeList }
+
+function TStatementNodeList.Add(AStatement: TStatementNode): Integer;
+begin
+  Result := inherited Add(AStatement);
+end;
+
+function TStatementNodeList.GetItem(Index: Integer): TStatementNode;
+begin
+  Result := TStatementNode(inherited Get(Index));
+end;
 
 end.

@@ -180,6 +180,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="AST"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/crossplatform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="CrossPlatform"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

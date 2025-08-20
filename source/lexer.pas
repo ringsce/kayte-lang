@@ -10,6 +10,8 @@ uses
 type
   TLexer = class
   private
+  FSource: String;
+    FPosition: Integer;
     FSourceCode: TStringList;
     FCurrentLineIndex: Integer;
     FCurrentCharIndex: Integer;
@@ -31,6 +33,8 @@ type
     destructor Destroy; override;
     procedure Reset;
     function GetNextToken: TToken;
+    function PeekNextToken: TToken;
+
 
     // --- Added Public Properties for Current Position ---
     property CurrentLine: Integer read FCurrentLineIndex;
@@ -405,6 +409,21 @@ begin
   Result.TokenType := CurrentTokType;
   Result.Lexeme := LexemeBuilder;
 end;
+
+function TLexer.PeekNextToken: TToken;
+var
+  SavedPosition: Integer;
+begin
+  // Save the current position
+  SavedPosition := FPosition;
+
+  // Get the next token without updating FPosition
+  Result := GetNextToken;
+
+  // Restore the original position
+  FPosition := SavedPosition;
+end;
+
 
 end.
 
