@@ -109,8 +109,8 @@
         <UnitName Value="CLI"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="15"/>
-        <TopLine Value="457"/>
-        <CursorPos X="43" Y="467"/>
+        <TopLine Value="276"/>
+        <CursorPos Y="309"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -366,22 +366,6 @@
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="../source/parser.pas"/>
-        <Caret Line="113" Column="54" TopLine="85"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="502" TopLine="469"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="137" TopLine="104"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="99" Column="17" TopLine="82"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
         <Caret Line="116" Column="46" TopLine="88"/>
       </Position>
       <Position>
@@ -483,6 +467,22 @@
       <Position>
         <Filename Value="../source/cli.pas"/>
         <Caret Line="251" Column="42" TopLine="225"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="467" Column="43" TopLine="457"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="21" Column="17" TopLine="5"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="22" Column="15" TopLine="5"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="339" TopLine="306"/>
       </Position>
     </JumpHistory>
     <RunParams>
