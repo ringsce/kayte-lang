@@ -8,8 +8,8 @@
         <Filename Value="kayte.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="534"/>
-        <CursorPos Y="567"/>
+        <TopLine Value="428"/>
+        <CursorPos Y="461"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
       </Unit>
@@ -109,8 +109,8 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="CLI"/>
         <EditorIndex Value="9"/>
-        <TopLine Value="289"/>
-        <CursorPos Y="289"/>
+        <TopLine Value="35"/>
+        <CursorPos X="5" Y="56"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -348,7 +348,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="307"/>
         <CursorPos X="27" Y="323"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="8"/>
       </Unit>
       <Unit>
         <Filename Value="../source/crossplatform.pas"/>
@@ -360,15 +360,7 @@
         <UsageCount Value="159"/>
       </Unit>
     </Units>
-    <JumpHistory HistoryIndex="28">
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="119" Column="54" TopLine="86"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="504" TopLine="449"/>
-      </Position>
+    <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="../source/parser.pas"/>
         <Caret Line="103" Column="20" TopLine="86"/>
@@ -476,6 +468,18 @@
       <Position>
         <Filename Value="kayte.lpr"/>
         <Caret Line="38" Column="21" TopLine="20"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="323" Column="3" TopLine="309"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="56" Column="5" TopLine="35"/>
+      </Position>
+      <Position>
+        <Filename Value="kayte.lpr"/>
+        <Caret Line="348" Column="3" TopLine="331"/>
       </Position>
     </JumpHistory>
     <RunParams>

@@ -290,53 +290,6 @@ begin
   end;
 end;
 
-(* StartHTTPServer *)
-procedure StartHTTPServer;
-var
-  Port: Integer;
-  Server: TSimpleHTTPServer;
-  StopSignal: Boolean; // Flag to handle stopping the server
-begin
-  Port := 9090; // Default port
-  StopSignal := False; // Initialize StopSignal
-
-  Writeln('Starting Kings server on port ', Port, '...');
-
-  if ParamCount > 0 then
-  begin
-    try
-      Port := StrToInt(ParamStr(1)); // Allow user to specify the port via command-line
-    except
-      on E: EConvertError do // Catch specific conversion errors
-      begin
-        Writeln('Invalid port specified. Using default port ', Port);
-      end;
-    end;
-  end;
-
-  Server := nil;
-  try
-    Server := TSimpleHTTPServer.Create(Port);
-    try
-      Server.StartServer;
-      Writeln('Server is running. Press [Ctrl+C] to stop...');
-
-      // Simulate stopping the server with a condition
-      while not StopSignal do
-        Sleep(1000); // Keep the main thread alive
-    except
-      on E: Exception do
-        Writeln('An error occurred while starting the server: ', E.Message);
-    end;
-  finally
-    if Assigned(Server) then
-    begin
-      Server.StopServer;
-      FreeAndNil(Server);
-    end;
-    Writeln('Server stopped.');
-  end;
-end;
 
 procedure InitializeAndRunVM;
 var
@@ -417,6 +370,95 @@ begin
   end;
 
 end.
+
+
+(*
+  Procedure to parse a `try-catch` block.
+
+  Syntax:
+  try { <body> } catch (error_var) { <body> }
+
+  This procedure performs the following steps:
+  1. Matches the `try` keyword and the opening curly brace '{'.
+  2. Emits a placeholder instruction that the VM can use to find the exception handler.
+     This placeholder will be patched later with the address of the `catch` block.
+  3. Parses the statements within the `try` block.
+  4. Emits a `JUMP` instruction to skip the `catch` block if the `try` block completes successfully.
+     This jump's target is also a placeholder to be patched.
+  5. Matches the closing curly brace '}' for the `try` block.
+  6. Records the bytecode address of the `catch` block.
+  7. Patches the placeholder from step 2 with the address of the `catch` block.
+  8. Matches the `catch` keyword and the opening parenthesis '('.
+  9. Parses the error variable identifier (e.g., `error`).
+  10. Matches the closing parenthesis ')' and opening curly brace '{' for the `catch` block.
+  11. Parses the statements within the `catch` block.
+  12. Matches the closing curly brace '}'.
+  13. Patches the placeholder from step 4 with the address of the instruction immediately following the `catch` block.
+*)
+procedure TParser.TryStatement;
+var
+  TryBlockAddress: Integer;
+  JumpToCatchAddress: Integer;
+  JumpOverCatchAddress: Integer;
+  CatchBlockAddress: Integer;
+  ErrorVarIndex: Integer;
+begin
+  // 1. Match the 'try' keyword.
+  Match(tkTry);
+  Match(tkBraceOpen);
+
+  // 2. Emit an instruction to mark the beginning of the try block.
+  // We need to tell the VM where to jump if an exception is thrown.
+  TryBlockAddress := FBytecodeGenerator.NextInstructionAddress;
+  FBytecodeGenerator.EmitInstruction(BC_PUSH_TRY_HANDLER);
+  FBytecodeGenerator.EmitOperand(0); // Placeholder for the catch block address
+
+  // 3. Parse the statements inside the 'try' block.
+  while not (Check(tkBraceClose) or Check(tkEndOfFile)) do
+  begin
+    Statement;
+  end;
+
+  // 4. Emit a jump to skip the catch block if the try block is successful.
+  JumpOverCatchAddress := FBytecodeGenerator.NextInstructionAddress;
+  FBytecodeGenerator.EmitInstruction(BC_JUMP);
+  FBytecodeGenerator.EmitOperand(0); // Placeholder for the jump target
+
+  // 5. Match the closing '}'.
+  Match(tkBraceClose);
+
+  // 6. Record the address of the catch block.
+  CatchBlockAddress := FBytecodeGenerator.NextInstructionAddress;
+
+  // 7. Patch the handler address in the PUSH_TRY_HANDLER instruction.
+  FBytecodeGenerator.PatchOperand(TryBlockAddress + 1, CatchBlockAddress);
+
+  // 8. Match the 'catch' keyword and the error variable.
+  Match(tkCatch);
+  Match(tkParenthesisOpen);
+  if FCurrentToken.TokenType <> tkIdentifier then
+  begin
+    Error('Expected an identifier for the catch variable.');
+  end;
+  // Here, you would get the variable index for the error variable and store it.
+  ErrorVarIndex := FBytecodeGenerator.GetVariableIndex(FCurrentToken.Lexeme);
+  Advance; // Consume the identifier
+  Match(tkParenthesisClose);
+  Match(tkBraceOpen);
+
+  // 9. Parse the statements inside the 'catch' block.
+  while not (Check(tkBraceClose) or Check(tkEndOfFile)) do
+  begin
+    Statement;
+  end;
+
+  // 10. Match the closing '}'.
+  Match(tkBraceClose);
+
+  // 11. Patch the JUMP instruction to skip the catch block.
+  FBytecodeGenerator.PatchOperand(JumpOverCatchAddress + 1, FBytecodeGenerator.NextInstructionAddress);
+end;
+
 
 
 procedure TVirtualMachine.InitializeRegisters(Count: Integer);
@@ -680,6 +722,101 @@ begin
       Writeln('Unknown instruction');
   end;
 end;
+
+(*
+  Procedure to parse a C-style `for` loop and generate bytecode.
+
+  Syntax:
+  for ( <initializer>; <condition>; <increment> ) { <body> }
+
+  This procedure performs the following steps to handle the loop:
+  1. Matches the `for` keyword and the opening parenthesis `(`.
+  2. Parses the `<initializer>` expression (e.g., `var i = 0;`).
+  3. Matches the first semicolon `;`.
+  4. Records the start of the loop body for bytecode jump instructions.
+     This address is the target for the unconditional jump at the end of the loop body.
+  5. Parses the `<condition>` expression (e.g., `i < 10;`).
+  6. Matches the second semicolon `;`.
+  7. Generates a `JUMP_IF_FALSE` instruction and reserves space for the jump target.
+  8. Records the start of the increment expression's bytecode.
+  9. Parses the `<increment>` expression (e.g., `i++`).
+  10. Generates an unconditional `JUMP` instruction back to the loop body's start.
+  11. Matches the closing parenthesis `)`.
+  12. Matches the opening curly brace `{`.
+  13. Parses the loop body statement.
+  14. Matches the closing curly brace `}`.
+  15. Generates an unconditional `JUMP` back to the start of the increment expression.
+  16. Patches the `JUMP_IF_FALSE` instruction's target address to the end of the loop.
+*)
+function TParser.ForStatement: TStatementNode;
+var
+  Initializer: TStatementNode;
+  Condition: TExpressionNode;
+  Increment: TStatementNode;
+  Body: TStatementNode;
+  LoopStart: Integer;
+  JumpIfFalseAddr: Integer;
+begin
+  // 1. Match the `for` keyword and the opening parenthesis.
+  Match(tkFor);
+  Match(tkParenthesisOpen);
+
+  // 2. Parse the initializer expression (e.g., `var i = 0;`).
+  Initializer := Statement;
+
+  // Store the initializer node to be part of the ForStatementNode AST.
+  Result := TForStatementNode.Create(Initializer);
+
+  // 3. Get the bytecode address for the loop start (before the condition).
+  LoopStart := FBytecodeGenerator.NextInstructionAddress;
+
+  // 4. Parse the condition expression (e.g., `i < 10`).
+  Condition := Expression;
+  // Match the second semicolon.
+  Match(tkSemicolon);
+
+  // Store the condition node.
+  TForStatementNode(Result).SetCondition(Condition);
+
+  // 5. Generate a JUMP_IF_FALSE instruction. The target address is unknown for now.
+  // We'll patch this later after parsing the body.
+  JumpIfFalseAddr := FBytecodeGenerator.EmitInstruction(BC_JUMP_IF_FALSE);
+  FBytecodeGenerator.EmitOperand(0); // Placeholder for jump address
+
+  // 6. Record the start of the increment part for a later jump.
+  var IncrementStart := FBytecodeGenerator.NextInstructionAddress;
+
+  // 7. Parse the increment expression (e.g., `i++`).
+  Increment := Statement;
+
+  // Store the increment node.
+  TForStatementNode(Result).SetIncrement(Increment);
+
+  // 8. Generate an unconditional jump back to the condition check.
+  FBytecodeGenerator.EmitInstruction(BC_JUMP);
+  FBytecodeGenerator.EmitOperand(LoopStart);
+
+  // 9. Match the closing parenthesis.
+  Match(tkParenthesisClose);
+
+  // 10. Record the address of the loop body.
+  var LoopBodyStart := FBytecodeGenerator.NextInstructionAddress;
+
+  // 11. Parse the loop body.
+  Body := Statement;
+
+  // Store the body node.
+  TForStatementNode(Result).SetBody(Body);
+
+  // 12. Generate an unconditional jump back to the increment.
+  FBytecodeGenerator.EmitInstruction(BC_JUMP);
+  FBytecodeGenerator.EmitOperand(IncrementStart);
+
+  // 13. Patch the JUMP_IF_FALSE instruction.
+  // The jump target is the address right after the loop's body.
+  FBytecodeGenerator.PatchOperand(JumpIfFalseAddr, FBytecodeGenerator.NextInstructionAddress);
+end;
+
 
 procedure TVirtualMachine.ExecuteInstruction(Instruction: TBCInstruction);
 var

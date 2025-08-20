@@ -32,8 +32,8 @@ for (var i = 0; i < 10; i++) {
     print(i);
 }
 
-5. Error Handling 🟡
-Partially Implemented: The try-catch mechanism is in the proof-of-concept stage.
+5. Error Handling ✅
+Implemented: The try-catch mechanism is now fully functional. The compiler generates jump instructions and the VM manages an exception handler stack, allowing for robust runtime error handling.
 
 try {
     var result = riskyOperation();
@@ -117,6 +117,9 @@ form LoginWindow {
     }
 }
 
+🌐 HTTP Server
+Implemented: A new command-line flag --http has been added to start a simple HTTP server. This feature allows Kayte Lang to serve web content, opening up possibilities for web-based applications.
+
 ⚙️ JVM Interoperability (JNI) Test ✅
 Implemented and Tested: A crucial step toward wider platform adoption is the ability to run Kayte bytecode on the JVM. The JNI bridge is fully functional.
 
@@ -149,6 +152,10 @@ This JNI test confirms the technical feasibility of running Kayte on a platform 
 ✅ Declarative UI with .kfrm files
 
 ✅ JVM Interoperability (JNI) Test
+
+✅ Simple HTTP Server
+
+✅ Error Handling
 
 🚧 Advanced Type System → safer & faster programs
 
