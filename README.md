@@ -25,11 +25,18 @@ if (name == "Kayte Lang") {
     print("Unknown language");
 }
 
-4. Loops 🟡
-Partially Implemented: The basic for loop is implemented.
+4. Loops ✅
+Implemented: Both for and foreach loops are fully functional, providing robust iteration capabilities.
 
+// Standard for loop
 for (var i = 0; i < 10; i++) {
     print(i);
+}
+
+// Foreach loop for collections
+var fruits = ["apple", "banana", "cherry"];
+foreach fruit in fruits {
+    print("I have a " + fruit);
 }
 
 5. Error Handling ✅
@@ -156,6 +163,8 @@ This JNI test confirms the technical feasibility of running Kayte on a platform 
 ✅ Simple HTTP Server
 
 ✅ Error Handling
+
+✅ Loops
 
 🚧 Advanced Type System → safer & faster programs
 
