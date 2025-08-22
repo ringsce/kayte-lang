@@ -21,7 +21,7 @@ uses
   TestBytecode in '../source/TestBytecode.pas',
   VirtualMachine in '../source/VirtualMachine.pas',
   XMLParser in '../source/XMLParser.pas',
-  SimpleHTTPServer in '../source/SimpleHTTPServer.pas',
+  SimpleHTTPServer in '../components/http/SimpleHTTPServer.pas',
   sdk in '../source/sdk.pas',
   c99 in '../source/c99.pas',
   //sys_ios in '../source/sys_ios.pas',
@@ -45,7 +45,6 @@ uses
 
 type
   TInstruction = (NOP, LOAD, ADD, SUB, HALT, IRC_HELP, IRC_WHOIS, IRC_SERVER, IRC_CONNECT, IF_COND, ELSE_COND, ENDIF, CASE_COND, ENDCASE);
-
 
 
 TVirtualMachine = class
@@ -89,6 +88,48 @@ begin
     Process.Free;
   end;
 end;
+
+(* HTTPServer and node *)
+
+{ Utility function to load a file into a string }
+function LoadFileAsString(const FileName: string): string;
+var
+  FileStream: TFileStream;
+begin
+  FileStream := nil;
+  try
+    FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+    SetLength(Result, FileStream.Size);
+    if FileStream.Size > 0 then
+    begin
+      FileStream.Read(Result[1], FileStream.Size);
+    end;
+  finally
+    FileStream.Free;
+  end;
+end;
+
+{ Helper function to check if a command-line tool exists }
+function CheckForTool(const ToolName: string): Boolean;
+var
+  P: TProcess;
+begin
+  Result := False;
+  P := nil;
+  try
+    P := TProcess.Create(nil);
+    P.Executable := ToolName;
+    P.Parameters.Add('-v'); // Use -v for version check, a common practice
+    P.Options := [poUsePipes, poNoConsole]; // Hide console output
+    P.Execute;
+    if P.ExitStatus = 0 then
+      Result := True;
+  finally
+    FreeAndNil(P);
+  end;
+end;
+
+
 
 (* Check for Updates *)
 procedure CheckForUpdates(const URL: string);
@@ -292,6 +333,8 @@ end;
 
 var
   KayteConverter: TKayte2PCE;
+  Server: TSimpleHTTPServer; // The missing variable declaration
+
 
 {$R *.res}
 
@@ -313,7 +356,8 @@ begin
   // Start the HTTP server
   //StartHTTPServer;
 
-  // Initialize and run the virtual machine
+
+    // Initialize and run the virtual machine
   InitializeAndRunVM;
 
   // Call the procedure with a GitHub repository URL

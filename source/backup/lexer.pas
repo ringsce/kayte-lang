@@ -120,43 +120,7 @@ begin
     Advance;
 end;
 
-(*
-  Procedure: TParser.OptionStatement
-  Description:
-    This procedure is responsible for parsing the 'option explicit' directive.
-    It does not generate any bytecode, as this is a compiler directive
-    and not a runtime instruction for the Virtual Machine.
 
-    The procedure checks for the 'option', 'explicit', and 'on' tokens
-    in sequence and advances the lexer for each. If the sequence is not
-    found, it reports an error.
-*)
-procedure TParser.OptionStatement;
-begin
-  // The LProgram function should check for the OptionStatement first.
-  Match(tkOption);
-  Match(tkExplicit);
-  if Check(tkOn) then
-  begin
-    Advance; // Consume the 'On' token
-    // You can set a flag in your parser class here if needed,
-    // e.g., FExplicitEnabled := True;
-  end
-  else
-  begin
-    Error('Expected ''On'' after ''option explicit''');
-  end;
-end;
-
-*
-  Procedure: TParser.LProgram
-  Description:
-    This is the main entry point for parsing a program. It handles top-level
-    declarations and statements.
-
-  Changes:
-    - Added a check for 'option explicit' at the very beginning of the program.
-*)
 procedure TParser.LProgram;
 begin
   // Check for the 'option explicit' directive at the beginning of the file.
@@ -479,4 +443,3 @@ end;
 
 
 end.
-

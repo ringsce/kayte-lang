@@ -20,9 +20,7 @@ type
     function MatchAny(const Types: array of TTokenType): Boolean;
 
     // Parsing rules (non-terminals)
-    procedure LProgram;
     function Statement: TStatementNode;
-    procedure OptionStatement;
     procedure DeclarationStatement;
     procedure AssignmentStatement;
     procedure PrintStatement;
@@ -58,7 +56,7 @@ type
   public
     constructor Create(ALexer: TLexer);
     destructor Destroy; override;
-    procedure Parse;
+    //procedure Parse;
   end;
 
 implementation
@@ -78,12 +76,6 @@ begin
   inherited Destroy;
 end;
 
-procedure TParser.Parse;
-begin
-  LProgram;
-  if FCurrentToken.TokenType <> tkEndOfFile then
-    Error('Unexpected token at end of program: ' + FCurrentToken.Lexeme);
-end;
 
 procedure TParser.NextToken;
 begin
@@ -146,43 +138,6 @@ end;
 // Parsing Rules
 //----------------------------------------------------------------------
 
-(*
-  Procedure: TParser.LProgram
-  Description:
-    This is the main entry point for parsing a Kayte program. It is
-    designed as a top-down parser. It first checks for and handles any
-    program-level directives like 'option explicit' before proceeding
-    to parse the main statements and declarations.
-
-  Changes:
-    - Added a check to correctly handle and ignore comments. The parser
-      will now skip any line beginning with a comment token, preventing
-      the VM from throwing an 'Unknown instruction' error.
-*)
-procedure TParser.LProgram;
-begin
-  // First, check for program-level options like 'option explicit'.
-  if Check(tkKeywordOption) then
-  begin
-    OptionStatement;
-  end;
-
-  // Now, parse the rest of the program, which should consist of
-  // declarations, subroutines, function definitions, and statements.
-  while not Check(tkEndOfFile) do
-  begin
-    // Check if the current token is a comment. If it is, skip it
-    // without generating any bytecode.
-    if Check(tkComment) then
-    begin
-      Advance; // Move to the next token
-      Continue; // Skip to the next iteration of the loop
-    end;
-
-    // Call the main statement-parsing procedure for executable code.
-    Statement;
-  end;
-end;
 
 
 function TParser.Statement: TStatementNode;
@@ -194,43 +149,6 @@ begin
   // a specific TStatementNode (e.g., TAssignmentStatementNode) here.
 end;
 
-(* Options ON/OFF *)
-procedure TParser.OptionStatement;
-begin
-  Match(tkKeywordOption);
-
-  case CurrentToken.Kind of
-    tkKeywordExplicit:
-      begin
-        Match(tkKeywordExplicit);
-        if MatchAny([tkKeywordOn, tkKeywordOff]) then
-          ExplicitMode := (LastToken.Kind = tkKeywordOn)
-        else
-          Error('Expected ON or OFF after OPTION EXPLICIT');
-      end;
-
-    tkKeywordStrict:
-      begin
-        Match(tkKeywordStrict);
-        if MatchAny([tkKeywordOn, tkKeywordOff]) then
-          StrictMode := (LastToken.Kind = tkKeywordOn)
-        else
-          Error('Expected ON or OFF after OPTION STRICT');
-      end;
-
-    tkKeywordCompare:
-      begin
-        Match(tkKeywordCompare);
-        if MatchAny([tkKeywordText, tkKeywordBinary]) then
-          CompareMode := LastToken.Kind
-        else
-          Error('Expected TEXT or BINARY after OPTION COMPARE');
-      end;
-
-  else
-    Error('Unknown OPTION directive');
-  end;
-end;
 
 procedure TParser.DeclarationStatement;
 begin

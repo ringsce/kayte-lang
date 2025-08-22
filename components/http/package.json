@@ -1,0 +1,13 @@
+{
+  "name": "kayte-webserver",
+  "version": "1.0.0",
+  "description": "A simple web server for .kayte files",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
+
