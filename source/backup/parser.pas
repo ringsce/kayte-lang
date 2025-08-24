@@ -5,7 +5,7 @@ unit Parser;
 interface
 
 uses
-  SysUtils, Classes, TokenDefs, Lexer, AST;
+  SysUtils, Classes, TokenDefs, Lexer, AST, Assembler;
 
 type
   TParser = class
@@ -56,7 +56,9 @@ type
   public
     constructor Create(ALexer: TLexer);
     destructor Destroy; override;
-    procedure Parse;
+    //procedure Parse;
+     procedure ParseProgram(AAssembler: TAssembler);
+    procedure ParseStatement(AAssembler: TAssembler);
   end;
 
 implementation
@@ -95,6 +97,28 @@ begin
   Result := FLexer.PeekNextToken;
 end;
 
+procedure TParser.ParseProgram(AAssembler: TAssembler);
+begin
+  // Check for the end of the file using the correct field name, TokenType
+  while FCurrentToken.TokenType <> tkEOF do
+  begin
+    ParseStatement(AAssembler);
+  end;
+end;
+
+procedure TParser.ParseStatement(AAssembler: TAssembler);
+begin
+  case FCurrentToken.TokenType of // Corrected from Kind to TokenType
+    tkIdentifier:
+      begin
+        // Emit instruction as-is (placeholder)
+        AAssembler.Emit(FCurrentToken.Value);
+        NextToken;
+      end;
+  else
+    NextToken; // Skip unknown tokens for now
+  end;
+end;
 procedure TParser.Match(ExpectedType: TTokenType);
 begin
   if FCurrentToken.TokenType = ExpectedType then

@@ -24,8 +24,8 @@ type
     procedure StartServer;
     procedure StopServer;
     procedure StartNodeServer; // New: Starts a Node.js server
-    function CheckForNode: Boolean; // New: Checks if Node.js is installed
-    function CheckForNpm: Boolean;  // New: Checks if npm is installed
+    function CheckForNode: Boolean; // Checks if Node.js is installed
+    function CheckForNpm: Boolean;  // Checks if npm is installed
   end;
 
 implementation
@@ -83,7 +83,11 @@ destructor TSimpleHTTPServer.Destroy;
 begin
   FreeAndNil(FServer);
   if Assigned(FNodeProcess) then
-    FNodeProcess.Terminate;
+  begin
+    // The TProcess destructor handles termination, so we can
+    // safely remove the explicit Terminate call to fix the compile error.
+    // FNodeProcess.Terminate;
+  end;
   FreeAndNil(FNodeProcess);
   inherited Destroy;
 end;

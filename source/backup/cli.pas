@@ -456,67 +456,6 @@ begin
   end;
 end;
 
-
-
-(*
-  Procedure: TCLIHandler.Execute
-  Description:
-    This procedure executes the action specified by the parsed command-line options.
-
-  Changes:
-    - The new `--http` option is now checked and handled.
-*)
-procedure TCLIHandler.Execute;
-var
-  KayteCompiler: TKayteCompiler;
-  ByteCodeGenerator: TBytecodeGenerator;
-  Program: TByteCodeProgram;
-  VM: TVirtualMachine;
-begin
-  if FOptions.ShowHelp then
-  begin
-    ShowHelp;
-    Exit;
-  end;
-
-  if FOptions.ShowVersion then
-  begin
-    ShowVersion;
-    Exit;
-  end;
-
-  // Prioritize compile and run actions
-  if FOptions.CompileKayte then
-  begin
-    CompileKayteFile(FOptions.InputFile, FOptions.OutputFile);
-    Exit;
-  end;
-
-  if FOptions.RunBytecode then
-  begin
-    RunBytecodeFile(FOptions.InputFile);
-    Exit;
-  end;
-
-  // New action: Start an HTTP server
-  if FOptions.StartHttpServer then
-  begin
-    StartHttpServer;
-    Exit;
-  end;
-
-  // If no specific action, and no help/version requested, and no file given, show help
-  if (not FOptions.ShowHelp) and (not FOptions.ShowVersion) and
-     (not FOptions.CompileKayte) and (not FOptions.RunBytecode) and
-     (FOptions.InputFile = '') then
-  begin
-    ShowHelp;
-  end;
-end;
-
-
-
-
 procedure TCLIHandler.CompileKayteFile(const InputFile, OutputFile: string);
 var
   SourceCode: TStringList;

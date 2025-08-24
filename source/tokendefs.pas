@@ -5,16 +5,17 @@ unit TokenDefs;
 interface
 
 uses
-  SysUtils; // For String operations if needed, though not strictly for these simple types
+  SysUtils;
 
 type
   // Define the types of tokens our lexer can recognize
   TTokenType = (
     // Special tokens
     tkUnknown,        // For unrecognized tokens
-    tkEndOfFile,      // End of input stream
-    tkEndOfLine,      // Newline character (important for VB-like languages)
+    tkEndOfFile,      // End of input stream (replaces tkEOF)
+    tkEndOfLine,      // Newline character
     tkComment,        // ' or REM comments
+    tkEOF, // End of file
 
     // Literals
     tkIntegerLiteral, // 123, 456
@@ -52,9 +53,9 @@ type
   // Represents a single token found by the lexer
   TToken = record
     TokenType: TTokenType;
-    Lexeme: String;     // The actual text matched (e.g., "PRINT", "123", "myVar")
-    Line: Integer;      // Line number where the token starts (0-indexed)
-    Column: Integer;    // Column number where the token starts (0-indexed)
+    Lexeme: String;   // The actual text matched (e.g., "PRINT", "123", "myVar")
+    Line: Integer;    // Line number where the token starts (0-indexed)
+    Column: Integer;  // Column number where the token starts (0-indexed)
   end;
 
 // Helper function to get a string representation of a token type (useful for error messages)
@@ -62,11 +63,12 @@ function GetTokenTypeName(TokenType: TTokenType): String;
 
 // Array for easy lookup of token type names
 const
-  TokenTypeName: array[TTokenType] of String = (
+    TokenTypeName: array[TTokenType] of String = (
     'UNKNOWN',
     'END_OF_FILE',
     'END_OF_LINE',
     'COMMENT',
+    'EOF',   // <-- added for tkEOF
     'INTEGER_LITERAL',
     'STRING_LITERAL',
     'BOOLEAN_LITERAL',

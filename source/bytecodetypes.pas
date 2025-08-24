@@ -1,14 +1,14 @@
 unit BytecodeTypes;
 
 {$mode objfpc}{$H+}
-{$modeswitch TypeHelpers-}   // disable implicit helpers just for this unit
+{$modeswitch TypeHelpers-}    // disable implicit helpers just for this unit
 
 interface
 
 uses
-  SysUtils,            // IntToStr, BoolToStr …
-  Classes,             // TStringList
-  fgl;                 // TFPGMap (generics)
+  SysUtils,                // IntToStr, BoolToStr …
+  Classes,                 // TStringList
+  fgl;                     // TFPGMap (generics)
 
 { ---------------------------------------------------------------------------
   ▸  TYPE DECLARATIONS
@@ -86,7 +86,7 @@ type
 { ---------------------------------------------------------------------------
   ▸  HELPER CREATORS
   --------------------------------------------------------------------------- }
-function CreateBCValueNull        : TBCValue;
+function CreateBCValueNull         : TBCValue;
 function CreateBCValueInteger(A: Int64)  : TBCValue;
 function CreateBCValueString (const S: String): TBCValue;
 function CreateBCValueBoolean(B: Boolean): TBCValue;
@@ -116,10 +116,10 @@ end;
 { global creators }
 function CreateBCValueNull: TBCValue;
 begin
-  Result.ValueType   := bcvtNull;
-  Result.IntValue    := 0;
-  Result.StringValue := '';
-  Result.BoolValue   := False;
+  Result.ValueType    := bcvtNull;
+  Result.IntValue     := 0;
+  Result.StringValue  := '';
+  Result.BoolValue    := False;
 end;
 
 function CreateBCValueInteger(A: Int64): TBCValue;
@@ -132,7 +132,7 @@ end;
 function CreateBCValueString(const S: String): TBCValue;
 begin
   Result := CreateBCValueNull;
-  Result.ValueType   := bcvtString;
+  Result.ValueType    := bcvtString;
   Result.StringValue := S;
 end;
 

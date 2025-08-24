@@ -35,16 +35,19 @@ uses
   kayte_loader in '../source/kayte_loader.pas',
   kayte_vm in '../source/kayte_vm.pas',
   //jvm in '../jvm/jvm.pas',
-  AST
+  AST, Compiler, Assembler
   //kayte_syntax in '../source/KayteSyntax.pas'
   //bytecode_embed in '../source/bytecode_embed.pas'
   //kayte_parser in '../source/kayte_parser.pas',
   //n64 in '../source/n64.pas'
   ;
   (*KayteToSNES*)
+const
+  DefaultPort = 8080;
 
 type
   TInstruction = (NOP, LOAD, ADD, SUB, HALT, IRC_HELP, IRC_WHOIS, IRC_SERVER, IRC_CONNECT, IF_COND, ELSE_COND, ENDIF, CASE_COND, ENDCASE);
+
 
 
 TVirtualMachine = class
@@ -353,11 +356,25 @@ begin
   // OutputFile := 'example.bytecode';
   // SaveKayteFileToBytecode(SourceFile, OutputFile);
 
-  // Start the HTTP server
-  //StartHTTPServer;
+  (*try
+    // Create an instance of the HTTP server on the default port
+    Server := TSimpleHTTPServer.Create(DefaultPort);
 
+    // Assign our request handling procedure to the server's OnRequest event
+    Server.OnRequest := @MyRequestHandler;
 
-    // Initialize and run the virtual machine
+    // Start the server and wait for the user to press Enter to stop
+    Server.StartServer;
+    Writeln('Server is running on http://localhost:', DefaultPort);
+    Writeln('Press Enter to stop the server.');
+    Readln;
+  finally
+    // Always free the server object to prevent memory leaks
+    Server.StopServer;
+    Server.Free;
+  end;   *)
+
+  // Initialize and run the virtual machine
   InitializeAndRunVM;
 
   // Call the procedure with a GitHub repository URL

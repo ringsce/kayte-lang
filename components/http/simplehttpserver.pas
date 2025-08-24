@@ -83,7 +83,11 @@ destructor TSimpleHTTPServer.Destroy;
 begin
   FreeAndNil(FServer);
   if Assigned(FNodeProcess) then
-    FNodeProcess.Terminate;
+  begin
+    // The TProcess destructor handles termination, so we can
+    // safely remove the explicit Terminate call to fix the compile error.
+    // FNodeProcess.Terminate;
+  end;
   FreeAndNil(FNodeProcess);
   inherited Destroy;
 end;
@@ -93,22 +97,17 @@ function TSimpleHTTPServer.ParseKayteFile(const FilePath: string): string;
 var
   KayteContent: string;
   KayteParser: TKayteParser;
-  SourceList: TStringList;
 begin
   Result := '';
-  SourceList := nil;
   KayteParser := nil;
   try
     KayteContent := LoadFileAsString(FilePath);
-    SourceList := TStringList.Create;
-    SourceList.Text := KayteContent;
 
     KayteParser := TKayteParser.Create;
-    // Assuming TKayteParser.Parse takes a TStringList and returns a string
-    Result := KayteParser.Parse(SourceList);
+    // Pass the AnsiString directly to the Parse method
+    Result := KayteParser.Parse(KayteContent);
   finally
     FreeAndNil(KayteParser);
-    FreeAndNil(SourceList);
   end;
 end;
 

@@ -185,6 +185,26 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="CrossPlatform"/>
       </Unit>
+      <Unit>
+        <Filename Value="../components/http/simplehttpserver.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SimpleHTTPServer"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/requesthandler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="RequestHandler"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/compiler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Compiler"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/assembler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Assembler"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
