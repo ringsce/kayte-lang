@@ -11,7 +11,7 @@ uses
   KayteParser in '../source/kayteparser.pas',
   Lexer,
   Parser,
-  SimpleHTTPServer in '../source/SimpleHTTPServer.pas',
+  SimpleHTTPServer in '../components/htpt/SimpleHTTPServer.pas',
   VirtualMachine in '../source/virtualmachine.pas';
 
 type
@@ -554,6 +554,11 @@ begin
       else
         Writeln('Error: Missing file path for --run option');
     end
+    else if (ParamStr(I) = '--http') then
+    begin
+      // --- NEW: Handle the --http option ---
+      FOptions.ServeHTTP := True;
+    end
     else if (ParamStr(I) = '-o') then
     begin
       Inc(I);
@@ -574,8 +579,9 @@ begin
     Inc(I);
   end;
 
-  // If a positional file was given and no action was specified, default to compile
-  if IsPositionalFile and (not FOptions.CompileKayte) and (not FOptions.RunBytecode) then
+  // If a positional file was given and no action was specified, default to compile.
+  // We now also check for the --http option.
+  if IsPositionalFile and (not FOptions.CompileKayte) and (not FOptions.RunBytecode) and (not FOptions.ServeHTTP) then
   begin
     FOptions.CompileKayte := True;
     if FOptions.Verbose then
