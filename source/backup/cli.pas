@@ -11,7 +11,7 @@ uses
   KayteParser in '../source/kayteparser.pas',
   Lexer,
   Parser,
-  SimpleHTTPServer in '../components/htpt/SimpleHTTPServer.pas',
+  SimpleHTTPServer in '../components/http/SimpleHTTPServer.pas',
   VirtualMachine in '../source/virtualmachine.pas';
 
 type

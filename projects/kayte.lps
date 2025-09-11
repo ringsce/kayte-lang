@@ -109,7 +109,8 @@
         <UnitName Value="CLI"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="42" Y="14"/>
+        <TopLine Value="600"/>
+        <CursorPos Y="633"/>
         <UsageCount Value="220"/>
         <Loaded Value="True"/>
       </Unit>
@@ -386,22 +387,6 @@
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="../source/compiler.pas"/>
-        <Caret Line="98" Column="38" TopLine="71"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/compiler.pas"/>
-        <Caret Line="141" TopLine="108"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/compiler.pas"/>
-        <Caret Line="99" Column="36" TopLine="71"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/compiler.pas"/>
-        <Caret Line="138" TopLine="105"/>
-      </Position>
-      <Position>
-        <Filename Value="../source/compiler.pas"/>
         <Caret Line="88" Column="3" TopLine="71"/>
       </Position>
       <Position>
@@ -503,6 +488,22 @@
       <Position>
         <Filename Value="../source/tokendefs.pas"/>
         <Caret Line="90" TopLine="65"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="14" Column="42"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/compiler.pas"/>
+        <Caret Line="24" Column="5" TopLine="5"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="560" Column="16" TopLine="515"/>
+      </Position>
+      <Position>
+        <Filename Value="../source/cli.pas"/>
+        <Caret Line="628" Column="45" TopLine="597"/>
       </Position>
     </JumpHistory>
     <RunParams>
