@@ -5,7 +5,7 @@ unit Parser;
 interface
 
 uses
-  SysUtils, Classes, TokenDefs, Lexer, AST, Assembler;
+  SysUtils, Classes, TokenDefs, Lexer, AST, BytecodeTypes, Assembler;
 
 type
   TParser = class
@@ -13,6 +13,7 @@ type
     FLexer: TLexer;
     FCurrentToken: TToken;
     FPreviousToken: TToken;
+    FAssembler: TAssembler;
 
     procedure Advance;
     procedure Match(ExpectedType: TTokenType);
@@ -38,6 +39,7 @@ type
     procedure FormDefinition;
     procedure ShowStatement;
     procedure HideStatement;
+    procedure OptionStatement;  // NEW: Handle OPTION directives
 
     // Recursive-descent expression parsing methods
     function Expression: TExpressionNode;
@@ -53,12 +55,14 @@ type
     procedure NextToken;
     function PeekToken: TToken;
 
+    // Bytecode helper functions
+    function Op_Variable(const VarName: string): Integer;
+    function Op_StringLiteral(const Literal: string): Integer;
+
   public
     constructor Create(ALexer: TLexer);
     destructor Destroy; override;
-    //procedure Parse;
-     procedure ParseProgram(AAssembler: TAssembler);
-    procedure ParseStatement(AAssembler: TAssembler);
+    function Parse: TByteCodeProgram;
   end;
 
 implementation
@@ -71,13 +75,108 @@ begin
   FLexer := ALexer;
   FCurrentToken := FLexer.GetNextToken;
   FPreviousToken := FCurrentToken;
+  FAssembler := TAssembler.Create;
 end;
 
 destructor TParser.Destroy;
 begin
+  FAssembler.Free;
   inherited Destroy;
 end;
 
+function TParser.Parse: TByteCodeProgram;
+begin
+  // Set the program title
+  FAssembler.SetProgramTitle('Kayte Program');
+
+  // Skip comments at the beginning of the file
+  while FCurrentToken.TokenType = tkComment do
+    Advance;
+
+  // The main parsing loop
+  while FCurrentToken.TokenType <> tkEOF do
+  begin
+    try
+      // Skip blank lines
+      while FCurrentToken.TokenType = tkEndOfLine do
+        Advance;
+
+      if FCurrentToken.TokenType = tkEOF then
+        Break;
+
+      // The core of the new logic is here
+      case AnsiUpperCase(FCurrentToken.Lexeme) of
+        'OPTION':
+          OptionStatement;
+        'PRINT':
+          PrintStatement;
+        'INPUT':
+          InputStatement;
+        'MSGBOX':
+          MsgBoxStatement;
+        'LET':
+          AssignmentStatement;
+        'GOTO':
+          GoToStatement;
+        'GOSUB':
+          GoSubStatement;
+        'RETURN':
+          ReturnStatement;
+        'IF':
+          IfStatement;
+        'WHILE':
+          WhileStatement;
+        'FOR':
+          ForStatement;
+        'SUB':
+          SubDefinition;
+        'FUNCTION':
+          FunctionDefinition;
+        'FORM':
+          FormDefinition;
+        'SHOW':
+          ShowStatement;
+        'HIDE':
+          HideStatement;
+        'DIM', 'PUBLIC', 'PRIVATE':
+          DeclarationStatement;
+        'CALL':
+          CallStatement;
+      else
+        if FCurrentToken.TokenType = tkIdentifier then
+        begin
+          // Could be a label or an assignment without LET
+          if PeekToken.TokenType = tkOperator then
+            AssignmentStatement
+          else
+            FAssembler.DefineLabel(FCurrentToken.Lexeme);
+        end
+        else if FCurrentToken.TokenType = tkEndOfLine then
+          Advance // Skip empty lines
+        else
+          Error('Unexpected token: ' + FCurrentToken.Lexeme);
+      end;
+
+      // Skip any end-of-line markers after the statement
+      while Check(tkEndOfLine) do
+        Advance;
+
+    except
+      on E: Exception do
+      begin
+        Writeln('Parser Error: ', E.Message);
+        // In a real compiler, you'd have better error recovery here.
+        // For now, we'll just advance to try and continue.
+        while (FCurrentToken.TokenType <> tkEndOfLine) and (FCurrentToken.TokenType <> tkEOF) do
+          Advance;
+        if FCurrentToken.TokenType = tkEndOfLine then
+          Advance;
+      end;
+    end;
+  end;
+  // Finalize the program and return the bytecode
+  Result := FAssembler.GetProgram;
+end;
 
 procedure TParser.NextToken;
 begin
@@ -92,32 +191,7 @@ end;
 
 function TParser.PeekToken: TToken;
 begin
-  // This is the correct way to call the function
-  // as it is part of the TLexer class.
   Result := FLexer.PeekNextToken;
-end;
-
-procedure TParser.ParseProgram(AAssembler: TAssembler);
-begin
-  // Check for the end of the file using the correct field name, TokenType
-  while FCurrentToken.TokenType <> tkEOF do
-  begin
-    ParseStatement(AAssembler);
-  end;
-end;
-
-procedure TParser.ParseStatement(AAssembler: TAssembler);
-begin
-  case FCurrentToken.TokenType of
-    tkIdentifier:
-      begin
-        // Use FCurrentToken.Lexeme to get the string value of the token
-        AAssembler.Emit(FCurrentToken.Lexeme);
-        NextToken;
-      end;
-  else
-    NextToken; // Skip unknown tokens for now
-  end;
 end;
 
 procedure TParser.Match(ExpectedType: TTokenType);
@@ -129,7 +203,7 @@ begin
       [GetTokenTypeName(ExpectedType),
        GetTokenTypeName(FCurrentToken.TokenType),
        FCurrentToken.Lexeme,
-       FLexer.CurrentLine + 1, FLexer.CurrentColumn + 1]);
+       FCurrentToken.Line, FCurrentToken.Column]);
 end;
 
 function TParser.Check(TokenType: TTokenType): Boolean;
@@ -156,27 +230,47 @@ end;
 procedure TParser.Error(const Message: String);
 begin
   raise Exception.CreateFmt('Parser Error: %s at %d:%d (Token: "%s" Type: %s)',
-    [Message, FCurrentToken.Line + 1, FCurrentToken.Column + 1, FCurrentToken.Lexeme, GetTokenTypeName(FCurrentToken.TokenType)]);
+    [Message, FCurrentToken.Line, FCurrentToken.Column, FCurrentToken.Lexeme, GetTokenTypeName(FCurrentToken.TokenType)]);
+end;
+
+// Helper functions for bytecode operand encoding
+function TParser.Op_Variable(const VarName: string): Integer;
+begin
+  // Add or get variable from the program's variable table
+  Result := FAssembler.GetProgram.AddVariable(VarName);
+end;
+
+function TParser.Op_StringLiteral(const Literal: string): Integer;
+begin
+  // Add string literal to the program's constant pool
+  Result := FAssembler.GetProgram.AddStringConstant(Literal);
 end;
 
 //----------------------------------------------------------------------
 // Parsing Rules
 //----------------------------------------------------------------------
 
-
-
 function TParser.Statement: TStatementNode;
 begin
-  // Initialize Result to nil to avoid the warning
   Result := nil;
-
-  // This is a placeholder. You'll need to implement logic to create
-  // a specific TStatementNode (e.g., TAssignmentStatementNode) here.
 end;
 
+procedure TParser.OptionStatement;
+begin
+  // Match OPTION keyword
+  Advance;
+
+  // Consume the rest of the OPTION statement (e.g., "Explicit On", "Base 0", etc.)
+  // These are compile-time directives and don't generate bytecode
+  while not Check(tkEndOfLine) and not Check(tkEOF) do
+    Advance;
+
+  // OPTION statements just set compiler flags, no bytecode needed
+end;
 
 procedure TParser.DeclarationStatement;
 begin
+  // Example: DIM a AS INTEGER
   MatchAny([tkKeyword]);
   Match(tkIdentifier);
   if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'AS') then
@@ -184,23 +278,49 @@ begin
     Advance;
     Match(tkIdentifier);
   end;
+  // TODO: Add assembler instruction to reserve memory for the variable
 end;
 
 procedure TParser.AssignmentStatement;
+var
+  VarName: string;
 begin
-  Match(tkIdentifier);
-  Match(tkOperator);
+  VarName := FCurrentToken.Lexeme;
+  Advance; // Consume identifier
+  if not Check(tkOperator) then
+    Error('Expected assignment operator');
+  Advance; // Consume operator
+  // Emit bytecode for expression evaluation
   Expression;
+  // Emit bytecode for assignment
+  FAssembler.Emit(BC_ASSIGN, [Op_Variable(VarName)]);
 end;
 
 procedure TParser.PrintStatement;
 begin
-  Match(tkKeyword);
-  Expression;
-  while MatchAny([tkComma, tkColon]) do
+  Advance; // Consume PRINT keyword
+  if Check(tkStringLiteral) then
+  begin
+    // Get the index of the string literal
+    FAssembler.Emit(BC_LOAD_STRING, [Op_StringLiteral(FCurrentToken.Lexeme)]);
+    Advance; // Consume the string literal
+  end
+  else if Check(tkIdentifier) then
+  begin
+    // For now, assume it's a variable
+    FAssembler.Emit(BC_LOAD_VAR, [Op_Variable(FCurrentToken.Lexeme)]);
+    Advance; // Consume the identifier
+  end
+  else
+  begin
+    // Could be an expression
     Expression;
+  end;
+  FAssembler.Emit(BC_PRINT, []);
 end;
 
+// The rest of the parsing procedures need to be implemented similarly
+// to generate the correct bytecode instructions.
 procedure TParser.InputStatement;
 begin
   Match(tkKeyword);
@@ -463,7 +583,6 @@ var
   OperatorToken: TToken;
   RightHandSide: TExpressionNode;
 begin
-  // Initialize the result variable at the start of the function
   Result := nil;
 
   if (FCurrentToken.TokenType = tkOperator) and ((FCurrentToken.Lexeme = '-') or (FCurrentToken.Lexeme.ToUpper = 'NOT')) then
@@ -502,4 +621,3 @@ begin
 end;
 
 end.
-

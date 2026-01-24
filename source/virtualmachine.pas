@@ -5,40 +5,75 @@ unit VirtualMachine;
 interface
 
 uses
-  SysUtils, Classes,   BytecodeTypes; // Add the unit that defines TByteCodeProgram
+  SysUtils, Classes,   BytecodeTypes; // BytecodeTypes unit is essential for TByteCodeProgram
 
 type
   TVirtualMachine = class(TObject)
    private
      FProgram: TByteCodeProgram;
-     FInstructionPointer: LongInt;
+     FInstructionPointer: LongInt; // To track the current instruction
    public
-     // New constructor to load a file
-     //constructor Create(const BytecodeFilePath: string);
-     procedure LoadBytecode(const FileName: string);
-
+     // Constructor to accept the pre-loaded TByteCodeProgram object
+     constructor Create(AProgram: TByteCodeProgram);
+     destructor Destroy; override;
      procedure Run;
    end;
-implementation
 
+implementation
 
 { TVirtualMachine }
 
-procedure TVirtualMachine.LoadBytecode(const FileName: string);
+constructor TVirtualMachine.Create(AProgram: TByteCodeProgram);
 begin
-  if not FileExists(FileName) then
-    raise Exception.Create('Bytecode file not found.');
+  inherited Create;
+  // Store the loaded program object
+  FProgram := AProgram;
+  // Initialize the instruction pointer to the start
+  FInstructionPointer := 0;
 
-  // Add the logic to load the bytecode from the file
-  Writeln('Bytecode loaded from: ', FileName);
+  // Note: We don't own AProgram's memory, as it is owned and freed
+  // by the caller (TCLIHandler.RunBytecodeFile) after the VM is done.
+end;
+
+destructor TVirtualMachine.Destroy;
+begin
+  // No need to free FProgram here, as the CLIHandler manages its lifetime.
+  inherited Destroy;
 end;
 
 procedure TVirtualMachine.Run;
+var
+  InstructionCount: LongInt;
 begin
-  // Add the execution logic for the bytecode
-  Writeln('Executing bytecode...');
-  // For now, just simulate running the bytecode
+  InstructionCount := Length(FProgram.Instructions);
+
+  Writeln('Executing bytecode for program: ', FProgram.ProgramTitle);
+  Writeln('Total instructions to execute: ', InstructionCount);
+
+  if InstructionCount = 0 then
+  begin
+    Writeln('Program is empty. Execution finished.');
+    Exit;
+  end;
+
+  // Simulation of the execution loop
+  while FInstructionPointer < InstructionCount do
+  begin
+    // In a real VM, you would fetch and execute FProgram.Instructions[FInstructionPointer]
+    // For now, we simulate by advancing the pointer
+    Writeln(Format('  [VM] Executing Instruction at IP %d...', [FInstructionPointer]));
+
+    Inc(FInstructionPointer);
+
+    // Add a small pause or check for a 'halt' instruction here in a real implementation
+    if FInstructionPointer >= 10 then // Limit simulation output for brevity
+    begin
+       Writeln('  ... (Simulating remaining execution) ...');
+       FInstructionPointer := InstructionCount; // End simulation
+    end;
+  end;
+
+  Writeln('Execution finished successfully.');
 end;
 
 end.
-

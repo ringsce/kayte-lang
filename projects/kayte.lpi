@@ -205,6 +205,10 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Assembler"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/bytecodetypes.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

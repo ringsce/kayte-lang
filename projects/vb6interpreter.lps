@@ -8,7 +8,8 @@
         <Filename Value="vb6interpreter.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="42" Y="10"/>
+        <TopLine Value="20"/>
+        <CursorPos X="25" Y="53"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit>

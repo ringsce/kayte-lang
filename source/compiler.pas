@@ -6,7 +6,7 @@ interface
 
 uses
   SysUtils, Classes, Lexer, Parser, Assembler, VirtualMachine,
-  TokenDefs;
+  TokenDefs, BytecodeTypes;
 
 type
   TCompiler = class
@@ -20,7 +20,7 @@ type
     constructor Create;
     destructor Destroy; override;
     function Compile(const ASourceFile: string): Boolean;
-    function CompileSource(const ASource: TStringList): TStringList;
+    function CompileSource(const ASource: TStringList): TByteCodeProgram;
 
   end;
 
@@ -72,7 +72,7 @@ function TCompiler.Compile(const ASourceFile: string): Boolean;
 var
   Lexer: TLexer;
   Parser: TParser;
-  Assembler: TAssembler;
+  ByteCodeProg: TByteCodeProgram;
 begin
   Result := False;
   FCompilerSuccess := False;
@@ -93,16 +93,12 @@ begin
   try
     Parser := TParser.Create(Lexer);
     try
-      Assembler := TAssembler.Create;
-      try
-        // Parse the code and generate bytecode
-        Parser.ParseProgram(Assembler);
-        FCompilerSuccess := True;
-        Result := True;
-        // The bytecode is now in Assembler.Code
-      finally
-        Assembler.Free;
-      end;
+      // Parse the code and generate bytecode
+      ByteCodeProg := Parser.Parse;
+      FCompilerSuccess := True;
+      Result := True;
+      // The bytecode is now in ByteCodeProg
+      // You may want to do something with it here (save to file, etc.)
     finally
       Parser.Free;
     end;
@@ -111,14 +107,11 @@ begin
   end;
 end;
 
-function TCompiler.CompileSource(const ASource: TStringList): TStringList;
+function TCompiler.CompileSource(const ASource: TStringList): TByteCodeProgram;
 var
   Lexer: TLexer;
   Parser: TParser;
-  Assembler: TAssembler;
 begin
-  Result := TStringList.Create;
-
   // First, strip comments from the source
   FCommentFreeSource.Assign(StripComments(ASource));
 
@@ -126,13 +119,7 @@ begin
   try
     Parser := TParser.Create(Lexer);
     try
-      Assembler := TAssembler.Create;
-      try
-        Parser.ParseProgram(Assembler);
-        Result.Assign(Assembler.Code);
-      finally
-        Assembler.Free;
-      end;
+      Result := Parser.Parse;
     finally
       Parser.Free;
     end;
@@ -142,4 +129,3 @@ begin
 end;
 
 end.
-

@@ -5,41 +5,15 @@ unit CLI;
 interface
 
 uses
-  SysUtils, Classes, Generics.Collections,
-  BytecodeTypes in '../source/BytecodeTypes.pas',
-  Bytecode in '../source/ByteCode.pas',
-  KayteParser in '../source/kayteparser.pas',
+  SysUtils, Classes,
+  BytecodeTypes,
+  TokenDefs,
   Lexer,
   Parser,
-  SimpleHTTPServer in '../components/http/SimpleHTTPServer.pas',
-  VirtualMachine in '../source/virtualmachine.pas';
+  SimpleHTTPServer,
+  VirtualMachine;
 
 type
-
-  TVirtualMachine = class
-  public
-    // Note: The previous constructor was a forward declaration.
-    // The implementation is now provided below.
-    constructor Create(const BytecodeFile: string);
-    procedure Run;
-  end;
-
-  // TByteCodeProgram definition
-  TByteCodeProgram = class
-  public
-    ProgramTitle: string;
-    Instructions: array of TBCInstruction;
-    StringLiterals: TStringList;
-    IntegerLiterals: array of Int64;
-
-    VariableMap: TStringList;
-    SubroutineMap: TStringList;
-    FormMap: TStringList;
-  public
-    constructor Create;
-    destructor Destroy; override;
-  end;
-
   TBytecodeGenerator = class(TObject)
   public
     procedure SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: String);
@@ -54,8 +28,7 @@ type
     RunBytecode: Boolean;
     InputFile: string;
     OutputFile: string;
-    StartHttpServer: Boolean; // <-- Add this line
-
+    StartHttpServer: Boolean;
   end;
 
   TCLIHandler = class
@@ -67,6 +40,7 @@ type
     procedure ShowVersion;
     procedure CompileKayteFile(const InputFile, OutputFile: string);
     procedure RunBytecodeFile(const BytecodeFile: string);
+    procedure StartHTTPServer;
   public
     constructor Create(const AppName, AppVersion: string);
     destructor Destroy; override;
@@ -74,46 +48,9 @@ type
     procedure Execute;
   end;
 
+procedure InitializeCLIHandler;
+
 implementation
-
-{ TVirtualMachine }
-
-constructor TVirtualMachine.Create(const BytecodeFile: string);
-begin
-  // This is the implementation that was missing.
-  // Add the logic to load and initialize the VM with the bytecode file.
-  // For now, it's left empty to ensure compilation.
-  // The 'BytecodeFile' parameter is now correctly handled.
-end;
-
-procedure TVirtualMachine.Run;
-begin
-  // Implementation of the Run procedure
-  // This is where the virtual machine would execute the bytecode.
-end;
-
-
-{ TByteCodeProgram }
-
-constructor TByteCodeProgram.Create;
-begin
-  inherited Create;
-  // Initialize TStringList members
-  StringLiterals := TStringList.Create;
-  VariableMap := TStringList.Create;
-  SubroutineMap := TStringList.Create;
-  FormMap := TStringList.Create;
-end;
-
-destructor TByteCodeProgram.Destroy;
-begin
-  // Free TStringList members
-  StringLiterals.Free;
-  VariableMap.Free;
-  SubroutineMap.Free;
-  FormMap.Free;
-  inherited Destroy;
-end;
 
 { TBytecodeGenerator }
 
@@ -123,15 +60,15 @@ var
   Len: LongInt;
   I, KeyLength: Integer;
   Key: AnsiString;
-  Value: Pointer;
+  Value: LongInt;
   ProgramTitleBuffer: string;
+  TempInstructions: TBCInstructionArray;
+  TempIntLiterals: TIntegerLiteralArray;
 begin
   Result := TByteCodeProgram.Create;
 
   FileStream := TFileStream.Create(InputFilePath, fmOpenRead or fmShareDenyWrite);
   try
-    // --- Full Deserialization of TByteCodeProgram ---
-
     // 1. Read ProgramTitle
     FileStream.Read(Len, SizeOf(Len));
     SetLength(ProgramTitleBuffer, Len);
@@ -141,9 +78,10 @@ begin
 
     // 2. Read Instructions
     FileStream.Read(Len, SizeOf(Len));
-    SetLength(Result.Instructions, Len);
+    SetLength(TempInstructions, Len);
     if Len > 0 then
-      FileStream.Read(Result.Instructions[0], Len * SizeOf(TBCInstruction));
+      FileStream.Read(TempInstructions[0], Len * SizeOf(TBCInstruction));
+    Result.Instructions := TempInstructions;
 
     // 3. Read StringLiterals
     FileStream.Read(Len, SizeOf(Len));
@@ -158,9 +96,10 @@ begin
 
     // 4. Read IntegerLiterals
     FileStream.Read(Len, SizeOf(Len));
-    SetLength(Result.IntegerLiterals, Len);
+    SetLength(TempIntLiterals, Len);
     if Len > 0 then
-      FileStream.Read(Result.IntegerLiterals[0], Len * SizeOf(Int64));
+      FileStream.Read(TempIntLiterals[0], Len * SizeOf(Int64));
+    Result.IntegerLiterals := TempIntLiterals;
 
     // 5. Read VariableMap
     FileStream.Read(Len, SizeOf(Len));
@@ -171,7 +110,7 @@ begin
       if KeyLength > 0 then
         FileStream.Read(Key[1], KeyLength);
       FileStream.Read(Value, SizeOf(Value));
-      Result.VariableMap.AddObject(Key, TObject(Value));
+      Result.VariableMap.Add(Key, Value);
     end;
 
     // 6. Read SubroutineMap
@@ -183,7 +122,7 @@ begin
       if KeyLength > 0 then
         FileStream.Read(Key[1], KeyLength);
       FileStream.Read(Value, SizeOf(Value));
-      Result.SubroutineMap.AddObject(Key, TObject(Value));
+      Result.SubroutineMap.Add(Key, Value);
     end;
 
     // 7. Read FormMap
@@ -195,7 +134,7 @@ begin
       if KeyLength > 0 then
         FileStream.Read(Key[1], KeyLength);
       FileStream.Read(Value, SizeOf(Value));
-      Result.FormMap.AddObject(Key, TObject(Value));
+      Result.FormMap.Add(Key, Value);
     end;
 
   finally
@@ -209,7 +148,7 @@ var
   Len: LongInt;
   I, KeyLength: Integer;
   Key: AnsiString;
-  PtrVal: NativeInt; // CORRECTED: Moved the declaration here
+  Value: LongInt;
 begin
   FileStream := TFileStream.Create(OutputFilePath, fmCreate);
   try
@@ -248,14 +187,14 @@ begin
     FileStream.Write(Len, SizeOf(Len));
     for I := 0 to AProgram.VariableMap.Count - 1 do
     begin
-      Key := AProgram.VariableMap.Strings[I];
+      Key := AProgram.VariableMap.Keys[I];
       KeyLength := Length(Key);
       FileStream.Write(KeyLength, SizeOf(KeyLength));
       if KeyLength > 0 then
         FileStream.Write(Key[1], KeyLength);
 
-      PtrVal := NativeInt(AProgram.VariableMap.Objects[I]);
-      FileStream.Write(PtrVal, SizeOf(PtrVal));
+      Value := AProgram.VariableMap.Data[I];
+      FileStream.Write(Value, SizeOf(Value));
     end;
 
     // 6. Write SubroutineMap
@@ -263,14 +202,14 @@ begin
     FileStream.Write(Len, SizeOf(Len));
     for I := 0 to AProgram.SubroutineMap.Count - 1 do
     begin
-      Key := AProgram.SubroutineMap.Strings[I];
+      Key := AProgram.SubroutineMap.Keys[I];
       KeyLength := Length(Key);
       FileStream.Write(KeyLength, SizeOf(KeyLength));
       if KeyLength > 0 then
         FileStream.Write(Key[1], KeyLength);
 
-      PtrVal := NativeInt(AProgram.SubroutineMap.Objects[I]);
-      FileStream.Write(PtrVal, SizeOf(PtrVal));
+      Value := AProgram.SubroutineMap.Data[I];
+      FileStream.Write(Value, SizeOf(Value));
     end;
 
     // 7. Write FormMap
@@ -278,14 +217,14 @@ begin
     FileStream.Write(Len, SizeOf(Len));
     for I := 0 to AProgram.FormMap.Count - 1 do
     begin
-      Key := AProgram.FormMap.Strings[I];
+      Key := AProgram.FormMap.Keys[I];
       KeyLength := Length(Key);
       FileStream.Write(KeyLength, SizeOf(KeyLength));
       if KeyLength > 0 then
         FileStream.Write(Key[1], KeyLength);
 
-      PtrVal := NativeInt(AProgram.FormMap.Objects[I]);
-      FileStream.Write(PtrVal, SizeOf(PtrVal));
+      Value := AProgram.FormMap.Data[I];
+      FileStream.Write(Value, SizeOf(Value));
     end;
   finally
     FileStream.Free;
@@ -296,6 +235,7 @@ end;
 
 constructor TCLIHandler.Create(const AppName, AppVersion: string);
 begin
+  inherited Create;
   FAppName := AppName;
   FAppVersion := AppVersion;
   FOptions.ShowHelp := False;
@@ -305,6 +245,7 @@ begin
   FOptions.RunBytecode := False;
   FOptions.InputFile := '';
   FOptions.OutputFile := '';
+  FOptions.StartHttpServer := False;
 end;
 
 destructor TCLIHandler.Destroy;
@@ -312,30 +253,6 @@ begin
   inherited Destroy;
 end;
 
-(*
-  Procedure: InitializeCLIHandler
-  Description:
-    This is the main entry point for the command-line interface. It creates an
-    instance of TCLIHandler, parses the command-line arguments, and executes
-    the appropriate action (e.g., compile, run, show help).
-
-    It includes a robust try...finally block to ensure that the TCLIHandler
-    object is always freed from memory, preventing resource leaks. The outer
-    try...except block handles any exceptions that occur during execution,
-    providing a clean, user-friendly error message.
-*)
-
-
-(*
-  Procedure: TCLIHandler.ShowHelp
-  Description:
-    Displays the command-line tool's help message, including all available
-    options and their descriptions. This procedure is a method of the
-    TCLIHandler class.
-
-  Changes:
-    - Added the '--http' option to the help message.
-*)
 procedure TCLIHandler.ShowHelp;
 begin
   Writeln('Usage: ', FAppName, ' [OPTIONS] [FILE]');
@@ -347,90 +264,28 @@ begin
   Writeln('  --compile <file> Compile a .kayte source file to bytecode');
   Writeln('  --run <file>     Run a bytecode (.bytecode) file');
   Writeln('  -o <file>        Specify the output bytecode file when compiling');
-  Writeln('  --http           Starts a simple HTTP server'); // <-- New line added
-
+  Writeln('  --http           Starts a simple HTTP server');
   Writeln;
   Writeln('If no --compile or --run option is given, FILE is assumed to be a Kayte source file to compile.');
   Writeln('Default output file for compilation is <input_file_name>.bytecode');
   Writeln;
 end;
 
-(*
-  Procedure: InitializeCLIHandler
-  Description:
-    This is the main entry point for the command-line interface. It creates an
-    instance of TCLIHandler, parses the command-line arguments, and executes
-    the appropriate action (e.g., compile, run, show help).
-
-    It includes a robust try...finally block to ensure that the TCLIHandler
-    object is always freed from memory, preventing resource leaks. The outer
-    try...except block handles any exceptions that occur during execution,
-    providing a clean, user-friendly error message.
-*)
-procedure InitializeCLIHandler;
-var
-  CLIHandler: TCLIHandler;
-begin
-  // Create an instance of the CLI handler class with application details.
-  // 'kreatyveC' is the application name and '1.10.3' is the version number.
-  CLIHandler := TCLIHandler.Create('kreatyveC', '1.10.3');
-  try
-    try
-      Writeln('Parsing command-line arguments...');
-      // Call the method to parse the arguments.
-      CLIHandler.ParseArgs;
-
-      Writeln('Executing command...');
-      // Call the method to execute the command.
-      CLIHandler.Execute;
-
-      Writeln('CLI command executed successfully.');
-    except
-      on E: Exception do
-      begin
-        // Handle any exceptions that occur during parsing or execution.
-        Writeln('Error while handling CLI: ', E.Message);
-        Writeln('Usage: kc [options]');
-        Writeln('Try "kc --help" for more information.');
-        Exit; // Exit the procedure after displaying the error.
-      end;
-    end;
-  finally
-    // Ensure the CLIHandler object is properly destroyed, regardless of
-    // whether an error occurred.
-    CLIHandler.Free;
-  end;
-end;
-
-
 procedure TCLIHandler.ShowVersion;
 begin
   Writeln(FAppName, ' version ', FAppVersion);
 end;
 
-(* StartHTTPServer *)
-procedure StartHTTPServer;
+procedure TCLIHandler.StartHTTPServer;
 var
   Port: Integer;
   Server: TSimpleHTTPServer;
-  StopSignal: Boolean; // Flag to handle stopping the server
+  StopSignal: Boolean;
 begin
   Port := 9090; // Default port
-  StopSignal := False; // Initialize StopSignal
+  StopSignal := False;
 
   Writeln('Starting Kings server on port ', Port, '...');
-
-  if ParamCount > 0 then
-  begin
-    try
-      Port := StrToInt(ParamStr(1)); // Allow user to specify the port via command-line
-    except
-      on E: EConvertError do // Catch specific conversion errors
-      begin
-        Writeln('Invalid port specified. Using default port ', Port);
-      end;
-    end;
-  end;
 
   Server := nil;
   try
@@ -439,9 +294,9 @@ begin
       Server.StartServer;
       Writeln('Server is running. Press [Ctrl+C] to stop...');
 
-      // Simulate stopping the server with a condition
+      // Keep the main thread alive
       while not StopSignal do
-        Sleep(1000); // Keep the main thread alive
+        Sleep(1000);
     except
       on E: Exception do
         Writeln('An error occurred while starting the server: ', E.Message);
@@ -461,6 +316,9 @@ var
   SourceCode: TStringList;
   Lexer: TLexer;
   Parser: TParser;
+  Generator: TBytecodeGenerator;
+  BytecodeProgram: TByteCodeProgram;
+  OutputFilePath: string;
 begin
   if not FileExists(InputFile) then
   begin
@@ -468,23 +326,50 @@ begin
     Exit;
   end;
 
-  Writeln('Compiling ', InputFile, '...');
+  if FOptions.Verbose then
+    Writeln('Compiling ', InputFile, '...');
 
   SourceCode := TStringList.Create;
   try
-    // 1. Load the entire file content into a TStringList
     SourceCode.LoadFromFile(InputFile);
 
-    // 2. Create the Lexer, passing the source code
+    if FOptions.Verbose then
+      Writeln('Creating lexer...');
+
+    // FIXED: Pass SourceCode (TStringList) not SourceCode.Text (string)
     Lexer := TLexer.Create(SourceCode);
     try
-      // 3. Create the Parser, passing the Lexer
+      if FOptions.Verbose then
+        Writeln('Creating parser...');
+
       Parser := TParser.Create(Lexer);
       try
-        //
-        // Perform compilation here using the Parser object
-        //
-        Writeln('Compilation successful!');
+        if FOptions.Verbose then
+          Writeln('Parsing source code...');
+
+        // Parse and generate the bytecode program
+        BytecodeProgram := Parser.Parse;
+
+        // Determine output file path
+        if OutputFile = '' then
+          OutputFilePath := ChangeFileExt(InputFile, '.bytecode')
+        else
+          OutputFilePath := OutputFile;
+
+        if FOptions.Verbose then
+          Writeln('Saving bytecode to ', OutputFilePath, '...');
+
+        // Generate and save the bytecode
+        Generator := TBytecodeGenerator.Create;
+        try
+          Generator.SaveProgramToFile(BytecodeProgram, OutputFilePath);
+          Writeln('Compilation successful! Bytecode saved to ', OutputFilePath);
+        finally
+          Generator.Free;
+        end;
+
+        // Free the generated program
+        BytecodeProgram.Free;
       finally
         Parser.Free;
       end;
@@ -499,6 +384,8 @@ end;
 procedure TCLIHandler.RunBytecodeFile(const BytecodeFile: string);
 var
   VM: TVirtualMachine;
+  Generator: TBytecodeGenerator;
+  BytecodeProgram: TByteCodeProgram;
 begin
   if not FileExists(BytecodeFile) then
   begin
@@ -508,11 +395,28 @@ begin
 
   Writeln('Running ', BytecodeFile, '...');
   try
-    VM := TVirtualMachine.Create(BytecodeFile);
-    VM.Run;
-    Writeln('Execution finished.');
-  finally
-    VM.Free;
+    // Load the bytecode program from file
+    Generator := TBytecodeGenerator.Create;
+    try
+      BytecodeProgram := Generator.LoadProgramFromFile(BytecodeFile);
+      try
+        // Create VM with the loaded program and execute
+        VM := TVirtualMachine.Create(BytecodeProgram);
+        try
+          VM.Run;
+          Writeln('Execution finished.');
+        finally
+          VM.Free;
+        end;
+      finally
+        BytecodeProgram.Free;
+      end;
+    finally
+      Generator.Free;
+    end;
+  except
+    on E: Exception do
+      Writeln('Error during execution: ', E.Message);
   end;
 end;
 
@@ -522,13 +426,12 @@ var
   IsPositionalFile: Boolean;
 begin
   IsPositionalFile := False;
-  FOptions.OutputFile := ''; // Reset output file
+  FOptions.OutputFile := '';
+  FOptions.StartHttpServer := False;
 
-  // Start parsing from the second parameter (index 1)
   I := 1;
   while I <= ParamCount do
   begin
-    // Check for options
     if (ParamStr(I) = '--help') then
       FOptions.ShowHelp := True
     else if (ParamStr(I) = '-v') or (ParamStr(I) = '--version') then
@@ -539,7 +442,6 @@ begin
     begin
       FOptions.CompileKayte := True;
       Inc(I);
-      // Ensure there is a file path after the option
       if I <= ParamCount then
         FOptions.InputFile := ParamStr(I)
       else
@@ -556,8 +458,7 @@ begin
     end
     else if (ParamStr(I) = '--http') then
     begin
-      // --- NEW: Handle the --http option ---
-      FOptions.ServeHTTP := True;
+      FOptions.StartHttpServer := True;
     end
     else if (ParamStr(I) = '-o') then
     begin
@@ -569,7 +470,6 @@ begin
     end
     else if (I = ParamCount) and (not IsPositionalFile) then
     begin
-      // Treat the last parameter as the first non-option argument as the input file
       FOptions.InputFile := ParamStr(I);
       IsPositionalFile := True;
     end
@@ -579,9 +479,8 @@ begin
     Inc(I);
   end;
 
-  // If a positional file was given and no action was specified, default to compile.
-  // We now also check for the --http option.
-  if IsPositionalFile and (not FOptions.CompileKayte) and (not FOptions.RunBytecode) and (not FOptions.ServeHTTP) then
+  // If a positional file was given and no action specified, default to compile
+  if IsPositionalFile and (not FOptions.CompileKayte) and (not FOptions.RunBytecode) and (not FOptions.StartHttpServer) then
   begin
     FOptions.CompileKayte := True;
     if FOptions.Verbose then
@@ -603,7 +502,6 @@ begin
     Exit;
   end;
 
-  // Prioritize compile and run actions
   if FOptions.CompileKayte then
   begin
     CompileKayteFile(FOptions.InputFile, FOptions.OutputFile);
@@ -616,15 +514,48 @@ begin
     Exit;
   end;
 
-  // If no specific action, and no help/version requested, and no file given, show help
+  if FOptions.StartHttpServer then
+  begin
+    StartHTTPServer;
+    Exit;
+  end;
+
+  // If no specific action, show help
   if (not FOptions.ShowHelp) and (not FOptions.ShowVersion) and
      (not FOptions.CompileKayte) and (not FOptions.RunBytecode) and
      (FOptions.InputFile = '') then
   begin
     ShowHelp;
   end;
+end;
 
+procedure InitializeCLIHandler;
+var
+  CLIHandler: TCLIHandler;
+begin
+  CLIHandler := TCLIHandler.Create('kreatyveC', '1.10.3');
+  try
+    try
+      if ParamCount > 0 then
+      begin
+        CLIHandler.ParseArgs;
+        CLIHandler.Execute;
+      end
+      else
+      begin
+        CLIHandler.ShowHelp;
+      end;
+    except
+      on E: Exception do
+      begin
+        Writeln('Error while handling CLI: ', E.Message);
+        Writeln('Usage: kc [options]');
+        Writeln('Try "kc --help" for more information.');
+      end;
+    end;
+  finally
+    CLIHandler.Free;
+  end;
 end;
 
 end.
-
