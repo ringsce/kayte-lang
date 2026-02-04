@@ -7,6 +7,8 @@ Program kayte;
 
 {$mode objfpc}{$H+}
 
+
+
 uses
   SysUtils, Classes, Zipper, fphttpclient, fpjson, jsonparser, Process,
   // Core compiler units
@@ -27,7 +29,8 @@ uses
   kayte_compiler in '../kayte_compiler.pas',
   kayte_runtime in '../source/kayte_runtime.pas',
   kayte_loader in '../source/kayte_loader.pas',
-  kayte_vm in '../source/kayte_vm.pas';
+  kayte_vm in '../source/kayte_vm.pas',
+  KayteArm64 in '../source/KayteArm64.pas';
 
 const
   DefaultPort = 8080;

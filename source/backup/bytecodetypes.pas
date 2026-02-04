@@ -5,7 +5,7 @@ unit BytecodeTypes;
 interface
 
 uses
-  SysUtils, Classes, Generics.Collections;
+  SysUtils, Classes, fgl;
 
 type
   // Bytecode operation codes
@@ -43,10 +43,10 @@ type
   // Integer literal array type
   TIntegerLiteralArray = array of Int64;
 
-  // String map for variables and constants
+  /// String map for variables and constants
   TStringIntMap = specialize TFPGMap<string, Integer>;
 
-  // Bytecode program structure
+  /// Bytecode program structure
   TByteCodeProgram = class
   private
     FProgramTitle: string;

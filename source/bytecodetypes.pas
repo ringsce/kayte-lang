@@ -43,10 +43,10 @@ type
   // Integer literal array type
   TIntegerLiteralArray = array of Int64;
 
-  // String map for variables and constants
+  /// String map for variables and constants
   TStringIntMap = specialize TFPGMap<string, Integer>;
 
-  // Bytecode program structure
+  /// Bytecode program structure
   TByteCodeProgram = class
   private
     FProgramTitle: string;
@@ -55,10 +55,10 @@ type
     FStringConstants: TStringList;
     FVariableMap: TStringIntMap;
     FStringMap: TStringIntMap;
-    FStringLiterals: TStringList;      // For CLI compatibility
-    FIntegerLiterals: TIntegerLiteralArray;  // For CLI compatibility
-    FSubroutineMap: TStringIntMap;     // For CLI compatibility
-    FFormMap: TStringIntMap;           // For CLI compatibility
+    FStringLiterals: TStringList;      /// For CLI compatibility
+    FIntegerLiterals: TIntegerLiteralArray;  /// For CLI compatibility
+    FSubroutineMap: TStringIntMap;     /// For CLI compatibility
+    FFormMap: TStringIntMap;           /// For CLI compatibility
   public
     constructor Create;
     destructor Destroy; override;
