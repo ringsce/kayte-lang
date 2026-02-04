@@ -661,7 +661,7 @@ git push origin feature/my-awesome-feature
 - **Documentation**: https://ringscejs.gleentech.com
 - **Compiler & VM**: https://github.com/ringsce/kayte-lang
 - **Tilde Desktop IDE**: https://github.com/ringsce/tilde-desktop
-- **Discord Community**: https://discord.gg/kaytelang
+- **Discord Community**: https://discord.gg/d6gV8W2W
 
 ### Learning Resources
 - **Getting Started Guide**: docs/getting-started.md
