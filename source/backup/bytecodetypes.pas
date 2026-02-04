@@ -55,10 +55,159 @@ type
     FStringConstants: TStringList;
     FVariableMap: TStringIntMap;
     FStringMap: TStringIntMap;
-    FStringLiterals: TStringList;      // For CLI compatibility
-    FIntegerLiterals: TIntegerLiteralArray;  // For CLI compatibility
-    FSubroutineMap: TStringIntMap;     // For CLI compatibility
-    FFormMap: TStringIntMap;           // For CLI compatibility
+    FStringLiterals: TStringList;      /// For CLI compatibility
+    FIntegerLiterals: TIntegerLiteralArray;  /// For CLI compatibility
+    FSubroutineMap: TStringIntMap;     /// For CLI compatibility
+    FFormMap: TStringIntMap;           /// For CLI compatibility
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    // Add a variable and return its index
+    function AddVariable(const VarName: string): Integer;
+
+    // Add a string constant and return its index
+    function AddStringConstant(const Literal: string): Integer;
+
+    // File I/O
+    procedure SaveToFile(const FileName: string);
+    procedure LoadFromFile(const FileName: string);
+
+    // Properties
+    property ProgramTitle: string read FProgramTitle write FProgramTitle;
+    property Instructions: TBCInstructionArray read FInstructions write FInstructions;
+    property Variables: TStringList read FVariables;
+    property StringConstants: TStringList read FStringConstants;
+
+    // Additional properties for CLI compatibility
+    property StringLiterals: TStringList read FStringLiterals;
+    property IntegerLiterals: TIntegerLiteralArray read FIntegerLiterals write FIntegerLiterals;
+    property VariableMap: TStringIntMap read FVariableMap;
+    property SubroutineMap: TStringIntMap read FSubroutineMap;
+    property FormMap: TStringIntMap read FFormMap;
+  end;
+
+implementation
+
+{ TByteCodeProgram }
+
+constructor TByteCodeProgram.Create;
+begin
+  inherited Create;
+  FProgramTitle := '';
+  SetLength(FInstructions, 0);
+  SetLength(FIntegerLiterals, 0);
+  FVariables := TStringList.Create;
+  FStringConstants := TStringList.Create;
+  FStringLiterals := TStringList.Create;
+  FVariableMap := TStringIntMap.Create;
+  FStringMap := TStringIntMap.Create;
+  FSubroutineMap := TStringIntMap.Create;
+  FFormMap := TStringIntMap.Create;
+end;
+
+destructor TByteCodeProgram.Destroy;
+begin
+  FVariables.Free;
+  FStringConstants.Free;
+  FStringLiterals.Free;
+  FVariableMap.Free;
+  FStringMap.Free;
+  FSubroutineMap.Free;
+  FFormMap.Free;
+  inherited Destroy;
+end;
+
+function TByteCodeProgram.AddVariable(const VarName: string): Integer;
+begin
+  // Check if variable already exists
+  if FVariableMap.IndexOf(VarName) >= 0 then
+  begin
+    Result := FVariableMap.KeyData[VarName];
+    Exit;
+  end;
+
+  // Add new variable
+  Result := FVariables.Add(VarName);
+  FVariableMap.Add(VarName, Result);
+end;
+
+function TByteCodeProgram.AddStringConstant(const Literal: string): Integer;
+begin
+  // Check if string constant already exists in StringLiterals (for compatibility)
+  Result := FStringLiterals.IndexOf(Literal);
+  if Result >= 0 then
+    Exit;
+
+  // Add new string constant
+  Result := FStringLiterals.Add(Literal);
+
+  // Also add to StringConstants for consistency
+  if FStringConstants.IndexOf(Literal) < 0 then
+    FStringConstants.Add(Literal);
+end;
+
+unit BytecodeTypes;
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  SysUtils, Classes, fgl;
+
+type
+  // Bytecode operation codes
+  TByteCodeOp = (
+    BC_NOP,           // No operation
+    BC_HALT,          // Stop execution
+    BC_LOAD_INT,      // Load integer constant
+    BC_LOAD_STRING,   // Load string constant
+    BC_LOAD_VAR,      // Load variable value
+    BC_STORE_VAR,     // Store variable value
+    BC_ASSIGN,        // Assignment operation
+    BC_ADD,           // Addition
+    BC_SUB,           // Subtraction
+    BC_MUL,           // Multiplication
+    BC_DIV,           // Division
+    BC_PRINT,         // Print to console
+    BC_INPUT,         // Read input
+    BC_JUMP,          // Unconditional jump
+    BC_JUMP_IF_FALSE, // Conditional jump
+    BC_CALL,          // Call subroutine
+    BC_RETURN         // Return from subroutine
+  );
+
+  // Bytecode instruction structure
+  TBCInstruction = record
+    OpCode: TByteCodeOp;
+    Operand1: Integer;
+    Operand2: Integer;
+    Operand3: Integer;
+  end;
+
+  // Instruction array type
+  TBCInstructionArray = array of TBCInstruction;
+
+  // Integer literal array type
+  TIntegerLiteralArray = array of Int64;
+
+  /// String map for variables and constants
+  TStringIntMap = specialize TFPGMap<string, Integer>;
+
+  /// Bytecode program structure
+  TByteCodeProgram = class
+  private
+    FProgramTitle: string;
+    FInstructions: TBCInstructionArray;
+    FVariables: TStringList;
+    FStringConstants: TStringList;
+    FVariableMap: TStringIntMap;
+    FStringMap: TStringIntMap;
+    FStringLiterals: TStringList;      /// For CLI compatibility
+    FIntegerLiterals: TIntegerLiteralArray;  /// For CLI compatibility
+    FSubroutineMap: TStringIntMap;     /// For CLI compatibility
+    FFormMap: TStringIntMap;           /// For CLI compatibility
   public
     constructor Create;
     destructor Destroy; override;
@@ -290,4 +439,5 @@ begin
   end;
 end;
 
+end.
 end.

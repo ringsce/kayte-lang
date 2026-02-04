@@ -148,6 +148,8 @@ begin
 end;
 
 procedure TByteCodeProgram.SaveToFile(const FileName: string);
+const
+  MagicNumber: array[0..3] of Char = ('K', 'B', 'C', 'F');
 var
   F: File;
   I: Integer;
@@ -155,19 +157,21 @@ var
   InstrCount: Integer;
   VarCount: Integer;
   ConstCount: Integer;
+  TempStr: AnsiString;
 begin
   AssignFile(F, FileName);
   try
     Rewrite(F, 1);
 
     // Write magic number for file validation
-    BlockWrite(F, 'KBCF', 4); // Kayte ByteCode File
+    BlockWrite(F, MagicNumber, 4);
 
     // Write program title
-    StrLen := Length(FProgramTitle);
+    TempStr := AnsiString(FProgramTitle);
+    StrLen := Length(TempStr);
     BlockWrite(F, StrLen, SizeOf(Integer));
     if StrLen > 0 then
-      BlockWrite(F, FProgramTitle[1], StrLen);
+      BlockWrite(F, TempStr[1], StrLen);
 
     // Write instructions
     InstrCount := Length(FInstructions);
@@ -188,10 +192,11 @@ begin
     BlockWrite(F, VarCount, SizeOf(Integer));
     for I := 0 to VarCount - 1 do
     begin
-      StrLen := Length(FVariables[I]);
+      TempStr := AnsiString(FVariables[I]);
+      StrLen := Length(TempStr);
       BlockWrite(F, StrLen, SizeOf(Integer));
       if StrLen > 0 then
-        BlockWrite(F, FVariables[I][1], StrLen);
+        BlockWrite(F, TempStr[1], StrLen);
     end;
 
     // Write string constants
@@ -199,11 +204,14 @@ begin
     BlockWrite(F, ConstCount, SizeOf(Integer));
     for I := 0 to ConstCount - 1 do
     begin
-      StrLen := Length(FStringLiterals[I]);
+      TempStr := AnsiString(FStringLiterals[I]);
+      StrLen := Length(TempStr);
       BlockWrite(F, StrLen, SizeOf(Integer));
       if StrLen > 0 then
-        BlockWrite(F, FStringLiterals[I][1], StrLen);
+        BlockWrite(F, TempStr[1], StrLen);
     end;
+
+    WriteLn('DEBUG: Saved ', InstrCount, ' instructions, ', VarCount, ' variables, ', ConstCount, ' string constants');
 
   finally
     CloseFile(F);
@@ -219,7 +227,7 @@ var
   VarCount: Integer;
   ConstCount: Integer;
   Magic: array[0..3] of Char;
-  TempStr: string;
+  TempStr: AnsiString;
   TempInstr: TBCInstruction;
   TempInstructions: TBCInstructionArray;
 begin
@@ -236,8 +244,9 @@ begin
     BlockRead(F, StrLen, SizeOf(Integer));
     if StrLen > 0 then
     begin
-      SetLength(FProgramTitle, StrLen);
-      BlockRead(F, FProgramTitle[1], StrLen);
+      SetLength(TempStr, StrLen);
+      BlockRead(F, TempStr[1], StrLen);
+      FProgramTitle := String(TempStr);
     end;
 
     // Read instructions
@@ -264,8 +273,8 @@ begin
       begin
         SetLength(TempStr, StrLen);
         BlockRead(F, TempStr[1], StrLen);
-        FVariables.Add(TempStr);
-        FVariableMap.Add(TempStr, I);
+        FVariables.Add(String(TempStr));
+        FVariableMap.Add(String(TempStr), I);
       end;
     end;
 
@@ -280,8 +289,8 @@ begin
       begin
         SetLength(TempStr, StrLen);
         BlockRead(F, TempStr[1], StrLen);
-        FStringLiterals.Add(TempStr);
-        FStringConstants.Add(TempStr);
+        FStringLiterals.Add(String(TempStr));
+        FStringConstants.Add(String(TempStr));
       end;
     end;
 

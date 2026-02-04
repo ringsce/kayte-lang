@@ -1,5 +1,4 @@
 unit Assembler;
-
 {$mode objfpc}{$H+}
 
 interface
@@ -19,21 +18,16 @@ type
     FProgram: TByteCodeProgram;
     FLabelMap: TLabelMap;
     FCurrentInstructionIndex: Integer;
-
   public
     constructor Create;
     destructor Destroy; override;
     procedure SetProgramTitle(const ATitle: string);
-
     // Defines a label at the current instruction index.
     procedure DefineLabel(const ALabel: string);
-
     // Emits a single instruction with its operands.
     procedure Emit(AOpCode: TByteCodeOp; const AOperands: array of Integer);
-
-    // Returns the finalized bytecode program.
+    // Returns the finalized bytecode program (transfers ownership to caller).
     function GetProgram: TByteCodeProgram;
-
     // Validates the bytecode before emitting it
     function ValidateBytecode: Boolean;
   end;
@@ -52,7 +46,9 @@ end;
 
 destructor TAssembler.Destroy;
 begin
-  FProgram.Free;
+  // Only free FProgram if ownership wasn't transferred via GetProgram
+  if Assigned(FProgram) then
+    FProgram.Free;
   FLabelMap.Free;
   inherited Destroy;
 end;
@@ -66,7 +62,6 @@ procedure TAssembler.DefineLabel(const ALabel: string);
 begin
   if FLabelMap.ContainsKey(ALabel) then
     raise Exception.CreateFmt('Assembler Error: Label "%s" already defined.', [ALabel]);
-
   FLabelMap.Add(ALabel, FCurrentInstructionIndex);
 end;
 
@@ -81,7 +76,6 @@ begin
   NewInstruction.Operand1 := 0;
   NewInstruction.Operand2 := 0;
   NewInstruction.Operand3 := 0;
-
   OperandCount := Length(AOperands);
   if OperandCount > 0 then
     NewInstruction.Operand1 := AOperands[0];
@@ -89,24 +83,21 @@ begin
     NewInstruction.Operand2 := AOperands[1];
   if OperandCount > 2 then
     NewInstruction.Operand3 := AOperands[2];
-
   // Get current instructions array
   TempInstructions := FProgram.Instructions;
   CurrentLength := Length(TempInstructions);
-
   // Expand the instructions array
   SetLength(TempInstructions, CurrentLength + 1);
   TempInstructions[CurrentLength] := NewInstruction;
-
   // Write back to the program
   FProgram.Instructions := TempInstructions;
-
   FCurrentInstructionIndex := CurrentLength + 1;
 end;
 
 function TAssembler.GetProgram: TByteCodeProgram;
 begin
   Result := FProgram;
+  FProgram := nil;  // Transfer ownership to caller
 end;
 
 function TAssembler.ValidateBytecode: Boolean;
@@ -116,7 +107,6 @@ var
 begin
   Result := True;
   Instructions := FProgram.Instructions;
-
   for I := 0 to Length(Instructions) - 1 do
   begin
     // Add your validation logic here

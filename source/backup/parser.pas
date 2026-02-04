@@ -552,6 +552,13 @@ begin
   Match(tkKeyword);
 end;
 
+procedure TParser.IfStatement;
+begin
+  Match(tkKeyword);
+  Expression;
+  Match(tkKeyword);
+end;
+
 procedure TParser.WhileStatement;
 begin
   WriteLn('DEBUG: WhileStatement - Current token: ', FCurrentToken.Lexeme);

@@ -537,7 +537,7 @@ procedure InitializeCLIHandler;
 var
   CLIHandler: TCLIHandler;
 begin
-  CLIHandler := TCLIHandler.Create('kreatyveC', '1.10.3');
+  CLIHandler := TCLIHandler.Create('kaytecc', '0.9.0');
   try
     try
       if ParamCount > 0 then

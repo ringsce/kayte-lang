@@ -75,6 +75,7 @@ var
   NewInstruction: TBCInstruction;
   OperandCount: Integer;
   CurrentLength: Integer;
+  TempInstructions: TBCInstructionArray;
 begin
   NewInstruction.OpCode := AOpCode;
   NewInstruction.Operand1 := 0;
@@ -89,10 +90,17 @@ begin
   if OperandCount > 2 then
     NewInstruction.Operand3 := AOperands[2];
 
+  // Get current instructions array
+  TempInstructions := FProgram.Instructions;
+  CurrentLength := Length(TempInstructions);
+
   // Expand the instructions array
-  CurrentLength := Length(FProgram.Instructions);
-  SetLength(FProgram.Instructions, CurrentLength + 1);
-  FProgram.Instructions[CurrentLength] := NewInstruction;
+  SetLength(TempInstructions, CurrentLength + 1);
+  TempInstructions[CurrentLength] := NewInstruction;
+
+  // Write back to the program
+  FProgram.Instructions := TempInstructions;
+
   FCurrentInstructionIndex := CurrentLength + 1;
 end;
 
@@ -104,13 +112,16 @@ end;
 function TAssembler.ValidateBytecode: Boolean;
 var
   I: Integer;
+  Instructions: TBCInstructionArray;
 begin
   Result := True;
-  for I := 0 to Length(FProgram.Instructions) - 1 do
+  Instructions := FProgram.Instructions;
+
+  for I := 0 to Length(Instructions) - 1 do
   begin
     // Add your validation logic here
     // Example: check if operands are within valid range
-    if FProgram.Instructions[I].Operand1 < 0 then
+    if Instructions[I].Operand1 < 0 then
     begin
       raise Exception.CreateFmt('Assembler Error: Invalid operand at instruction %d.', [I]);
       Result := False;

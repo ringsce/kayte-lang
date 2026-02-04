@@ -149,6 +149,8 @@ var
   I, KeyLength: Integer;
   Key: AnsiString;
   Value: LongInt;
+  TempInstructions: TBCInstructionArray;
+  TempIntLiterals: TIntegerLiteralArray;
 begin
   FileStream := TFileStream.Create(OutputFilePath, fmCreate);
   try
@@ -159,10 +161,11 @@ begin
       FileStream.Write(AProgram.ProgramTitle[1], Len);
 
     // 2. Write Instructions
-    Len := Length(AProgram.Instructions);
+    TempInstructions := AProgram.Instructions;
+    Len := Length(TempInstructions);
     FileStream.Write(Len, SizeOf(Len));
     if Len > 0 then
-      FileStream.Write(AProgram.Instructions[0], Len * SizeOf(TBCInstruction));
+      FileStream.Write(TempInstructions[0], Len * SizeOf(TBCInstruction));
 
     // 3. Write StringLiterals
     Len := AProgram.StringLiterals.Count;
@@ -177,10 +180,11 @@ begin
     end;
 
     // 4. Write IntegerLiterals
-    Len := Length(AProgram.IntegerLiterals);
+    TempIntLiterals := AProgram.IntegerLiterals;
+    Len := Length(TempIntLiterals);
     FileStream.Write(Len, SizeOf(Len));
     if Len > 0 then
-      FileStream.Write(AProgram.IntegerLiterals[0], Len * SizeOf(Int64));
+      FileStream.Write(TempIntLiterals[0], Len * SizeOf(Int64));
 
     // 5. Write VariableMap
     Len := AProgram.VariableMap.Count;
@@ -533,7 +537,7 @@ procedure InitializeCLIHandler;
 var
   CLIHandler: TCLIHandler;
 begin
-  CLIHandler := TCLIHandler.Create('kreatyveC', '1.10.3');
+  CLIHandler := TCLIHandler.Create('kaytecc', '1.10.3');
   try
     try
       if ParamCount > 0 then
