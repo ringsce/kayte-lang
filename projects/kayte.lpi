@@ -215,6 +215,36 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="KayteArm64"/>
       </Unit>
+      <Unit>
+        <Filename Value="../source/parser.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Parser"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/tokendefs.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="TokenDefs"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/lexer.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Lexer"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/kaytearm64elf.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KayteArm64ELF"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/kaytearm64pe.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KayteArm64PE"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../source/mathlib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="MathLib"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -227,6 +257,13 @@
       <OtherUnitFiles Value="../source;../jvm"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
+    <Other>
+      <CustomOptions Value="-vm4046
+-vn6058
+-vn
+-vh
+-O2"/>
+    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions>

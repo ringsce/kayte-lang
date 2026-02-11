@@ -93,19 +93,18 @@ uses
     // Link the object file from parent directory
     {$L ../kayte_arm64_emit.o}
 
-    // External C function - note the underscore prefix for macOS
+    // External C function - let the linker find it automatically
     function kayte_compile_to_macho(
                bytecode    : PKayteInsn;
                count       : csize_t;
                output_path : PAnsiChar
-             ) : cint; cdecl; external name '_kayte_compile_to_macho';
+             ) : cint; cdecl; external;
   {$ELSE}
     {$FATAL ARM64 native compilation requires aarch64 CPU}
   {$ENDIF}
 {$ELSE}
   {$FATAL ARM64 native compilation is only available on macOS}
 {$ENDIF}
-
 { ------------------------------------------------------------------ }
 { Helper: build a TKayteInsn                                         }
 { ------------------------------------------------------------------ }

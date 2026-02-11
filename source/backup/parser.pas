@@ -34,8 +34,10 @@ type
     procedure IfStatement;
     procedure WhileStatement;
     procedure ForStatement;
+    procedure WithStatement;  // NEW: Handle WITH blocks for object member access
     procedure SubDefinition;
     procedure FunctionDefinition;
+    procedure ClassDefinition;  // NEW: Handle CLASS definitions
     procedure FormDefinition;
     procedure ShowStatement;
     procedure HideStatement;
@@ -186,6 +188,12 @@ begin
           MsgBoxStatement;
         'LET':
           AssignmentStatement;
+        'SET':
+          begin
+            WriteLn('DEBUG: SET statement for object assignment');
+            Advance; // Consume SET
+            AssignmentStatement;
+          end;
         'GOTO':
           GoToStatement;
         'GOSUB':
@@ -198,10 +206,14 @@ begin
           WhileStatement;
         'FOR':
           ForStatement;
+        'WITH':
+          WithStatement;
         'SUB':
           SubDefinition;
         'FUNCTION':
           FunctionDefinition;
+        'CLASS':
+          ClassDefinition;
         'FORM':
           FormDefinition;
         'SHOW':
@@ -552,13 +564,6 @@ begin
   Match(tkKeyword);
 end;
 
-procedure TParser.IfStatement;
-begin
-  Match(tkKeyword);
-  Expression;
-  Match(tkKeyword);
-end;
-
 procedure TParser.WhileStatement;
 begin
   WriteLn('DEBUG: WhileStatement - Current token: ', FCurrentToken.Lexeme);
@@ -712,6 +717,95 @@ begin
   WriteLn('DEBUG: ForStatement - Complete');
 end;
 
+procedure TParser.WithStatement;
+var
+  ObjectName: string;
+begin
+  WriteLn('DEBUG: WithStatement - Current token: ', FCurrentToken.Lexeme);
+
+  Match(tkKeyword); // Consume WITH
+
+  if not Check(tkIdentifier) then
+    Error('Expected object name after WITH');
+
+  ObjectName := FCurrentToken.Lexeme;
+  WriteLn('DEBUG: WITH object: ', ObjectName);
+  Advance; // Consume object name
+
+  Match(tkEndOfLine);
+
+  WriteLn('DEBUG: WithStatement - Entering body loop');
+
+  // Parse the body of the WITH block
+  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
+  begin
+    WriteLn('DEBUG: WithStatement body - token: ', FCurrentToken.Lexeme);
+
+    // Check for EOF to prevent infinite loop
+    if FCurrentToken.TokenType = tkEndOfFile then
+    begin
+      Error('Unexpected end of file in WITH block');
+      Break;
+    end;
+
+    // Skip blank lines
+    if Check(tkEndOfLine) then
+    begin
+      Advance;
+      Continue;
+    end;
+
+    // Skip comments
+    if Check(tkComment) then
+    begin
+      Advance;
+      Continue;
+    end;
+
+    // Process statement based on keyword
+    case AnsiUpperCase(FCurrentToken.Lexeme) of
+      'PRINT': PrintStatement;
+      'LET': AssignmentStatement;
+      'SET':
+        begin
+          Advance; // Consume SET
+          AssignmentStatement;
+        end;
+      'DIM': DeclarationStatement;
+      'IF': IfStatement;
+      'WHILE': WhileStatement;
+      'FOR': ForStatement;
+      'CALL': CallStatement;
+    else
+      if FCurrentToken.TokenType = tkIdentifier then
+      begin
+        // Could be assignment or method call
+        if PeekToken.TokenType = tkOperator then
+          AssignmentStatement
+        else if PeekToken.TokenType = tkParenthesisOpen then
+          CallStatement
+        else
+        begin
+          // It's a label or property access
+          FAssembler.DefineLabel(FCurrentToken.Lexeme);
+          Advance;
+        end;
+      end
+      else
+        Error('Unexpected token in WITH block: ' + FCurrentToken.Lexeme);
+    end;
+
+    // Skip trailing end-of-line
+    while Check(tkEndOfLine) do
+      Advance;
+  end;
+
+  WriteLn('DEBUG: WithStatement - Found END');
+  Match(tkKeyword); // END
+  Match(tkKeyword); // WITH
+  WriteLn('DEBUG: WithStatement - Complete');
+end;
+
 procedure TParser.SubDefinition;
 begin
   WriteLn('DEBUG: SubDefinition - Current token: ', FCurrentToken.Lexeme);
@@ -767,10 +861,16 @@ begin
     case AnsiUpperCase(FCurrentToken.Lexeme) of
       'PRINT': PrintStatement;
       'LET': AssignmentStatement;
+      'SET':
+        begin
+          Advance; // Consume SET
+          AssignmentStatement;
+        end;
       'DIM': DeclarationStatement;
       'IF': IfStatement;
       'WHILE': WhileStatement;
       'FOR': ForStatement;
+      'WITH': WithStatement;
       'RETURN': ReturnStatement;
       'CALL': CallStatement;
     else
@@ -864,10 +964,16 @@ begin
     case AnsiUpperCase(FCurrentToken.Lexeme) of
       'PRINT': PrintStatement;
       'LET': AssignmentStatement;
+      'SET':
+        begin
+          Advance; // Consume SET
+          AssignmentStatement;
+        end;
       'DIM': DeclarationStatement;
       'IF': IfStatement;
       'WHILE': WhileStatement;
       'FOR': ForStatement;
+      'WITH': WithStatement;
       'RETURN': ReturnStatement;
       'CALL': CallStatement;
     else
@@ -977,6 +1083,179 @@ begin
   Match(tkKeyword); // END
   Match(tkKeyword); // FORM
   WriteLn('DEBUG: FormDefinition - Complete');
+end;
+
+procedure TParser.ClassDefinition;
+var
+  ClassName: string;
+  BaseClass: string;
+begin
+  WriteLn('DEBUG: ClassDefinition - Current token: ', FCurrentToken.Lexeme);
+
+  Match(tkKeyword); // Consume CLASS
+  WriteLn('DEBUG: After CLASS, current token: ', FCurrentToken.Lexeme);
+
+  // Get class name
+  if not Check(tkIdentifier) then
+    Error('Expected class name after CLASS keyword');
+
+  ClassName := FCurrentToken.Lexeme;
+  WriteLn('DEBUG: Class name: ', ClassName);
+  Advance; // Consume class name
+
+  // Check for inheritance: CLASS Derived INHERITS Base
+  if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'INHERITS') then
+  begin
+    WriteLn('DEBUG: Found INHERITS keyword');
+    Advance; // Consume INHERITS
+
+    if not Check(tkIdentifier) then
+      Error('Expected base class name after INHERITS');
+
+    BaseClass := FCurrentToken.Lexeme;
+    WriteLn('DEBUG: Base class: ', BaseClass);
+    Advance; // Consume base class name
+  end;
+
+  Match(tkEndOfLine);
+
+  WriteLn('DEBUG: ClassDefinition - Entering body loop');
+
+  // Parse the body of the class
+  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
+  begin
+    WriteLn('DEBUG: ClassDefinition body - token: ', FCurrentToken.Lexeme);
+
+    // Check for EOF to prevent infinite loop
+    if FCurrentToken.TokenType = tkEndOfFile then
+    begin
+      Error('Unexpected end of file in CLASS definition');
+      Break;
+    end;
+
+    // Skip blank lines
+    if Check(tkEndOfLine) then
+    begin
+      Advance;
+      Continue;
+    end;
+
+    // Skip comments
+    if Check(tkComment) then
+    begin
+      Advance;
+      Continue;
+    end;
+
+    // Process statement based on keyword
+    case AnsiUpperCase(FCurrentToken.Lexeme) of
+      'DIM', 'PUBLIC', 'PRIVATE':
+        begin
+          WriteLn('DEBUG: Class property declaration');
+          DeclarationStatement;
+        end;
+      'SUB':
+        begin
+          WriteLn('DEBUG: Class method (Sub)');
+          SubDefinition;
+        end;
+      'FUNCTION':
+        begin
+          WriteLn('DEBUG: Class method (Function)');
+          FunctionDefinition;
+        end;
+      'PROPERTY':
+        begin
+          WriteLn('DEBUG: Property accessor');
+          // Handle Property Get/Set
+          Advance; // Consume PROPERTY
+
+          // Check for Get or Set
+          if Check(tkKeyword) and ((AnsiUpperCase(FCurrentToken.Lexeme) = 'GET') or
+                                   (AnsiUpperCase(FCurrentToken.Lexeme) = 'SET')) then
+          begin
+            Advance; // Consume GET or SET
+            Match(tkIdentifier); // Property name
+
+            // Handle parameters for SET
+            if Check(tkParenthesisOpen) then
+            begin
+              Advance;
+              if Check(tkIdentifier) then
+              begin
+                Advance;
+                while Check(tkComma) do
+                begin
+                  Advance;
+                  Match(tkIdentifier);
+                end;
+              end;
+              Match(tkParenthesisClose);
+            end;
+
+            Match(tkEndOfLine);
+
+            // Parse property body
+            while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
+            begin
+              if FCurrentToken.TokenType = tkEndOfFile then
+              begin
+                Error('Unexpected end of file in PROPERTY definition');
+                Break;
+              end;
+
+              if Check(tkEndOfLine) then
+              begin
+                Advance;
+                Continue;
+              end;
+
+              if Check(tkComment) then
+              begin
+                Advance;
+                Continue;
+              end;
+
+              // Parse property statements
+              case AnsiUpperCase(FCurrentToken.Lexeme) of
+                'LET': AssignmentStatement;
+                'RETURN': ReturnStatement;
+              else
+                if FCurrentToken.TokenType = tkIdentifier then
+                  AssignmentStatement
+                else
+                  Error('Unexpected token in PROPERTY body');
+              end;
+
+              while Check(tkEndOfLine) do
+                Advance;
+            end;
+
+            Match(tkKeyword); // END
+            Match(tkKeyword); // PROPERTY
+          end;
+        end;
+    else
+      if FCurrentToken.TokenType = tkIdentifier then
+      begin
+        // Could be a property without Dim keyword (legacy VB style)
+        WriteLn('DEBUG: Implicit property or label: ', FCurrentToken.Lexeme);
+        FAssembler.DefineLabel(ClassName + '.' + FCurrentToken.Lexeme);
+        Advance;
+      end
+      else
+        Error('Unexpected token in CLASS body: ' + FCurrentToken.Lexeme);
+    end;
+
+    // Skip trailing end-of-line
+    while Check(tkEndOfLine) do
+      Advance;
+  end;
+
+  WriteLn('DEBUG: ClassDefinition - Found END');
+  Match(tkKeyword); // END
+  Match(tkKeyword); // CLASS
+  WriteLn('DEBUG: ClassDefinition - Complete for class: ', ClassName);
 end;
 
 procedure TParser.ShowStatement;
@@ -1090,6 +1369,7 @@ end;
 function TParser.Primary: TExpressionNode;
 var
   Token: TToken;
+  ClassName: string;
 begin
   Token := FCurrentToken;
   case Token.TokenType of
@@ -1103,6 +1383,45 @@ begin
         Advance; // Consume '('
         Result := Expression;
         Match(tkParenthesisClose); // Consume ')'
+      end;
+    tkKeyword:
+      begin
+        // Handle NEW keyword for object instantiation
+        if AnsiUpperCase(Token.Lexeme) = 'NEW' then
+        begin
+          WriteLn('DEBUG: NEW keyword detected for object instantiation');
+          Advance; // Consume NEW
+
+          if not Check(tkIdentifier) then
+            Error('Expected class name after NEW');
+
+          ClassName := FCurrentToken.Lexeme;
+          WriteLn('DEBUG: Instantiating class: ', ClassName);
+          Advance; // Consume class name
+
+          // Handle optional constructor parameters
+          if Check(tkParenthesisOpen) then
+          begin
+            Advance; // Consume '('
+
+            // Parse constructor arguments
+            if not Check(tkParenthesisClose) then
+            begin
+              Expression;
+              while Check(tkComma) do
+              begin
+                Advance; // Consume comma
+                Expression;
+              end;
+            end;
+
+            Match(tkParenthesisClose); // Consume ')'
+          end;
+
+          Result := TLiteralNode.Create('NEW ' + ClassName, tkKeyword);
+        end
+        else
+          Error('Expected expression, found keyword: ' + FCurrentToken.Lexeme);
       end;
     else
       Error('Expected expression, found ' + FCurrentToken.Lexeme);

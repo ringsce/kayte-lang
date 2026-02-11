@@ -24,6 +24,48 @@ kaytecc hello.kayte --native -o hello
 
 ---
 
+## 🔧 Building from Source
+
+### Requirements
+
+**All Platforms:**
+- FreePascal 3.2.2 or newer
+- Git
+
+**For musl builds (Linux):**
+- musl cross-compilation toolchains (installed automatically by setup script)
+- wget (for downloading toolchains)
+
+### Build Options
+
+**Standard Build:**
+```bash
+make build
+```
+
+**musl Build (Linux - Portable, Static Binaries):**
+```bash
+# All-in-one: setup toolchains and build
+sudo ./setup_and_build_kayte.sh both
+
+# Or if toolchains already installed
+./build_kayte_musl.sh both
+
+# Or using Make
+make -f Makefile.kayte all
+```
+
+**What is musl?**
+musl libc builds create statically-linked binaries that:
+- Have no runtime dependencies
+- Run on any Linux distribution
+- Are 20-30% smaller than glibc builds
+- Support both ARM64 and AMD64 architectures
+
+For complete musl build documentation, see **README_KAYTE_MUSL.md**.
+
+---
+
 ## 🚀 Core Features
 
 ### ✅ Functions
@@ -305,9 +347,9 @@ kayte --disassemble myapp.kbyte
 ```
 
 ### ✅ ARM64 Native Compilation
-**Status:** Fully Implemented (macOS)
+**Status:** Fully Implemented (macOS, Linux)
 
-Compile directly to native ARM64 Mach-O executables for maximum performance on Apple Silicon.
+Compile directly to native ARM64 executables for maximum performance.
 
 ```bash
 # Compile to native ARM64
@@ -323,9 +365,73 @@ kaytecc myapp.kayte --native -o myapp
 - 💪 **Direct machine code** - optimal CPU utilization
 
 **Architecture:**
-- **KayteArm64.pas**: Free Pascal unit that interfaces with the native compiler
+- **KayteArm64.pas**: Free Pascal unit (macOS Mach-O)
+- **KayteArm64ELF.pas**: Free Pascal unit (Linux ELF)
+- **KayteArm64PE.pas**: Free Pascal unit (Windows PE)
 - **kayte_arm64_emit.c**: C-based ARM64 code generator
-- **Mach-O generation**: Creates standard macOS executables
+
+### ✅ musl libc Builds
+**Status:** Fully Implemented (Linux ARM64 & AMD64)
+
+Build statically-linked, portable Kayte binaries using musl libc for maximum portability across Linux distributions.
+
+```bash
+# One-command setup and build
+sudo ./setup_and_build_kayte.sh both
+
+# Or use the build script
+./build_kayte_musl.sh both
+
+# Or use Make
+make -f Makefile.kayte all
+```
+
+**Benefits:**
+- ✅ **Statically linked** - no runtime dependencies
+- ✅ **Portable** - runs on any Linux distribution
+- ✅ **Smaller binaries** - 20-30% smaller than glibc builds
+- ✅ **ARM64 & AMD64** - both architectures supported
+
+**Quick Start:**
+```bash
+# Setup musl toolchains and build
+chmod +x setup_and_build_kayte.sh
+sudo ./setup_and_build_kayte.sh both
+
+# Outputs:
+# bin/aarch64-linux-musl/kayte  (ARM64)
+# bin/x86_64-linux-musl/kayte   (AMD64)
+```
+
+**Build Methods:**
+
+1. **All-in-One Script** (Easiest - installs toolchains and builds):
+   ```bash
+   sudo ./setup_and_build_kayte.sh both
+   ```
+
+2. **Build Script** (Assumes toolchains installed):
+   ```bash
+   ./build_kayte_musl.sh both
+   ```
+
+3. **Makefile**:
+   ```bash
+   make -f Makefile.kayte all
+   make -f Makefile.kayte test
+   sudo make -f Makefile.kayte install
+   ```
+
+4. **FreePascal Config Files**:
+   ```bash
+   fpc @fpc-arm64-musl.cfg kayte.lpr
+   fpc @fpc-amd64-musl.cfg kayte.lpr
+   ```
+
+**Documentation:**
+- **QUICKSTART_KAYTE.md** - Quick start guide
+- **README_KAYTE_MUSL.md** - Complete build documentation
+- **INDEX.md** - File overview and build methods
 
 ---
 
@@ -461,7 +567,7 @@ kayte --repl
 
 ### IDE Support
 
-**Tilde Desktop** - The official Kayte IDE:
+**KayteIDE** - The official Kayte IDE:
 - Syntax highlighting
 - Code completion
 - Integrated debugger
@@ -471,9 +577,11 @@ kayte --repl
 
 ```bash
 # Install Tilde Desktop
-git clone https://github.com/ringsce/tilde-desktop.git
-cd tilde-desktop
-make install
+git clone https://github.com/ringsce/kayteide.git
+cd kayteide
+mkdir build && cd build
+cmake ..
+cmake --build .
 ```
 
 ---
@@ -588,7 +696,8 @@ function updateList() {
 - HTTP Server with Node.js integration
 - Error handling (try-catch)
 - Built-in functions
-- ARM64 native compilation (macOS)
+- ARM64 native compilation (macOS, Linux, Windows)
+- **musl libc builds** (Linux ARM64 & AMD64 - statically linked, portable)
 
 ### 🚧 In Progress (v1.0)
 - **Advanced Type System**: Static typing with type inference
@@ -629,8 +738,13 @@ git fork https://github.com/ringsce/kayte-lang.git
 git clone https://github.com/YOUR_USERNAME/kayte-lang.git
 cd kayte-lang
 
-# Build from source
+# Build from source (standard)
 make build
+
+# Build with musl (Linux ARM64 & AMD64 - portable, statically-linked)
+sudo ./setup_and_build_kayte.sh both
+# Or: ./build_kayte_musl.sh both
+# Or: make -f Makefile.kayte all
 
 # Run tests
 make test
@@ -660,7 +774,7 @@ git push origin feature/my-awesome-feature
 - **Website**: https://ringscejs.gleentech.com
 - **Documentation**: https://ringscejs.gleentech.com
 - **Compiler & VM**: https://github.com/ringsce/kayte-lang
-- **Tilde Desktop IDE**: https://github.com/ringsce/tilde-desktop
+- **Kayte IDE**: https://github.com/ringsce/kayteide
 - **Discord Community**: https://discord.gg/d6gV8W2W
 
 ### Learning Resources
@@ -669,6 +783,17 @@ git push origin feature/my-awesome-feature
 - **API Documentation**: docs/api/
 - **Example Projects**: examples/
 - **Video Tutorials**: https://youtube.com/@ringsce
+
+### Build System Documentation
+- **INDEX.md** - Overview of all build system files
+- **QUICKSTART_KAYTE.md** - Quick start for building with musl
+- **README_KAYTE_MUSL.md** - Complete musl build documentation
+- **setup_and_build_kayte.sh** - All-in-one build script
+- **build_kayte_musl.sh** - Standalone build script
+- **Makefile.kayte** - Makefile for musl builds
+- **fpc-arm64-musl.cfg** - FreePascal config for ARM64
+- **fpc-amd64-musl.cfg** - FreePascal config for AMD64
+
 ---
 
 ## 📄 License

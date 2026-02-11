@@ -14,8 +14,7 @@ type
     tkUnknown,        // For unrecognized tokens
     tkEndOfFile,      // End of input stream (replaces tkEOF)
     tkEndOfLine,      // Newline character
-    tkComment,        // ' or REM or // comments
-    tkDocComment,     // /// documentation comments
+    tkComment,        // ' or REM comments
     tkEOF, // End of file
 
     // Literals
@@ -54,10 +53,9 @@ type
   // Represents a single token found by the lexer
   TToken = record
     TokenType: TTokenType;
-    Lexeme: String;       // The actual text matched (e.g., "PRINT", "123", "myVar")
-    Line: Integer;        // Line number where the token starts (0-indexed)
-    Column: Integer;      // Column number where the token starts (0-indexed)
-    DocContent: String;   // Content of documentation comments (for tkDocComment)
+    Lexeme: String;   // The actual text matched (e.g., "PRINT", "123", "myVar")
+    Line: Integer;    // Line number where the token starts (0-indexed)
+    Column: Integer;  // Column number where the token starts (0-indexed)
   end;
 
 // Helper function to get a string representation of a token type (useful for error messages)
@@ -70,7 +68,6 @@ const
     'END_OF_FILE',
     'END_OF_LINE',
     'COMMENT',
-    'DOC_COMMENT',
     'EOF',   // <-- added for tkEOF
     'INTEGER_LITERAL',
     'STRING_LITERAL',
@@ -99,3 +96,4 @@ begin
 end;
 
 end.
+

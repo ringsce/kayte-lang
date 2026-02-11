@@ -1,0 +1,284 @@
+# Makefile for Kayte Language - musl Cross-Compilation
+# Supports Linux ARM64 (aarch64) and AMD64 (x86_64) with musl libc
+
+# Project Configuration
+PROJECT_NAME = kayte
+PROJECT_FILE = kayte.lpr
+
+# FreePascal Compiler
+FPC = fpc
+FPC_VERSION := $(shell fpc -iV)
+
+# Build Directories
+BUILD_DIR = build
+BIN_DIR = bin
+LIB_DIR = lib
+
+# musl Toolchain Paths
+ARM64_MUSL_PREFIX = /opt/aarch64-linux-musl-cross
+AMD64_MUSL_PREFIX = /opt/x86_64-linux-musl-cross
+
+# Output Paths
+ARM64_BIN_DIR = $(BIN_DIR)/aarch64-linux-musl
+AMD64_BIN_DIR = $(BIN_DIR)/x86_64-linux-musl
+ARM64_LIB_DIR = $(LIB_DIR)/aarch64-linux-musl
+AMD64_LIB_DIR = $(LIB_DIR)/x86_64-linux-musl
+
+ARM64_BIN = $(ARM64_BIN_DIR)/$(PROJECT_NAME)
+AMD64_BIN = $(AMD64_BIN_DIR)/$(PROJECT_NAME)
+
+# Strip Tools
+ARM64_STRIP = aarch64-linux-musl-strip
+AMD64_STRIP = x86_64-linux-musl-strip
+
+# Common FPC Options
+FPC_COMMON = -vh -O3 -CX -XX
+
+# ARM64 musl Compiler Options
+FPC_ARM64_OPTS = \
+	-Tlinux \
+	-Paarch64 \
+	-XPaarch64-linux-musl- \
+	-Xd \
+	-Fl$(ARM64_MUSL_PREFIX)/aarch64-linux-musl/lib \
+	-FU$(ARM64_LIB_DIR) \
+	-FE$(ARM64_BIN_DIR) \
+	-o$(ARM64_BIN) \
+	-k-static \
+	-Xs \
+	$(FPC_COMMON)
+
+# AMD64 musl Compiler Options
+FPC_AMD64_OPTS = \
+	-Tlinux \
+	-Px86_64 \
+	-XPx86_64-linux-musl- \
+	-Xd \
+	-Fl$(AMD64_MUSL_PREFIX)/x86_64-linux-musl/lib \
+	-FU$(AMD64_LIB_DIR) \
+	-FE$(AMD64_BIN_DIR) \
+	-o$(AMD64_BIN) \
+	-k-static \
+	-Xs \
+	$(FPC_COMMON)
+
+# Colors
+RED = \033[0;31m
+GREEN = \033[0;32m
+YELLOW = \033[1;33m
+BLUE = \033[0;34m
+NC = \033[0m # No Color
+
+# Default target
+.DEFAULT_GOAL := all
+
+# Phony targets
+.PHONY: all clean arm64 amd64 test install help dirs check-deps
+
+# Help message
+help:
+	@echo "$(GREEN)Kayte Language - musl Build System$(NC)"
+	@echo ""
+	@echo "Available targets:"
+	@echo "  $(YELLOW)all$(NC)        - Build for both ARM64 and AMD64 musl"
+	@echo "  $(YELLOW)arm64$(NC)      - Build for ARM64 musl (aarch64)"
+	@echo "  $(YELLOW)amd64$(NC)      - Build for AMD64 musl (x86_64)"
+	@echo "  $(YELLOW)clean$(NC)      - Remove all build artifacts"
+	@echo "  $(YELLOW)test$(NC)       - Test both binaries"
+	@echo "  $(YELLOW)install$(NC)    - Install binaries to /usr/local/bin"
+	@echo "  $(YELLOW)check-deps$(NC) - Check build dependencies"
+	@echo "  $(YELLOW)help$(NC)       - Show this help message"
+	@echo ""
+	@echo "Build Configuration:"
+	@echo "  FreePascal: $(FPC_VERSION)"
+	@echo "  ARM64 musl: $(ARM64_MUSL_PREFIX)"
+	@echo "  AMD64 musl: $(AMD64_MUSL_PREFIX)"
+	@echo ""
+
+# Check dependencies
+check-deps:
+	@echo "$(BLUE)[CHECK]$(NC) Checking build dependencies..."
+	@command -v $(FPC) >/dev/null 2>&1 || { echo "$(RED)[ERROR]$(NC) FreePascal (fpc) not found!"; exit 1; }
+	@echo "$(GREEN)[OK]$(NC) FreePascal found: $(FPC_VERSION)"
+	@[ -d "$(ARM64_MUSL_PREFIX)" ] || { echo "$(RED)[ERROR]$(NC) ARM64 musl toolchain not found at $(ARM64_MUSL_PREFIX)"; exit 1; }
+	@echo "$(GREEN)[OK]$(NC) ARM64 musl toolchain found"
+	@[ -d "$(AMD64_MUSL_PREFIX)" ] || { echo "$(RED)[ERROR]$(NC) AMD64 musl toolchain not found at $(AMD64_MUSL_PREFIX)"; exit 1; }
+	@echo "$(GREEN)[OK]$(NC) AMD64 musl toolchain found"
+	@[ -f "$(PROJECT_FILE)" ] || { echo "$(RED)[ERROR]$(NC) Project file not found: $(PROJECT_FILE)"; exit 1; }
+	@echo "$(GREEN)[OK]$(NC) Project file found: $(PROJECT_FILE)"
+
+# Create directories
+dirs:
+	@mkdir -p $(ARM64_BIN_DIR) $(AMD64_BIN_DIR)
+	@mkdir -p $(ARM64_LIB_DIR) $(AMD64_LIB_DIR)
+	@mkdir -p $(BUILD_DIR)
+
+# Build all targets
+all: check-deps arm64 amd64
+	@echo ""
+	@echo "$(GREEN)========================================$(NC)"
+	@echo "$(GREEN)  All builds completed successfully!$(NC)"
+	@echo "$(GREEN)========================================$(NC)"
+	@echo ""
+	@echo "Built binaries:"
+	@ls -lh $(ARM64_BIN) $(AMD64_BIN)
+
+# Build ARM64 musl
+arm64: check-deps dirs
+	@echo ""
+	@echo "$(BLUE)[BUILD]$(NC) Building Kayte for Linux ARM64 with musl..."
+	@echo "$(BLUE)[INFO]$(NC) Target: aarch64-linux-musl"
+	@echo "$(BLUE)[INFO]$(NC) Output: $(ARM64_BIN)"
+	@export PATH="$(ARM64_MUSL_PREFIX)/bin:$$PATH" && \
+	$(FPC) $(FPC_ARM64_OPTS) $(PROJECT_FILE)
+	@if [ -f "$(ARM64_BIN)" ]; then \
+		echo "$(GREEN)[SUCCESS]$(NC) ARM64 build complete!"; \
+		$(ARM64_STRIP) "$(ARM64_BIN)" 2>/dev/null || true; \
+		echo "$(BLUE)[INFO]$(NC) Binary info:"; \
+		file "$(ARM64_BIN)"; \
+		echo "$(BLUE)[INFO]$(NC) Size: $$(du -h $(ARM64_BIN) | cut -f1)"; \
+		ldd "$(ARM64_BIN)" 2>&1 | grep -q "not a dynamic" && \
+			echo "$(GREEN)[OK]$(NC) Statically linked ✓" || \
+			echo "$(YELLOW)[WARN]$(NC) May not be fully static"; \
+	else \
+		echo "$(RED)[ERROR]$(NC) ARM64 build failed!"; \
+		exit 1; \
+	fi
+
+# Build AMD64 musl
+amd64: check-deps dirs
+	@echo ""
+	@echo "$(BLUE)[BUILD]$(NC) Building Kayte for Linux AMD64 with musl..."
+	@echo "$(BLUE)[INFO]$(NC) Target: x86_64-linux-musl"
+	@echo "$(BLUE)[INFO]$(NC) Output: $(AMD64_BIN)"
+	@export PATH="$(AMD64_MUSL_PREFIX)/bin:$$PATH" && \
+	$(FPC) $(FPC_AMD64_OPTS) $(PROJECT_FILE)
+	@if [ -f "$(AMD64_BIN)" ]; then \
+		echo "$(GREEN)[SUCCESS]$(NC) AMD64 build complete!"; \
+		$(AMD64_STRIP) "$(AMD64_BIN)" 2>/dev/null || true; \
+		echo "$(BLUE)[INFO]$(NC) Binary info:"; \
+		file "$(AMD64_BIN)"; \
+		echo "$(BLUE)[INFO]$(NC) Size: $$(du -h $(AMD64_BIN) | cut -f1)"; \
+		ldd "$(AMD64_BIN)" 2>&1 | grep -q "not a dynamic" && \
+			echo "$(GREEN)[OK]$(NC) Statically linked ✓" || \
+			echo "$(YELLOW)[WARN]$(NC) May not be fully static"; \
+	else \
+		echo "$(RED)[ERROR]$(NC) AMD64 build failed!"; \
+		exit 1; \
+	fi
+
+# Clean build artifacts
+clean:
+	@echo "$(BLUE)[CLEAN]$(NC) Removing build artifacts..."
+	@rm -rf $(LIB_DIR)/ $(BIN_DIR)/ $(BUILD_DIR)/
+	@rm -f *.o *.ppu *.compiled
+	@find . -name "*.o" -delete
+	@find . -name "*.ppu" -delete
+	@echo "$(GREEN)[OK]$(NC) Clean complete"
+
+# Test binaries
+test: test-arm64 test-amd64
+
+test-arm64:
+	@echo ""
+	@echo "$(BLUE)[TEST]$(NC) Testing ARM64 binary..."
+	@if [ -f "$(ARM64_BIN)" ]; then \
+		echo "$(BLUE)[INFO]$(NC) File type:"; \
+		file "$(ARM64_BIN)"; \
+		echo "$(BLUE)[INFO]$(NC) Static linking:"; \
+		ldd "$(ARM64_BIN)" 2>&1 || true; \
+		if command -v qemu-aarch64-static >/dev/null 2>&1; then \
+			echo "$(BLUE)[INFO]$(NC) Running with QEMU..."; \
+			qemu-aarch64-static "$(ARM64_BIN)" --version || echo "Test complete"; \
+		else \
+			echo "$(YELLOW)[WARN]$(NC) QEMU not found, skipping execution test"; \
+			echo "$(YELLOW)[INFO]$(NC) Install with: sudo apt-get install qemu-user-static"; \
+		fi; \
+	else \
+		echo "$(RED)[ERROR]$(NC) ARM64 binary not found. Run 'make arm64' first."; \
+		exit 1; \
+	fi
+
+test-amd64:
+	@echo ""
+	@echo "$(BLUE)[TEST]$(NC) Testing AMD64 binary..."
+	@if [ -f "$(AMD64_BIN)" ]; then \
+		echo "$(BLUE)[INFO]$(NC) File type:"; \
+		file "$(AMD64_BIN)"; \
+		echo "$(BLUE)[INFO]$(NC) Static linking:"; \
+		ldd "$(AMD64_BIN)" 2>&1 || true; \
+		if [ "$$(uname -m)" = "x86_64" ]; then \
+			echo "$(BLUE)[INFO]$(NC) Running binary..."; \
+			"$(AMD64_BIN)" --version || echo "Test complete"; \
+		else \
+			echo "$(YELLOW)[WARN]$(NC) Not on x86_64, skipping execution test"; \
+		fi; \
+	else \
+		echo "$(RED)[ERROR]$(NC) AMD64 binary not found. Run 'make amd64' first."; \
+		exit 1; \
+	fi
+
+# Install binaries
+install: all
+	@echo "$(BLUE)[INSTALL]$(NC) Installing binaries..."
+	@install -m 755 "$(ARM64_BIN)" /usr/local/bin/$(PROJECT_NAME)-arm64 || \
+		{ echo "$(RED)[ERROR]$(NC) Failed to install ARM64 binary. Try: sudo make install"; exit 1; }
+	@install -m 755 "$(AMD64_BIN)" /usr/local/bin/$(PROJECT_NAME)-amd64 || \
+		{ echo "$(RED)[ERROR]$(NC) Failed to install AMD64 binary. Try: sudo make install"; exit 1; }
+	@echo "$(GREEN)[OK]$(NC) Installed to /usr/local/bin/"
+	@ls -lh /usr/local/bin/$(PROJECT_NAME)-*
+
+# Create distribution packages
+dist: all
+	@echo "$(BLUE)[DIST]$(NC) Creating distribution packages..."
+	@mkdir -p dist
+	@tar -czf dist/$(PROJECT_NAME)-arm64-musl-$(shell date +%Y%m%d).tar.gz -C $(ARM64_BIN_DIR) $(PROJECT_NAME)
+	@tar -czf dist/$(PROJECT_NAME)-amd64-musl-$(shell date +%Y%m%d).tar.gz -C $(AMD64_BIN_DIR) $(PROJECT_NAME)
+	@echo "$(GREEN)[OK]$(NC) Distribution packages created:"
+	@ls -lh dist/
+
+# Rebuild everything
+rebuild: clean all
+
+# Quick build (parallel)
+quick:
+	@$(MAKE) -j2 arm64 amd64
+
+# Show build info
+info:
+	@echo "$(GREEN)Kayte Language - Build Configuration$(NC)"
+	@echo ""
+	@echo "Project:"
+	@echo "  Name: $(PROJECT_NAME)"
+	@echo "  File: $(PROJECT_FILE)"
+	@echo ""
+	@echo "Compiler:"
+	@echo "  FreePascal: $(FPC_VERSION)"
+	@echo ""
+	@echo "Toolchains:"
+	@which aarch64-linux-musl-gcc 2>/dev/null || echo "  ARM64 musl: $(RED)not found$(NC)"
+	@which x86_64-linux-musl-gcc 2>/dev/null || echo "  AMD64 musl: $(RED)not found$(NC)"
+	@echo ""
+	@echo "Output directories:"
+	@echo "  ARM64: $(ARM64_BIN_DIR)"
+	@echo "  AMD64: $(AMD64_BIN_DIR)"
+	@echo ""
+
+# Development target - build and test AMD64 quickly
+dev: amd64
+	@echo "$(BLUE)[DEV]$(NC) Testing AMD64 binary..."
+	@"$(AMD64_BIN)" --version || true
+
+# Debug build for AMD64
+debug: check-deps dirs
+	@echo "$(BLUE)[DEBUG]$(NC) Building debug version for AMD64..."
+	@$(FPC) -Tlinux -Px86_64 -XPx86_64-linux-musl- -Xd \
+		-Fl$(AMD64_MUSL_PREFIX)/x86_64-linux-musl/lib \
+		-FU$(AMD64_LIB_DIR)-debug \
+		-FE$(AMD64_BIN_DIR) \
+		-o$(AMD64_BIN_DIR)/$(PROJECT_NAME)-debug \
+		-k-static \
+		-g -gl -gh -Ci -Co -Cr -Sa \
+		-vh \
+		$(PROJECT_FILE)
+	@echo "$(GREEN)[OK]$(NC) Debug build complete: $(AMD64_BIN_DIR)/$(PROJECT_NAME)-debug"

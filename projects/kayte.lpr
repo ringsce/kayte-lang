@@ -6,6 +6,9 @@ Program kayte;
 *)
 
 {$mode objfpc}{$H+}
+{$NOTE 6058 OFF}  // Disable inline notes
+{$WARN 4046 OFF}
+{$HINTS ON}
 
 uses
   SysUtils, Classes, Zipper, fphttpclient, fpjson, jsonparser, Process,
@@ -33,8 +36,11 @@ uses
   kayte_runtime in '../source/kayte_runtime.pas',
   kayte_loader in '../source/kayte_loader.pas',
   kayte_vm in '../source/kayte_vm.pas',
-  KayteArm64 in '../source/KayteArm64.pas';
-
+  mathlib in '../source/mathlib.pas'
+  {$IFDEF DARWIN}
+  ,KayteArm64 in '../source/KayteArm64.pas'
+  {$ENDIF}
+  ;
 type
   { TBytecodeGenerator - Handles loading and saving bytecode files }
   TBytecodeGenerator = class(TObject)
@@ -290,14 +296,19 @@ procedure ShowVersion;
 begin
   Writeln('Kayte Language v0.9.0');
   Writeln('Copyright (c) Pedro Dias Vicente 2024-2026');
-  {$IFDEF DARWIN}
   {$IFDEF CPUAARCH64}
-  Writeln('Platform: macOS ARM64 (Apple Silicon) - Native compilation available');
+    {$IFDEF DARWIN}
+    Writeln('Platform: macOS ARM64 (Apple Silicon) - Native compilation available');
+    {$ENDIF}
+    {$IFDEF LINUX}
+    Writeln('Platform: Linux ARM64 (AArch64) - Native compilation available');
+    {$ENDIF}
+    {$IFDEF WINDOWS}
+    Writeln('Platform: Windows ARM64 - Native compilation available');
+    {$ENDIF}
   {$ELSE}
-  Writeln('Platform: macOS (Native compilation not available on this architecture)');
-  {$ENDIF}
-  {$ELSE}
-  Writeln('Platform: ', {$I %FPCTARGETOS%}, ' (Native compilation only available on macOS ARM64)');
+    Writeln('Platform: ', {$I %FPCTARGETOS%}, '/', {$I %FPCTARGETCPU%});
+    Writeln('Native compilation not available on this architecture');
   {$ENDIF}
 end;
 
@@ -446,7 +457,7 @@ begin
 end;
 
 
-procedure CompileToBytecode(const InputFile, OutputFile: string);
+(*procedure CompileToBytecode(const InputFile, OutputFile: string);
 var
   SourceCode: TStringList;
   Lexer: TLexer;
@@ -503,6 +514,8 @@ begin
     SourceCode.Free;
   end;
 end;
+*)
+
 procedure CompileKayteFile(const InputFile, OutputFile: string);
 var
   SourceCode: TStringList;
@@ -583,9 +596,20 @@ var
   I: Integer;
   Insn: TBCInstruction;
   CompileResult: Integer;
+  PlatformName: string;
 begin
-  {$IFDEF DARWIN}
   {$IFDEF CPUAARCH64}
+
+  // Determine platform
+  {$IFDEF DARWIN}
+  PlatformName := 'macOS ARM64';
+  {$ENDIF}
+  {$IFDEF LINUX}
+  PlatformName := 'Linux ARM64';
+  {$ENDIF}
+  {$IFDEF WINDOWS}
+  PlatformName := 'Windows ARM64';
+  {$ENDIF}
 
   if not FileExists(InputFile) then
   begin
@@ -593,7 +617,7 @@ begin
     Exit;
   end;
 
-  Writeln('Compiling ', InputFile, ' to native ARM64 executable...');
+  Writeln('Compiling ', InputFile, ' to native ARM64 executable (', PlatformName, ')...');
 
   SourceCode := TStringList.Create;
   try
@@ -630,7 +654,6 @@ begin
           if Options.Verbose then
             Writeln('  Calling Parse()...');
 
-          // Parse and generate the bytecode program
           BytecodeProgram := ParserInstance.Parse;
 
           if Options.Verbose then
@@ -661,40 +684,72 @@ begin
                 Writeln('  Converting instruction ', I, ': OpCode=', Ord(Insn.OpCode),
                         ', Operand1=', Insn.Operand1);
 
-              // Convert TByteCodeOp to TKayteOpcode
               NativeInstructions[I] := MakeInsn(TKayteOpcode(Ord(Insn.OpCode)), Insn.Operand1);
             end;
 
             // Determine output file path
             if OutputFile = '' then
-              OutputFilePath := ChangeFileExt(InputFile, '')
+            begin
+              {$IFDEF WINDOWS}
+              OutputFilePath := ChangeFileExt(InputFile, '.exe');
+              {$ELSE}
+              OutputFilePath := ChangeFileExt(InputFile, '');
+              {$ENDIF}
+            end
             else
               OutputFilePath := OutputFile;
 
             if Options.Verbose then
             begin
-              Writeln('Step 3/3: Generating native Mach-O executable...');
+              Writeln('Step 3/3: Generating native executable...');
+              Writeln('  Platform: ', PlatformName);
               Writeln('  Output: ', OutputFilePath);
               Writeln('  Instructions: ', Length(NativeInstructions));
             end;
 
-            // Compile to native Mach-O
+            // Compile to native format based on platform
+            {$IFDEF DARWIN}
+            // macOS - Mach-O format
             CompileResult := CompileToMachO(NativeInstructions, OutputFilePath);
+            {$ENDIF}
+
+            {$IFDEF LINUX}
+            // Linux - ELF format
+            CompileResult := CompileToELF(NativeInstructions, OutputFilePath);
+            {$ENDIF}
+
+            {$IFDEF WINDOWS}
+            // Windows - PE format
+            CompileResult := CompileToPE(NativeInstructions, OutputFilePath);
+            {$ENDIF}
 
             if CompileResult = 0 then
             begin
               Writeln;
               Writeln('✓ Native compilation successful!');
+              Writeln('Platform: ', PlatformName);
               Writeln('Executable created: ', OutputFilePath);
               Writeln;
+              {$IFDEF WINDOWS}
+              Writeln('Run with: ', ExtractFileName(OutputFilePath));
+              {$ELSE}
               Writeln('Run with: ./', ExtractFileName(OutputFilePath));
+              {$ENDIF}
             end
             else
             begin
               Writeln;
               Writeln('Error: Native compilation failed with code: ', CompileResult);
-              Writeln('The native compiler may not be fully implemented yet.');
+              Writeln('The native compiler for ', PlatformName, ' may not be fully implemented yet.');
+              {$IFDEF DARWIN}
               Writeln('Please check kayte_arm64_emit.c for implementation details.');
+              {$ENDIF}
+              {$IFDEF LINUX}
+              Writeln('Please check kayte_arm64_elf.c for implementation details.');
+              {$ENDIF}
+              {$IFDEF WINDOWS}
+              Writeln('Please check kayte_arm64_pe.c for implementation details.');
+              {$ENDIF}
             end;
 
           finally
@@ -729,16 +784,13 @@ begin
   end;
 
   {$ELSE}
+  // Not ARM64 architecture
   Writeln('Error: Native compilation is only supported on ARM64 architecture.');
   Writeln('Current architecture: ', {$I %FPCTARGETCPU%});
   Writeln('Please use --compile to generate bytecode instead.');
   {$ENDIF}
-  {$ELSE}
-  Writeln('Error: Native compilation is only supported on macOS (Darwin).');
-  Writeln('Current OS: ', {$I %FPCTARGETOS%});
-  Writeln('Please use --compile to generate bytecode instead.');
-  {$ENDIF}
 end;
+
 procedure RunBytecodeFile(const BytecodeFile: string);
 var
   VM: TVirtualMachine;

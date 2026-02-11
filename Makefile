@@ -1,190 +1,280 @@
-# Makefile for Kayte Projects
-# Builds kaytec, vb6interpreter, kayteide, build_kayte, and a main app (KayteApp)
-# Supports macOS (universal) and Linux (amd64, arm64) builds using FPC/Lazarus.
+# Kayte Language ARM64 Native Compiler Makefile
+# Supports: macOS (Mach-O), Linux (ELF), Windows (PE)
 
-# --- Global Project Settings ---
-PROJECT_NAME := kayte
-SRC_DIR := source                # Pascal compiler/runtime source files (units)
-PROJECT_DIR := projects          # Contains main .lpr project files (e.g., Kayte.lpr, vb6interpreter.lpr)
-COMPONENTS_DIR := components     # Path to your components folder (relative to Makefile root)
-BIN_DIR := bin                   # Where all compiled executables will go
-BUILD_DIR := build               # Where intermediate bytecode objects and .o/.ppu files go
-
-# Toolchain
-FPC := fpc
-LAZBUILD := /Applications/lazarus/lazbuild # Default for macOS, adjust if needed
-LAZARUS_APP_DIR := /Applications/lazarus # Used for lazbuild --lazarusdir
-
-# Detect platform (macOS or Linux) and set common linker flags
+# Detect OS
 UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-  PLATFORM := linux
-  COMMON_LDFLAGS := # No specific common linker flags for Linux by default
-else ifeq ($(UNAME_S),Darwin)
-  PLATFORM := darwin
-  COMMON_LDFLAGS := -WM-macosx_version_min=11.0 # Common linker flags for macOS
+UNAME_M := $(shell uname -m)
+
+# Compiler settings
+FPC := fpc
+GCC := gcc
+CLANG := clang
+
+# Directories
+SRC_DIR := source
+BUILD_DIR := build
+LIB_DIR := lib
+BIN_DIR := bin
+
+# Compiler flags
+FPC_FLAGS := -MObjFPC -Scghi -O3 -g -gl -l -vewnhibq
+GCC_FLAGS := -O3 -Wall -fPIC -shared
+CLANG_FLAGS := -O3 -Wall -fPIC -shared
+
+# Platform-specific settings
+ifeq ($(UNAME_S),Darwin)
+    OS := macos
+    ARCH := $(UNAME_M)
+    LIB_EXT := .dylib
+    EXE_EXT :=
+    CC := $(CLANG)
+    CC_FLAGS := $(CLANG_FLAGS)
+    ifeq ($(ARCH),arm64)
+        NATIVE_SUPPORT := yes
+        TARGET_ARCH := aarch64
+    else
+        NATIVE_SUPPORT := no
+    endif
+else ifeq ($(UNAME_S),Linux)
+    OS := linux
+    ARCH := $(UNAME_M)
+    LIB_EXT := .so
+    EXE_EXT :=
+    CC := $(GCC)
+    CC_FLAGS := $(GCC_FLAGS)
+    ifeq ($(ARCH),aarch64)
+        NATIVE_SUPPORT := yes
+        TARGET_ARCH := aarch64
+    else
+        NATIVE_SUPPORT := no
+    endif
 else
-  $(error Unsupported OS: $(UNAME_S). Please add specific rules for it.)
+    # Windows detection (via Git Bash, WSL, or MinGW)
+    OS := windows
+    LIB_EXT := .dll
+    EXE_EXT := .exe
+    CC := $(GCC)
+    CC_FLAGS := $(GCC_FLAGS)
+    NATIVE_SUPPORT := no
 endif
 
-# --- Project Definitions ---
-# List of all project base names (without .lpr/.lpi or paths)
-PROJECT_BASE_NAMES = kaytec vb6interpreter kayteide build_kayte main_app
+# Library names
+LIB_MACHO := $(LIB_DIR)/libkaytearm64macho$(LIB_EXT)
+LIB_ELF := $(LIB_DIR)/libkaytearm64elf$(LIB_EXT)
+LIB_PE := $(LIB_DIR)/libkaytearm64pe$(LIB_EXT)
 
-# --- Helper Functions ---
-# Function to get the full .lpr path for a given project base name
-define get_lpr_path
-$(PROJECT_DIR)/$(1).lpr
-endef
+# Source files
+SRC_MACHO := $(SRC_DIR)/kayte_arm64_emit.c
+SRC_ELF := $(SRC_DIR)/kayte_arm64_elf.c
+SRC_PE := $(SRC_DIR)/kayte_arm64_pe.c
 
-# Function to get the full .lpi path for a given project base name
-define get_lpi_path
-$(PROJECT_DIR)/$(1).lpi
-endef
+# Pascal units
+UNIT_MACHO := $(SRC_DIR)/KayteArm64.pas
+UNIT_ELF := $(SRC_DIR)/KayteArm64ELF.pas
+UNIT_PE := $(SRC_DIR)/KayteArm64PE.pas
 
-# Function to get the full executable path for a given project base name and OS/arch
-define get_exe_path
-$(BIN_DIR)/$(1)-$(2)-$(3)
-endef
+# Object files
+OBJ_MACHO := $(BUILD_DIR)/kayte_arm64_macho.o
+OBJ_ELF := $(BUILD_DIR)/kayte_arm64_elf.o
+OBJ_PE := $(BUILD_DIR)/kayte_arm64_pe.o
 
-# --- All Source and Target Lists ---
-# All .pas unit source files from SRC_DIR and COMPONENTS_DIR
-ALL_UNIT_SOURCES = $(wildcard $(SRC_DIR)/*.pas) $(wildcard $(COMPONENTS_DIR)/*.pas)
+# Cross-compilation tools
+CROSS_GCC_LINUX := aarch64-linux-gnu-gcc
+CROSS_GCC_WIN := aarch64-w64-mingw32-gcc
 
-# All .ppu targets (compiled units in BUILD_DIR)
-ALL_PPU_TARGETS = $(patsubst %.pas,$(BUILD_DIR)/%.ppu,$(notdir $(ALL_UNIT_SOURCES)))
+.PHONY: all clean help native macho elf pe test cross-linux cross-windows info
 
-# All executable targets for each platform/architecture
-ALL_MACOS_X86_64_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(call get_exe_path,$(p),macos,x86_64))
-ALL_MACOS_ARM64_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(call get_exe_path,$(p),macos,arm64))
-ALL_LINUX_AMD64_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(call get_exe_path,$(p),linux,amd64))
-ALL_LINUX_ARM64_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(call get_exe_path,$(p),linux,arm64))
+# Default target
+all: info native
 
-# All universal macOS targets
-ALL_MACOS_UNIVERSAL_TARGETS = $(foreach p,$(PROJECT_BASE_NAMES),$(BIN_DIR)/$(p)-macos-universal)
+# Show build information
+info:
+	@echo "======================================"
+	@echo "Kayte ARM64 Native Compiler Build"
+	@echo "======================================"
+	@echo "OS:               $(OS)"
+	@echo "Architecture:     $(ARCH)"
+	@echo "Native Support:   $(NATIVE_SUPPORT)"
+	@echo "FPC:              $(shell which $(FPC) 2>/dev/null || echo 'not found')"
+	@echo "CC:               $(CC)"
+	@echo "======================================"
+	@echo ""
 
+# Build native support for current platform
+native:
+ifeq ($(NATIVE_SUPPORT),yes)
+ifeq ($(OS),macos)
+	@echo "Building macOS Mach-O support..."
+	@$(MAKE) macho
+else ifeq ($(OS),linux)
+	@echo "Building Linux ELF support..."
+	@$(MAKE) elf
+endif
+else
+	@echo "Warning: ARM64 native compilation not supported on $(OS)/$(ARCH)"
+	@echo "Only bytecode compilation will be available."
+endif
 
-# --- Phony Targets ---
-.PHONY: all clean _CREATE_DIRS \
-        build_components build_bytecode \
-        macos linux macos-x86_64 macos-arm64 linux-amd64 linux-arm64 \
-        universal run run-x86_64-on-arm64
+# Build macOS Mach-O support
+macho: $(LIB_DIR) $(BUILD_DIR) $(LIB_MACHO)
+	@echo "✓ Mach-O support built successfully"
 
-# Default target: Build everything
-all: macos linux
+$(LIB_MACHO): $(SRC_MACHO)
+	@echo "Compiling Mach-O C backend..."
+	$(CC) $(CC_FLAGS) -arch arm64 \
+		-framework CoreFoundation \
+		-o $(LIB_MACHO) $(SRC_MACHO)
+	@echo "✓ $(LIB_MACHO) created"
 
-# --- Directory Creation Targets ---
-# These are actual directory targets. Make will create them if they don't exist.
-$(BIN_DIR) $(BUILD_DIR):
-	@echo "Creating directory: $@"
-	mkdir -p $@
+# Build Linux ELF support
+elf: $(LIB_DIR) $(BUILD_DIR) $(LIB_ELF)
+	@echo "✓ ELF support built successfully"
 
-# --- VPATH for Make to find source files ---
-# This tells make to look in these directories for prerequisites like %.pas, %.lpr, %.lpi
-vpath %.pas $(SRC_DIR):$(COMPONENTS_DIR)
-vpath %.lpr $(PROJECT_DIR)
-vpath %.lpi $(PROJECT_DIR)
+$(LIB_ELF): $(SRC_ELF)
+	@echo "Compiling ELF C backend..."
+	$(CC) $(CC_FLAGS) -o $(LIB_ELF) $(SRC_ELF)
+	@echo "✓ $(LIB_ELF) created"
 
+# Build Windows PE support
+pe: $(LIB_DIR) $(BUILD_DIR) $(LIB_PE)
+	@echo "✓ PE support built successfully"
 
-# --- Build common components (produces .ppu and .o files in BUILD_DIR) ---
-# This target compiles all .pas files in ALL_UNIT_SOURCES into .ppu/.o in BUILD_DIR.
-build_components: $(ALL_PPU_TARGETS)
-	@echo "All common components compiled to $(BUILD_DIR)."
+$(LIB_PE): $(SRC_PE)
+	@echo "Compiling PE C backend..."
+	$(CC) $(CC_FLAGS) -o $(LIB_PE) $(SRC_PE)
+	@echo "✓ $(LIB_PE) created"
 
-# Generic rule for compiling any .pas unit into its .ppu/.o in BUILD_DIR
-# The prerequisite `%.pas` will be found by `vpath`
-$(BUILD_DIR)/%.ppu: %.pas | $(BUILD_DIR)
-	@echo "Compiling unit $<..."
-	$(FPC) -MObjFPC -O2 -g -gl -vewnhi -FE$(BUILD_DIR) -FU$(BUILD_DIR) -Fu$(SRC_DIR) -Fu$(COMPONENTS_DIR) $<
+# Cross-compile for Linux ARM64 (from macOS or other Linux)
+cross-linux: $(LIB_DIR) $(BUILD_DIR)
+	@echo "Cross-compiling for Linux ARM64..."
+	@if command -v $(CROSS_GCC_LINUX) >/dev/null 2>&1; then \
+		$(CROSS_GCC_LINUX) -shared -fPIC -O3 -Wall \
+			-o $(LIB_DIR)/libkaytearm64elf.so $(SRC_ELF); \
+		echo "✓ Linux ARM64 ELF library created"; \
+	else \
+		echo "Error: $(CROSS_GCC_LINUX) not found"; \
+		echo "Install with: brew install aarch64-elf-gcc (macOS)"; \
+		echo "           or: apt install gcc-aarch64-linux-gnu (Linux)"; \
+		exit 1; \
+	fi
 
+# Cross-compile for Windows ARM64
+cross-windows: $(LIB_DIR) $(BUILD_DIR)
+	@echo "Cross-compiling for Windows ARM64..."
+	@if command -v $(CROSS_GCC_WIN) >/dev/null 2>&1; then \
+		$(CROSS_GCC_WIN) -shared -O3 -Wall \
+			-o $(LIB_DIR)/libkaytearm64pe.dll $(SRC_PE); \
+		echo "✓ Windows ARM64 PE library created"; \
+	else \
+		echo "Error: $(CROSS_GCC_WIN) not found"; \
+		echo "Install with: brew install mingw-w64 (macOS)"; \
+		echo "           or: apt install gcc-mingw-w64-aarch64 (Linux)"; \
+		exit 1; \
+	fi
 
-# --- Generic Build Rules for Executables ---
-# These rules use pattern matching to build any executable based on its .lpr or .lpi file.
+# Build all platforms (requires cross-compilation tools)
+all-platforms: macho elf pe
+	@echo "✓ All platform libraries built"
 
-# Common FPC compilation flags for executables
-FPC_EXE_FLAGS = -MObjFPC -O3 -g -gl -vewnhi -FU$(BUILD_DIR) -Fu$(SRC_DIR) -Fu$(COMPONENTS_DIR) $(COMMON_LDFLAGS)
+# Create directories
+$(LIB_DIR):
+	@mkdir -p $(LIB_DIR)
 
-# macOS builds (using lazbuild for .lpi projects)
-$(BIN_DIR)/%-macos-x86_64: %.lpi build_components | $(BIN_DIR)
-	@echo "Compiling $* for macOS x86_64 using lazbuild..."
-	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=x86_64 $<
-	# lazbuild outputs to $(PROJECT_DIR)/lib/darwin-x86_64/$(basename $(notdir $<))
-	mv $(PROJECT_DIR)/lib/darwin-x86_64/$(basename $(notdir $<)) $@
-	chmod +x $@
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
 
-$(BIN_DIR)/%-macos-arm64: %.lpi build_components | $(BIN_DIR)
-	@echo "Compiling $* for macOS arm64 using lazbuild..."
-	$(LAZBUILD) --lazarusdir=$(LAZARUS_APP_DIR) --os=darwin --cpu=aarch64 $<
-	mv $(PROJECT_DIR)/lib/darwin-aarch64/$(basename $(notdir $<)) $@
-	chmod +x $@
+$(BIN_DIR):
+	@mkdir -p $(BIN_DIR)
 
-# Linux builds (using fpc directly for .lpr projects)
-$(BIN_DIR)/%-linux-amd64: %.lpr build_components | $(BIN_DIR)
-	@echo "Compiling $* for Linux AMD64 using fpc..."
-	$(FPC) $< -Tlinux -Px86_64 -FE$(BIN_DIR) -o$@ $(FPC_EXE_FLAGS)
-	chmod +x $@
+# Test native compilation
+test: native
+ifeq ($(NATIVE_SUPPORT),yes)
+	@echo "Running native compilation test..."
+	@echo "program test; begin writeln('Hello, ARM64!'); end." > test.kayte
+	@./kayte --native test.kayte -o test_native
+	@if [ -f test_native ]; then \
+		echo "✓ Test compilation successful"; \
+		./test_native; \
+		rm -f test_native test.kayte; \
+	else \
+		echo "✗ Test compilation failed"; \
+	fi
+else
+	@echo "Native compilation not supported on this platform"
+endif
 
-$(BIN_DIR)/%-linux-arm64: %.lpr build_components | $(BIN_DIR)
-	@echo "Compiling $* for Linux ARM64 using fpc..."
-	$(FPC) $< -Tlinux -Paarch64 -FE$(BIN_DIR) -o$@ $(FPC_EXE_FLAGS)
-	chmod +x $@
+# Install libraries to system (requires sudo)
+install:
+ifeq ($(OS),macos)
+	@echo "Installing to /usr/local/lib..."
+	@sudo cp $(LIB_MACHO) /usr/local/lib/
+	@sudo install_name_tool -id /usr/local/lib/$(notdir $(LIB_MACHO)) /usr/local/lib/$(notdir $(LIB_MACHO))
+else ifeq ($(OS),linux)
+	@echo "Installing to /usr/local/lib..."
+	@sudo cp $(LIB_ELF) /usr/local/lib/
+	@sudo ldconfig
+endif
+	@echo "✓ Installation complete"
 
-
-# --- Aggregate Build Targets by OS/Architecture ---
-
-macos: $(ALL_MACOS_X86_64_TARGETS) $(ALL_MACOS_ARM64_TARGETS) universal
-	@echo "All macOS builds completed."
-
-linux: $(ALL_LINUX_AMD64_TARGETS) $(ALL_LINUX_ARM64_TARGETS)
-	@echo "All Linux builds completed."
-
-# Universal macOS binaries
-universal: $(ALL_MACOS_UNIVERSAL_TARGETS)
-	@echo "macOS universal binaries created."
-
-$(BIN_DIR)/%-macos-universal: $(BIN_DIR)/%-macos-x86_64 $(BIN_DIR)/%-macos-arm64
-	@echo "Creating universal binary for $*..."
-	lipo -create -output $@ $< $(word 2,$^) # $< is first prereq, $(word 2,$^) is second
-	chmod +x $@
-
-
-# --- Kayte Bytecode Generation ---
-KAYTE_SOURCES = kayte/hello.kayte kayte/world.kayte # Example Kayte source files
-OBJ_FILES = $(patsubst kayte/%.kayte, $(BUILD_DIR)/bytecode_%.o, $(KAYTE_SOURCES))
-
-# This rule depends on the macOS x86_64 kaytec to generate bytecode.
-$(BUILD_DIR)/bytecode_%.o: kayte/%.kayte $(call get_exe_path,kaytec,macos,x86_64) | $(BUILD_DIR)
-	@echo "Generating bytecode for $< and embedding into object file..."
-	$(call get_exe_path,kaytec,macos,x86_64) $< -o $(BUILD_DIR)/bytecode_$*.bin
-	ld -r -b binary -o $@ $(BUILD_DIR)/bytecode_$*.bin
-	rm -f $(BUILD_DIR)/bytecode_$*.bin
-	@echo "Built bytecode object: $@"
-
-
-# --- Cleanup ---
+# Clean build artifacts
 clean:
-	@echo "Cleaning up build artifacts and executables..."
-	rm -rf $(BIN_DIR)
-	rm -rf $(BUILD_DIR)
-	@echo "Cleanup complete."
+	@echo "Cleaning build artifacts..."
+	@rm -rf $(BUILD_DIR)
+	@rm -rf $(LIB_DIR)/*.dylib $(LIB_DIR)/*.so $(LIB_DIR)/*.dll
+	@rm -f $(SRC_DIR)/*.o $(SRC_DIR)/*.ppu
+	@rm -f *.o *.ppu
+	@echo "✓ Clean complete"
 
-# --- Run the Main Application ---
-run: $(call get_exe_path,main_app,macos,universal) # Default to run the macOS universal app
-	@echo "Running $(call get_exe_path,main_app,macos,universal)..."
-	./$(call get_exe_path,main_app,macos,universal)
+# Deep clean (including binaries)
+distclean: clean
+	@echo "Deep cleaning..."
+	@rm -rf $(BIN_DIR)
+	@rm -f kayte$(EXE_EXT)
+	@echo "✓ Deep clean complete"
 
-# --- Run an x86_64 macOS binary on an Apple Silicon (ARM64) Mac via Rosetta 2 ---
-# This target is only useful when run on an ARM64 macOS machine.
-run-x86_64-on-arm64: $(call get_exe_path,main_app,macos,x86_64)
-	@echo "Attempting to run x86_64 macOS app via Rosetta 2..."
-	@echo "This command will only work on an Apple Silicon Mac with Rosetta 2 installed."
-	arch -x86_64 ./$(call get_exe_path,main_app,macos,x86_64)
+# Show help
+help:
+	@echo "Kayte ARM64 Native Compiler - Makefile Help"
+	@echo ""
+	@echo "Available targets:"
+	@echo "  make                 - Show info and build native support for current platform"
+	@echo "  make info            - Display build environment information"
+	@echo "  make native          - Build native support for current platform"
+	@echo "  make macho           - Build macOS Mach-O support"
+	@echo "  make elf             - Build Linux ELF support"
+	@echo "  make pe              - Build Windows PE support"
+	@echo "  make all-platforms   - Build all platform libraries (requires cross-tools)"
+	@echo "  make cross-linux     - Cross-compile for Linux ARM64"
+	@echo "  make cross-windows   - Cross-compile for Windows ARM64"
+	@echo "  make test            - Test native compilation"
+	@echo "  make install         - Install libraries to system (requires sudo)"
+	@echo "  make clean           - Remove build artifacts"
+	@echo "  make distclean       - Remove all generated files"
+	@echo "  make help            - Show this help message"
+	@echo ""
+	@echo "Platform Support:"
+	@echo "  macOS ARM64:   Mach-O format (Apple Silicon)"
+	@echo "  Linux ARM64:   ELF format (AArch64)"
+	@echo "  Windows ARM64: PE format"
+	@echo ""
+	@echo "Current Platform: $(OS)/$(ARCH)"
+	@echo "Native Support:   $(NATIVE_SUPPORT)"
+	@echo ""
 
-# Example for running specific Linux builds
-run-linux-amd64: $(call get_exe_path,main_app,linux,amd64)
-	@echo "Running $(call get_exe_path,main_app,linux,amd64)..."
-	./$(call get_exe_path,main_app,linux,amd64)
+# Debug target - show all variables
+debug:
+	@echo "OS:                $(OS)"
+	@echo "ARCH:              $(ARCH)"
+	@echo "NATIVE_SUPPORT:    $(NATIVE_SUPPORT)"
+	@echo "CC:                $(CC)"
+	@echo "FPC:               $(FPC)"
+	@echo "LIB_MACHO:         $(LIB_MACHO)"
+	@echo "LIB_ELF:           $(LIB_ELF)"
+	@echo "LIB_PE:            $(LIB_PE)"
+	@echo "SRC_MACHO:         $(SRC_MACHO)"
+	@echo "SRC_ELF:           $(SRC_ELF)"
+	@echo "SRC_PE:            $(SRC_PE)"
 
-run-linux-arm64: $(call get_exe_path,main_app,linux,arm64)
-	@echo "Running $(call get_exe_path,main_app,linux,arm64)..."
-	./$(call get_exe_path,main_app,linux,arm64)
+# Phony targets to avoid conflicts with files
+.PHONY: all info native macho elf pe cross-linux cross-windows all-platforms \
+        test install clean distclean help debug

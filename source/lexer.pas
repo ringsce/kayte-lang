@@ -224,8 +224,43 @@ begin
     Exit;
   end;
 
-  // Handle comments starting with ' or REM
-  // Check for REM keyword first, as 'REM' is a keyword, but also a comment
+  // Handle comments starting with ', REM, //, or ///
+  // Check for /// first (doc comment)
+  if (CurrentChar = '/') and (PeekChar = '/') then
+  begin
+    Advance; // Skip first /
+    if (CurrentChar = '/') and (PeekChar = '/') then
+    begin
+      // Triple slash - documentation comment (///)
+      Advance; // Skip second /
+      Advance; // Skip third /
+      LexemeBuilder := '';
+      while (CurrentChar <> #0) and (FCurrentCharIndex < Length(FCurrentLine)) do
+      begin
+        LexemeBuilder := LexemeBuilder + CurrentChar;
+        Advance;
+      end;
+      Result.TokenType := tkDocComment;
+      Result.Lexeme := Trim(LexemeBuilder);
+      Exit;
+    end
+    else
+    begin
+      // Double slash - regular comment (//)
+      Advance; // Skip second /
+      LexemeBuilder := '';
+      while (CurrentChar <> #0) and (FCurrentCharIndex < Length(FCurrentLine)) do
+      begin
+        LexemeBuilder := LexemeBuilder + CurrentChar;
+        Advance;
+      end;
+      Result.TokenType := tkComment;
+      Result.Lexeme := Trim(LexemeBuilder);
+      Exit;
+    end;
+  end;
+
+  // Check for REM keyword comment
   if (AnsiUpperCase(Copy(FCurrentLine, FCurrentCharIndex + 1, 3)) = 'REM') and
      ((FCurrentCharIndex + 3 = Length(FCurrentLine)) or (not IsIdentifierChar(FCurrentLine[FCurrentCharIndex + 4]))) then
   begin
@@ -238,13 +273,14 @@ begin
   else if CurrentChar = '''' then // Single quote comment
   begin
     LexemeBuilder := '';
+    Advance; // Skip the opening quote
     while (CurrentChar <> #0) and (FCurrentCharIndex < Length(FCurrentLine)) do
     begin
       LexemeBuilder := LexemeBuilder + CurrentChar;
       Advance;
     end;
     Result.TokenType := tkComment;
-    Result.Lexeme := LexemeBuilder;
+    Result.Lexeme := Trim(LexemeBuilder);
     Exit;
   end;
 
@@ -372,7 +408,21 @@ begin
   CurrentTokType := tkUnknown; // Default to unknown, will be updated in case
 
   case CurrentChar of
-    '+', '-', '*', '/': CurrentTokType := tkOperator;
+    '+', '-', '*': CurrentTokType := tkOperator;
+    '/':
+      begin
+        // Check if it's a comment (//) - this should have been caught earlier
+        // but just in case, we'll check here too
+        if PeekChar = '/' then
+        begin
+          // This is a comment, but it should have been handled earlier
+          // If we get here, something went wrong, but let's handle it gracefully
+          raise Exception.CreateFmt('Lexer Error: Unexpected comment at %d:%d (should have been handled earlier)',
+            [Result.Line + 1, Result.Column + 1]);
+        end
+        else
+          CurrentTokType := tkOperator; // It's division
+      end;
     '=': CurrentTokType := tkOperator; // Assignment and equality
     '<':
       begin

@@ -1,4 +1,4 @@
-{
+(*
   KayteArm64.pas
   -------------
   Free Pascal unit that declares the ARM64 native code compiler.
@@ -9,7 +9,7 @@
     2. Link with your Kayte project:
        Add to your .lpi or use:
          {$LINKOBJ kayte_arm64_emit.o}
-}
+*)
 unit KayteArm64;
 
 {$mode objfpc}
