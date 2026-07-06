@@ -26,7 +26,19 @@ type
     procedure DefineLabel(const ALabel: string);
     // Emits a single instruction with its operands.
     procedure Emit(AOpCode: TByteCodeOp; const AOperands: array of Integer);
+    // Index the *next* Emit call will occupy - i.e. how many instructions
+    // have been emitted so far. Used as a jump target.
+    function CurrentInstructionIndex: Integer;
+    // Overwrites the jump target (Operand1) of an already-emitted
+    // BC_JUMP/BC_JUMP_IF_FALSE instruction. Used to back-patch forward
+    // jumps once the target address is known (e.g. the end of an IF's
+    // THEN-branch, or a loop's exit point).
+    procedure PatchJumpTarget(InstrIndex: Integer; Target: Integer);
+    // Returns the program being built, without transferring ownership.
+    // Safe to call repeatedly while parsing is still in progress.
+    function CurrentProgram: TByteCodeProgram;
     // Returns the finalized bytecode program (transfers ownership to caller).
+    // Must only be called once, after parsing has fully completed.
     function GetProgram: TByteCodeProgram;
     // Validates the bytecode before emitting it
     function ValidateBytecode: Boolean;
@@ -92,6 +104,27 @@ begin
   // Write back to the program
   FProgram.Instructions := TempInstructions;
   FCurrentInstructionIndex := CurrentLength + 1;
+end;
+
+function TAssembler.CurrentInstructionIndex: Integer;
+begin
+  Result := FCurrentInstructionIndex;
+end;
+
+procedure TAssembler.PatchJumpTarget(InstrIndex: Integer; Target: Integer);
+var
+  Instructions: TBCInstructionArray;
+begin
+  Instructions := FProgram.Instructions;
+  if (InstrIndex < 0) or (InstrIndex >= Length(Instructions)) then
+    raise Exception.CreateFmt('Assembler Error: Cannot patch out-of-range instruction %d.', [InstrIndex]);
+  Instructions[InstrIndex].Operand1 := Target;
+  FProgram.Instructions := Instructions;
+end;
+
+function TAssembler.CurrentProgram: TByteCodeProgram;
+begin
+  Result := FProgram;
 end;
 
 function TAssembler.GetProgram: TByteCodeProgram;

@@ -22,6 +22,7 @@ void test_lexer(void) {
     
     Token token5 = lexer_next_token(lexer);
     assert(token5.type == TOKEN_SEMICOLON);
-    
+    (void)token1; (void)token2; (void)token3; (void)token4; (void)token5;
+
     lexer_destroy(lexer);
 }

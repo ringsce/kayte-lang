@@ -5,15 +5,29 @@ unit Parser;
 interface
 
 uses
-  SysUtils, Classes, TokenDefs, Lexer, AST, BytecodeTypes, Assembler;
+  SysUtils, Classes, fgl, TokenDefs, Lexer, AST, BytecodeTypes, Assembler;
 
 type
+  // Struct name -> ordered list of its field names, recorded at parse
+  // time by StructDefinition. There's no runtime struct/object value:
+  // a struct instance is just sugar for one flat variable slot per
+  // field, named "InstanceName.FieldName" (see DeclarationStatement and
+  // the dotted-identifier handling in AssignmentStatement/Primary).
+  TStructFieldMap = specialize TFPGMap<string, TStringList>;
+
   TParser = class
   private
     FLexer: TLexer;
     FCurrentToken: TToken;
     FPreviousToken: TToken;
     FAssembler: TAssembler;
+    FStructs: TStructFieldMap;
+    // While True, the expression-parsing methods below still parse (and
+    // consume tokens for) an expression but emit no bytecode for it.
+    // Used for expressions that are parsed only for their side effect on
+    // the token stream (e.g. constructor arguments to a not-yet-modeled
+    // NEW ClassName(...)) so no value is left dangling on the VM stack.
+    FSuppressCodeGen: Boolean;
 
     procedure Advance;
     procedure Match(ExpectedType: TTokenType);
@@ -22,6 +36,8 @@ type
 
     // Parsing rules (non-terminals)
     function Statement: TStatementNode;
+    procedure DispatchStatement;
+    procedure StructDefinition;
     procedure DeclarationStatement;
     procedure AssignmentStatement;
     procedure PrintStatement;
@@ -43,14 +59,19 @@ type
     procedure HideStatement;
     procedure OptionStatement;  // NEW: Handle OPTION directives
 
-    // Recursive-descent expression parsing methods
-    function Expression: TExpressionNode;
-    function Equality: TExpressionNode;
-    function Comparison: TExpressionNode;
-    function Term: TExpressionNode;
-    function Factor: TExpressionNode;
-    function Unary: TExpressionNode;
-    function Primary: TExpressionNode;
+    // Recursive-descent expression parsing methods.
+    // Each one emits the bytecode for what it parses directly (postfix /
+    // stack-machine order), leaving exactly one value on the VM's
+    // evaluation stack - unless FSuppressCodeGen is set, in which case
+    // they only consume tokens and emit nothing.
+    procedure Expression;
+    procedure SkipExpression; // Parse and discard (see FSuppressCodeGen)
+    procedure Equality;
+    procedure Comparison;
+    procedure Term;
+    procedure Factor;
+    procedure Unary;
+    procedure Primary;
 
     // Helper functions
     procedure Error(const Message: String);
@@ -60,6 +81,7 @@ type
     // Bytecode helper functions
     function Op_Variable(const VarName: string): Integer;
     function Op_StringLiteral(const Literal: string): Integer;
+    function Op_IntegerLiteral(const Value: Int64): Integer;
 
   public
     constructor Create(ALexer: TLexer);
@@ -79,6 +101,8 @@ begin
     raise Exception.Create('Lexer cannot be nil');
 
   FLexer := ALexer;
+  FSuppressCodeGen := False;
+  FStructs := TStructFieldMap.Create;
 
   try
     FCurrentToken := FLexer.GetNextToken;
@@ -97,7 +121,12 @@ begin
 end;
 
 destructor TParser.Destroy;
+var
+  I: Integer;
 begin
+  for I := 0 to FStructs.Count - 1 do
+    FStructs.Data[I].Free;
+  FStructs.Free;
   FAssembler.Free;
   inherited Destroy;
 end;
@@ -172,87 +201,7 @@ begin
       // Then handle keyword-based statements
       WriteLn('DEBUG: Processing keyword: "', AnsiUpperCase(FCurrentToken.Lexeme), '"');
 
-      case AnsiUpperCase(FCurrentToken.Lexeme) of
-        'END':
-          begin
-            WriteLn('DEBUG: END statement');
-            Advance;
-          end;
-        'OPTION':
-          OptionStatement;
-        'PRINT':
-          PrintStatement;
-        'INPUT':
-          InputStatement;
-        'MSGBOX':
-          MsgBoxStatement;
-        'LET':
-          AssignmentStatement;
-        'SET':
-          begin
-            WriteLn('DEBUG: SET statement for object assignment');
-            Advance; // Consume SET
-            AssignmentStatement;
-          end;
-        'GOTO':
-          GoToStatement;
-        'GOSUB':
-          GoSubStatement;
-        'RETURN':
-          ReturnStatement;
-        'IF':
-          IfStatement;
-        'WHILE':
-          WhileStatement;
-        'FOR':
-          ForStatement;
-        'WITH':
-          WithStatement;
-        'SUB':
-          SubDefinition;
-        'FUNCTION':
-          FunctionDefinition;
-        'CLASS':
-          ClassDefinition;
-        'FORM':
-          FormDefinition;
-        'SHOW':
-          ShowStatement;
-        'HIDE':
-          HideStatement;
-        'DIM', 'PUBLIC', 'PRIVATE':
-          DeclarationStatement;
-        'CALL':
-          CallStatement;
-      else
-        WriteLn('DEBUG: In else clause');
-        if FCurrentToken.TokenType = tkIdentifier then
-        begin
-          WriteLn('DEBUG: Identifier token');
-          // Could be a label or an assignment without LET
-          if PeekToken.TokenType = tkOperator then
-          begin
-            WriteLn('DEBUG: Assignment without LET');
-            AssignmentStatement;
-          end
-          else
-          begin
-            WriteLn('DEBUG: Label definition: ', FCurrentToken.Lexeme);
-            FAssembler.DefineLabel(FCurrentToken.Lexeme);
-            Advance;
-          end;
-        end
-        else if FCurrentToken.TokenType = tkEndOfLine then
-        begin
-          WriteLn('DEBUG: Extra EndOfLine');
-          Advance;
-        end
-        else
-        begin
-          WriteLn('DEBUG: ERROR - Unexpected token');
-          Error('Unexpected token: ' + FCurrentToken.Lexeme);
-        end;
-      end;
+      DispatchStatement;
 
       // Skip any end-of-line markers after the statement
       WriteLn('DEBUG: Checking for trailing EndOfLine');
@@ -342,14 +291,22 @@ end;
 // Helper functions for bytecode operand encoding
 function TParser.Op_Variable(const VarName: string): Integer;
 begin
-  // Add or get variable from the program's variable table
-  Result := FAssembler.GetProgram.AddVariable(VarName);
+  // Add or get variable from the program's variable table.
+  // Uses CurrentProgram (not GetProgram), since GetProgram transfers
+  // ownership and nils out the assembler's program on first use - it
+  // must only be called once, after parsing has fully completed.
+  Result := FAssembler.CurrentProgram.AddVariable(VarName);
 end;
 
 function TParser.Op_StringLiteral(const Literal: string): Integer;
 begin
   // Add string literal to the program's constant pool
-  Result := FAssembler.GetProgram.AddStringConstant(Literal);
+  Result := FAssembler.CurrentProgram.AddStringConstant(Literal);
+end;
+
+function TParser.Op_IntegerLiteral(const Value: Int64): Integer;
+begin
+  Result := FAssembler.CurrentProgram.AddIntegerLiteral(Value);
 end;
 
 //----------------------------------------------------------------------
@@ -359,6 +316,179 @@ end;
 function TParser.Statement: TStatementNode;
 begin
   Result := nil;
+end;
+
+// Dispatches a single keyword-based statement starting at FCurrentToken.
+// Shared by the top-level parse loop and by any construct that embeds a
+// single statement (single-line IF-THEN, WHILE/FOR loop bodies).
+procedure TParser.DispatchStatement;
+begin
+  case AnsiUpperCase(FCurrentToken.Lexeme) of
+    'END':
+      begin
+        WriteLn('DEBUG: END statement');
+        Advance;
+      end;
+    'OPTION':
+      OptionStatement;
+    'PRINT':
+      PrintStatement;
+    'INPUT':
+      InputStatement;
+    'MSGBOX':
+      MsgBoxStatement;
+    'LET':
+      AssignmentStatement;
+    'SET':
+      begin
+        WriteLn('DEBUG: SET statement for object assignment');
+        Advance; // Consume SET
+        AssignmentStatement;
+      end;
+    'GOTO':
+      GoToStatement;
+    'GOSUB':
+      GoSubStatement;
+    'RETURN':
+      ReturnStatement;
+    'IF':
+      IfStatement;
+    'WHILE':
+      WhileStatement;
+    'FOR':
+      ForStatement;
+    'WITH':
+      WithStatement;
+    'SUB':
+      SubDefinition;
+    'FUNCTION':
+      FunctionDefinition;
+    'CLASS':
+      ClassDefinition;
+    'FORM':
+      FormDefinition;
+    'SHOW':
+      ShowStatement;
+    'HIDE':
+      HideStatement;
+    'DIM', 'PUBLIC', 'PRIVATE':
+      DeclarationStatement;
+    'CALL':
+      CallStatement;
+    'STRUCT':
+      StructDefinition;
+  else
+    WriteLn('DEBUG: In else clause');
+    if FCurrentToken.TokenType = tkIdentifier then
+    begin
+      WriteLn('DEBUG: Identifier token');
+      // Could be a label, or an assignment (with or without LET, and
+      // optionally to a struct field: "P.X = 10").
+      if (PeekToken.TokenType = tkOperator) or (PeekToken.TokenType = tkDot) then
+      begin
+        WriteLn('DEBUG: Assignment without LET');
+        AssignmentStatement;
+      end
+      else
+      begin
+        WriteLn('DEBUG: Label definition: ', FCurrentToken.Lexeme);
+        FAssembler.DefineLabel(FCurrentToken.Lexeme);
+        Advance;
+      end;
+    end
+    else if FCurrentToken.TokenType = tkEndOfLine then
+    begin
+      WriteLn('DEBUG: Extra EndOfLine');
+      Advance;
+    end
+    else
+    begin
+      WriteLn('DEBUG: ERROR - Unexpected token');
+      Error('Unexpected token: ' + FCurrentToken.Lexeme);
+    end;
+  end;
+end;
+
+// STRUCT Name
+//   Field1 [AS Type]
+//   Field2 [AS Type]
+// END STRUCT
+//
+// Purely a compile-time declaration: it records the struct's field names
+// so DIM can expand "DIM P AS Point" into one flat variable slot per
+// field ("P.X", "P.Y", ...). There's no runtime struct value or type
+// checking - fields are dynamically typed slots like any other variable.
+procedure TParser.StructDefinition;
+var
+  StructName, FieldName: string;
+  Fields: TStringList;
+begin
+  WriteLn('DEBUG: StructDefinition - Current token: ', FCurrentToken.Lexeme);
+
+  Match(tkKeyword); // Consume STRUCT
+
+  if not Check(tkIdentifier) then
+    Error('Expected struct name after STRUCT');
+  StructName := FCurrentToken.Lexeme;
+  Advance; // Consume struct name
+
+  if FStructs.IndexOf(StructName) >= 0 then
+    Error('Struct "' + StructName + '" is already defined');
+
+  Match(tkEndOfLine);
+
+  Fields := TStringList.Create;
+
+  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
+  begin
+    if FCurrentToken.TokenType = tkEndOfFile then
+    begin
+      Fields.Free;
+      Error('Unexpected end of file in STRUCT definition');
+      Exit;
+    end;
+
+    if Check(tkEndOfLine) or Check(tkComment) then
+    begin
+      Advance;
+      Continue;
+    end;
+
+    if not Check(tkIdentifier) then
+    begin
+      Fields.Free;
+      Error('Expected field name in STRUCT body, found: ' + FCurrentToken.Lexeme);
+      Exit;
+    end;
+
+    FieldName := FCurrentToken.Lexeme;
+    WriteLn('DEBUG: StructDefinition - Field: ', FieldName);
+    Advance; // Consume field name
+
+    // Optional "AS Type" - parsed but not enforced (see unit comment).
+    if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'AS') then
+    begin
+      Advance; // Consume AS
+      if not Check(tkIdentifier) then
+      begin
+        Fields.Free;
+        Error('Expected type name after AS');
+        Exit;
+      end;
+      Advance; // Consume type name
+    end;
+
+    Fields.Add(FieldName);
+
+    while Check(tkEndOfLine) do
+      Advance;
+  end;
+
+  Match(tkKeyword); // END
+  Match(tkKeyword); // STRUCT
+
+  FStructs.Add(StructName, Fields);
+  WriteLn('DEBUG: StructDefinition - Defined "', StructName, '" with ', Fields.Count, ' field(s)');
 end;
 
 procedure TParser.OptionStatement;
@@ -375,12 +505,14 @@ begin
 end;
 
 procedure TParser.IfStatement;
+var
+  JumpOverThen: Integer;
 begin
   WriteLn('DEBUG: IfStatement - Current token: ', FCurrentToken.Lexeme);
 
   Match(tkKeyword); // Consume IF
   WriteLn('DEBUG: IfStatement - Parsing condition');
-  Expression; // Parse the condition
+  Expression; // Leaves the condition's truth value on the stack
 
   // Expect THEN
   if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'THEN') then
@@ -391,52 +523,91 @@ begin
   else
     Error('Expected THEN after IF condition');
 
-  // For single-line IF: IF condition THEN statement
-  // For now, just skip to end of line
-  // TODO: Handle ELSE and multi-line IF...END IF blocks
+  // Single-line IF: IF condition THEN statement
+  // Emit a placeholder conditional jump that skips the THEN-statement when
+  // the condition is false; the real target is back-patched once we know
+  // where that statement's bytecode ends.
+  // NOTE: only the single-line form is supported - multi-line
+  // IF...ELSE...END IF blocks are not yet implemented.
+  JumpOverThen := FAssembler.CurrentInstructionIndex;
+  FAssembler.Emit(BC_JUMP_IF_FALSE, [-1]);
+
+  if not (Check(tkEndOfLine) or Check(tkEndOfFile)) then
+    DispatchStatement;
+
+  FAssembler.PatchJumpTarget(JumpOverThen, FAssembler.CurrentInstructionIndex);
 
   WriteLn('DEBUG: IfStatement - Complete');
 end;
 
 procedure TParser.DeclarationStatement;
+var
+  VarNames: TStringList;
+  TypeName: string;
+  StructIdx, I, J: Integer;
+  Fields: TStringList;
 begin
   WriteLn('DEBUG: DeclarationStatement - Current token: ', FCurrentToken.Lexeme);
 
   // Consume DIM/PUBLIC/PRIVATE keyword
   Advance;
 
-  // Handle variable list: DIM a, b, c AS INTEGER
-  repeat
-    if not Check(tkIdentifier) then
-      Error('Expected variable name in declaration');
+  VarNames := TStringList.Create;
+  try
+    // Handle variable list: DIM a, b, c AS Type
+    repeat
+      if not Check(tkIdentifier) then
+        Error('Expected variable name in declaration');
 
-    WriteLn('DEBUG: Declaring variable: ', FCurrentToken.Lexeme);
+      WriteLn('DEBUG: Declaring variable: ', FCurrentToken.Lexeme);
+      VarNames.Add(FCurrentToken.Lexeme);
 
-    // Add variable to the program
-    Op_Variable(FCurrentToken.Lexeme);
+      Advance; // Consume variable name
 
-    Advance; // Consume variable name
+      // Check for comma (more variables)
+      if Check(tkComma) then
+      begin
+        WriteLn('DEBUG: Found comma, expecting another variable');
+        Advance; // Consume comma
+        Continue; // Get next variable
+      end
+      else
+        Break; // No more variables
 
-    // Check for comma (more variables)
-    if Check(tkComma) then
+    until False;
+
+    TypeName := '';
+
+    // Handle optional AS type
+    if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'AS') then
     begin
-      WriteLn('DEBUG: Found comma, expecting another variable');
-      Advance; // Consume comma
-      Continue; // Get next variable
-    end
-    else
-      Break; // No more variables
+      Advance; // Consume AS
+      if not Check(tkIdentifier) then
+        Error('Expected type name after AS');
+      TypeName := FCurrentToken.Lexeme;
+      WriteLn('DEBUG: Type: ', TypeName);
+      Advance; // Consume type name
+    end;
 
-  until False;
+    StructIdx := -1;
+    if TypeName <> '' then
+      StructIdx := FStructs.IndexOf(TypeName);
 
-  // Handle optional AS type
-  if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'AS') then
-  begin
-    Advance; // Consume AS
-    if not Check(tkIdentifier) then
-      Error('Expected type name after AS');
-    WriteLn('DEBUG: Type: ', FCurrentToken.Lexeme);
-    Advance; // Consume type name
+    for I := 0 to VarNames.Count - 1 do
+    begin
+      if StructIdx >= 0 then
+      begin
+        // Struct instance: one flat variable slot per field, named
+        // "VarName.FieldName" (see the unit comment on StructDefinition).
+        Fields := FStructs.Data[StructIdx];
+        for J := 0 to Fields.Count - 1 do
+          Op_Variable(VarNames[I] + '.' + Fields[J]);
+      end
+      else
+        Op_Variable(VarNames[I]);
+    end;
+  finally
+    VarNames.Free;
   end;
 
   WriteLn('DEBUG: DeclarationStatement complete');
@@ -448,6 +619,17 @@ var
 begin
   VarName := FCurrentToken.Lexeme;
   Advance; // Consume identifier
+
+  // Struct field target: P.X = ...
+  if Check(tkDot) then
+  begin
+    Advance; // Consume '.'
+    if not Check(tkIdentifier) then
+      Error('Expected field name after "."');
+    VarName := VarName + '.' + FCurrentToken.Lexeme;
+    Advance; // Consume field name
+  end;
+
   if not Check(tkOperator) then
     Error('Expected assignment operator');
   Advance; // Consume operator
@@ -458,54 +640,31 @@ begin
 end;
 
 procedure TParser.PrintStatement;
+var
+  ArgCount: Integer;
 begin
   Advance; // Consume PRINT keyword
 
   // Handle empty PRINT (just prints a newline)
   if Check(tkEndOfLine) or Check(tkEndOfFile) then
   begin
-    FAssembler.Emit(BC_PRINT, []);
+    FAssembler.Emit(BC_PRINT, [0]);
     Exit;
   end;
 
-  // Handle first expression
-  if Check(tkStringLiteral) then
-  begin
-    FAssembler.Emit(BC_LOAD_STRING, [Op_StringLiteral(FCurrentToken.Lexeme)]);
-    Advance;
-  end
-  else if Check(tkIdentifier) then
-  begin
-    FAssembler.Emit(BC_LOAD_VAR, [Op_Variable(FCurrentToken.Lexeme)]);
-    Advance;
-  end
-  else
-  begin
-    Expression;
-  end;
+  ArgCount := 0;
+  Expression; // Any expression: literal, variable, "a" & b, 1 + 2, ...
+  Inc(ArgCount);
 
   // Handle additional arguments separated by commas
   while Check(tkComma) do
   begin
     Advance; // Consume comma
-
-    if Check(tkStringLiteral) then
-    begin
-      FAssembler.Emit(BC_LOAD_STRING, [Op_StringLiteral(FCurrentToken.Lexeme)]);
-      Advance;
-    end
-    else if Check(tkIdentifier) then
-    begin
-      FAssembler.Emit(BC_LOAD_VAR, [Op_Variable(FCurrentToken.Lexeme)]);
-      Advance;
-    end
-    else
-    begin
-      Expression;
-    end;
+    Expression;
+    Inc(ArgCount);
   end;
 
-  FAssembler.Emit(BC_PRINT, []);
+  FAssembler.Emit(BC_PRINT, [ArgCount]);
 end;
 
 procedure TParser.InputStatement;
@@ -517,30 +676,44 @@ begin
 end;
 
 procedure TParser.MsgBoxStatement;
+var
+  ArgCount: Integer;
 begin
   Match(tkKeyword);
+  // No real GUI available, so MSGBOX prints its arguments to the console
+  // (like PRINT), tagged so it's clear where the output came from.
+  FAssembler.Emit(BC_LOAD_STRING, [Op_StringLiteral('"[MsgBox]"')]);
+  ArgCount := 1;
+
   Expression;
+  Inc(ArgCount);
   while Check(tkComma) do
   begin
     Advance;
     Expression;
+    Inc(ArgCount);
   end;
+
+  FAssembler.Emit(BC_PRINT, [ArgCount]);
 end;
 
 procedure TParser.CallStatement;
 begin
   Match(tkKeyword);
   Match(tkIdentifier);
+  // User-defined SUB/FUNCTION calls aren't executable yet (no call stack
+  // or parameter binding), so arguments are parsed for correct
+  // tokenization only, without leaving values on the VM stack.
   if Check(tkParenthesisOpen) then
   begin
     Advance;
     if not Check(tkParenthesisClose) then
     begin
-      Expression;
+      SkipExpression;
       while Check(tkComma) do
       begin
         Advance;
-        Expression;
+        SkipExpression;
       end;
     end;
     Match(tkParenthesisClose);
@@ -565,12 +738,21 @@ begin
 end;
 
 procedure TParser.WhileStatement;
+var
+  LoopStart, JumpToExit: Integer;
 begin
   WriteLn('DEBUG: WhileStatement - Current token: ', FCurrentToken.Lexeme);
 
   Match(tkKeyword); // Consume WHILE
+
+  // The condition is re-evaluated every iteration, so its bytecode lives
+  // at LoopStart and the back-edge below jumps to it, not to the body.
+  LoopStart := FAssembler.CurrentInstructionIndex;
   Expression;
   Match(tkEndOfLine);
+
+  JumpToExit := FAssembler.CurrentInstructionIndex;
+  FAssembler.Emit(BC_JUMP_IF_FALSE, [-1]);
 
   WriteLn('DEBUG: WhileStatement - Entering body loop');
 
@@ -599,35 +781,14 @@ begin
       Continue;
     end;
 
-    // Process statement
-    case AnsiUpperCase(FCurrentToken.Lexeme) of
-      'PRINT': PrintStatement;
-      'LET': AssignmentStatement;
-      'DIM': DeclarationStatement;
-      'IF': IfStatement;
-      'FOR': ForStatement;
-      'CALL': CallStatement;
-      'GOTO': GoToStatement;
-      'GOSUB': GoSubStatement;
-      'RETURN': ReturnStatement;
-    else
-      if FCurrentToken.TokenType = tkIdentifier then
-      begin
-        if PeekToken.TokenType = tkOperator then
-          AssignmentStatement
-        else
-        begin
-          FAssembler.DefineLabel(FCurrentToken.Lexeme);
-          Advance;
-        end;
-      end
-      else
-        Error('Unexpected token in WHILE body: ' + FCurrentToken.Lexeme);
-    end;
+    DispatchStatement;
 
     while Check(tkEndOfLine) do
       Advance;
   end;
+
+  FAssembler.Emit(BC_JUMP, [LoopStart]);
+  FAssembler.PatchJumpTarget(JumpToExit, FAssembler.CurrentInstructionIndex);
 
   WriteLn('DEBUG: WhileStatement - Found WEND');
   Match(tkKeyword); // WEND
@@ -635,23 +796,64 @@ begin
 end;
 
 procedure TParser.ForStatement;
+var
+  LoopVarName, EndVarName, StepVarName: string;
+  DescendingStep: Boolean;
+  CmpOp: TByteCodeOp;
+  LoopStart, JumpToExit: Integer;
 begin
   WriteLn('DEBUG: ForStatement - Current token: ', FCurrentToken.Lexeme);
 
   Match(tkKeyword); // Consume FOR
-  Match(tkIdentifier); // Loop variable
+  if not Check(tkIdentifier) then
+    Error('Expected loop variable after FOR');
+  LoopVarName := FCurrentToken.Lexeme;
+  Advance; // Loop variable
   Match(tkOperator); // =
   Expression; // Start value
+  FAssembler.Emit(BC_ASSIGN, [Op_Variable(LoopVarName)]); // loopvar := start
   Match(tkKeyword); // TO
-  Expression; // End value
 
+  // End and step are evaluated once, at loop entry (not re-evaluated each
+  // iteration), matching classic BASIC FOR semantics. They're stashed in
+  // hidden per-loop-variable slots since the bytecode has no scratch
+  // registers of its own.
+  EndVarName := '__for_end$' + LoopVarName;
+  StepVarName := '__for_step$' + LoopVarName;
+
+  Expression; // End value
+  FAssembler.Emit(BC_ASSIGN, [Op_Variable(EndVarName)]);
+
+  // The step's compile-time sign (when known) picks the loop-continuation
+  // comparison (<= for ascending, >= for descending). A non-literal step
+  // (e.g. a variable or a parenthesized expression) defaults to ascending
+  // - this is a deliberate simplification, not full VB6 semantics.
+  DescendingStep := False;
   if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'STEP') then
   begin
     Advance;
+    if (FCurrentToken.TokenType = tkOperator) and (FCurrentToken.Lexeme = '-') and
+       (PeekToken.TokenType = tkIntegerLiteral) then
+      DescendingStep := True;
     Expression; // Step value
-  end;
+  end
+  else
+    FAssembler.Emit(BC_LOAD_INT, [Op_IntegerLiteral(1)]); // Default step: 1
+  FAssembler.Emit(BC_ASSIGN, [Op_Variable(StepVarName)]);
+
+  if DescendingStep then
+    CmpOp := BC_CMP_GE
+  else
+    CmpOp := BC_CMP_LE;
 
   Match(tkEndOfLine);
+
+  LoopStart := FAssembler.CurrentInstructionIndex;
+  FAssembler.Emit(BC_LOAD_VAR, [Op_Variable(LoopVarName)]);
+  FAssembler.Emit(BC_LOAD_VAR, [Op_Variable(EndVarName)]);
+  FAssembler.Emit(CmpOp, []);
+  JumpToExit := FAssembler.CurrentInstructionIndex;
+  FAssembler.Emit(BC_JUMP_IF_FALSE, [-1]);
 
   WriteLn('DEBUG: ForStatement - Entering body loop');
 
@@ -680,35 +882,19 @@ begin
       Continue;
     end;
 
-    // Process statement
-    case AnsiUpperCase(FCurrentToken.Lexeme) of
-      'PRINT': PrintStatement;
-      'LET': AssignmentStatement;
-      'DIM': DeclarationStatement;
-      'IF': IfStatement;
-      'WHILE': WhileStatement;
-      'CALL': CallStatement;
-      'GOTO': GoToStatement;
-      'GOSUB': GoSubStatement;
-      'RETURN': ReturnStatement;
-    else
-      if FCurrentToken.TokenType = tkIdentifier then
-      begin
-        if PeekToken.TokenType = tkOperator then
-          AssignmentStatement
-        else
-        begin
-          FAssembler.DefineLabel(FCurrentToken.Lexeme);
-          Advance;
-        end;
-      end
-      else
-        Error('Unexpected token in FOR body: ' + FCurrentToken.Lexeme);
-    end;
+    DispatchStatement;
 
     while Check(tkEndOfLine) do
       Advance;
   end;
+
+  // loopvar := loopvar + step
+  FAssembler.Emit(BC_LOAD_VAR, [Op_Variable(LoopVarName)]);
+  FAssembler.Emit(BC_LOAD_VAR, [Op_Variable(StepVarName)]);
+  FAssembler.Emit(BC_ADD, []);
+  FAssembler.Emit(BC_ASSIGN, [Op_Variable(LoopVarName)]);
+  FAssembler.Emit(BC_JUMP, [LoopStart]);
+  FAssembler.PatchJumpTarget(JumpToExit, FAssembler.CurrentInstructionIndex);
 
   WriteLn('DEBUG: ForStatement - Found NEXT');
   Match(tkKeyword); // NEXT
@@ -1271,117 +1457,195 @@ begin
 end;
 
 //----------------------------------------------------------------------
-// Expression Parsing Methods (Corrected)
+// Expression Parsing Methods
+//
+// These emit bytecode directly in postfix (stack-machine) order as they
+// parse: each level leaves exactly one value on the VM's evaluation
+// stack, built from whatever its operands pushed plus one opcode per
+// operator - unless FSuppressCodeGen is set (see SkipExpression), in
+// which case tokens are still consumed (so the parse stays in sync) but
+// no bytecode is emitted and nothing is left on the stack.
 //----------------------------------------------------------------------
-function TParser.Expression: TExpressionNode;
+procedure TParser.SkipExpression;
 begin
-  Result := Equality;
+  FSuppressCodeGen := True;
+  try
+    Expression;
+  finally
+    FSuppressCodeGen := False;
+  end;
 end;
 
-function TParser.Equality: TExpressionNode;
-var
-  Node: TExpressionNode;
-  OperatorToken: TToken;
-  RightHandSide: TExpressionNode;
+procedure TParser.Expression;
 begin
-  Node := Comparison;
+  Equality;
+end;
+
+procedure TParser.Equality;
+var
+  OperatorToken: TToken;
+begin
+  Comparison;
   while (FCurrentToken.TokenType = tkOperator) and ((FCurrentToken.Lexeme = '=') or (FCurrentToken.Lexeme = '<>')) do
   begin
     OperatorToken := FCurrentToken;
     Advance;
-    RightHandSide := Comparison;
-    Node := TBinaryOpNode.Create(OperatorToken.Lexeme, Node, RightHandSide);
+    Comparison;
+    if not FSuppressCodeGen then
+    begin
+      if OperatorToken.Lexeme = '=' then
+        FAssembler.Emit(BC_CMP_EQ, [])
+      else
+        FAssembler.Emit(BC_CMP_NEQ, []);
+    end;
   end;
-  Result := Node;
 end;
 
-function TParser.Comparison: TExpressionNode;
+procedure TParser.Comparison;
 var
-  Node: TExpressionNode;
   OperatorToken: TToken;
-  RightHandSide: TExpressionNode;
+  Op: string;
 begin
-  Node := Term;
+  Term;
   while (FCurrentToken.TokenType = tkOperator) and ((FCurrentToken.Lexeme = '>') or (FCurrentToken.Lexeme = '<') or (FCurrentToken.Lexeme = '>=') or (FCurrentToken.Lexeme = '<=') or (FCurrentToken.Lexeme.ToUpper = 'IS')) do
   begin
     OperatorToken := FCurrentToken;
     Advance;
-    RightHandSide := Term;
-    Node := TBinaryOpNode.Create(OperatorToken.Lexeme, Node, RightHandSide);
+    Term;
+    if not FSuppressCodeGen then
+    begin
+      Op := OperatorToken.Lexeme;
+      if Op = '>' then
+        FAssembler.Emit(BC_CMP_GT, [])
+      else if Op = '<' then
+        FAssembler.Emit(BC_CMP_LT, [])
+      else if Op = '>=' then
+        FAssembler.Emit(BC_CMP_GE, [])
+      else if Op = '<=' then
+        FAssembler.Emit(BC_CMP_LE, [])
+      else
+        // 'IS': no distinct object-identity model yet, treat as equality.
+        FAssembler.Emit(BC_CMP_EQ, []);
+    end;
   end;
-  Result := Node;
 end;
 
-function TParser.Term: TExpressionNode;
+procedure TParser.Term;
 var
-  Node: TExpressionNode;
   OperatorToken: TToken;
-  RightHandSide: TExpressionNode;
 begin
-  Node := Factor;
+  Factor;
   while (FCurrentToken.TokenType = tkOperator) and ((FCurrentToken.Lexeme = '+') or (FCurrentToken.Lexeme = '-') or (FCurrentToken.Lexeme = '&')) do
   begin
     OperatorToken := FCurrentToken;
     Advance;
-    RightHandSide := Factor;
-    Node := TBinaryOpNode.Create(OperatorToken.Lexeme, Node, RightHandSide);
+    Factor;
+    if not FSuppressCodeGen then
+    begin
+      if OperatorToken.Lexeme = '+' then
+        FAssembler.Emit(BC_ADD, [])
+      else if OperatorToken.Lexeme = '-' then
+        FAssembler.Emit(BC_SUB, [])
+      else
+        FAssembler.Emit(BC_CONCAT, []);
+    end;
   end;
-  Result := Node;
 end;
 
-function TParser.Factor: TExpressionNode;
+procedure TParser.Factor;
 var
-  Node: TExpressionNode;
   OperatorToken: TToken;
-  RightHandSide: TExpressionNode;
 begin
-  Node := Unary;
+  Unary;
   while (FCurrentToken.TokenType = tkOperator) and ((FCurrentToken.Lexeme = '*') or (FCurrentToken.Lexeme = '/')) do
   begin
     OperatorToken := FCurrentToken;
     Advance;
-    RightHandSide := Unary;
-    Node := TBinaryOpNode.Create(OperatorToken.Lexeme, Node, RightHandSide);
+    Unary;
+    if not FSuppressCodeGen then
+    begin
+      if OperatorToken.Lexeme = '*' then
+        FAssembler.Emit(BC_MUL, [])
+      else
+        FAssembler.Emit(BC_DIV, []);
+    end;
   end;
-  Result := Node;
 end;
 
-function TParser.Unary: TExpressionNode;
+procedure TParser.Unary;
 var
   OperatorToken: TToken;
-  RightHandSide: TExpressionNode;
 begin
-  Result := nil;
-
   if (FCurrentToken.TokenType = tkOperator) and ((FCurrentToken.Lexeme = '-') or (FCurrentToken.Lexeme.ToUpper = 'NOT')) then
   begin
     OperatorToken := FCurrentToken;
     Advance;
-    RightHandSide := Unary;
-    Result := TUnaryOpNode.Create(OperatorToken.Lexeme, RightHandSide);
+    Unary;
+    if not FSuppressCodeGen then
+    begin
+      if OperatorToken.Lexeme = '-' then
+        FAssembler.Emit(BC_NEG, [])
+      else
+        FAssembler.Emit(BC_NOT, []);
+    end;
   end
   else
-  begin
-    Result := Primary;
-  end;
+    Primary;
 end;
 
-function TParser.Primary: TExpressionNode;
+procedure TParser.Primary;
 var
   Token: TToken;
   ClsName: string;
+  VarName: string;
 begin
   Token := FCurrentToken;
   case Token.TokenType of
-    tkIntegerLiteral, tkStringLiteral, tkBooleanLiteral, tkIdentifier:
+    tkIntegerLiteral:
       begin
         Advance;
-        Result := TLiteralNode.Create(Token.Lexeme, Token.TokenType);
+        if not FSuppressCodeGen then
+          FAssembler.Emit(BC_LOAD_INT, [Op_IntegerLiteral(StrToInt64Def(Token.Lexeme, 0))]);
+      end;
+    tkStringLiteral:
+      begin
+        Advance;
+        if not FSuppressCodeGen then
+          FAssembler.Emit(BC_LOAD_STRING, [Op_StringLiteral(Token.Lexeme)]);
+      end;
+    tkBooleanLiteral:
+      begin
+        Advance;
+        if not FSuppressCodeGen then
+        begin
+          if AnsiUpperCase(Token.Lexeme) = 'TRUE' then
+            FAssembler.Emit(BC_LOAD_INT, [Op_IntegerLiteral(1)])
+          else
+            FAssembler.Emit(BC_LOAD_INT, [Op_IntegerLiteral(0)]);
+        end;
+      end;
+    tkIdentifier:
+      begin
+        VarName := Token.Lexeme;
+        Advance;
+
+        // Struct field read: P.X
+        if Check(tkDot) then
+        begin
+          Advance; // Consume '.'
+          if not Check(tkIdentifier) then
+            Error('Expected field name after "."');
+          VarName := VarName + '.' + FCurrentToken.Lexeme;
+          Advance; // Consume field name
+        end;
+
+        if not FSuppressCodeGen then
+          FAssembler.Emit(BC_LOAD_VAR, [Op_Variable(VarName)]);
       end;
     tkParenthesisOpen:
       begin
         Advance; // Consume '('
-        Result := Expression;
+        Expression;
         Match(tkParenthesisClose); // Consume ')'
       end;
     tkKeyword:
@@ -1399,26 +1663,29 @@ begin
           WriteLn('DEBUG: Instantiating class: ', ClsName);
           Advance; // Consume class name
 
-          // Handle optional constructor parameters
+          // Handle optional constructor parameters. There's no object
+          // model in the VM yet, so arguments are parsed for correct
+          // tokenization only; they don't leave values on the stack.
           if Check(tkParenthesisOpen) then
           begin
             Advance; // Consume '('
 
-            // Parse constructor arguments
             if not Check(tkParenthesisClose) then
             begin
-              Expression;
+              SkipExpression;
               while Check(tkComma) do
               begin
                 Advance; // Consume comma
-                Expression;
+                SkipExpression;
               end;
             end;
 
             Match(tkParenthesisClose); // Consume ')'
           end;
 
-          Result := TLiteralNode.Create('NEW ' + ClsName, tkKeyword);
+          // Placeholder result for the (not yet modeled) new object.
+          if not FSuppressCodeGen then
+            FAssembler.Emit(BC_LOAD_INT, [Op_IntegerLiteral(0)]);
         end
         else
           Error('Expected expression, found keyword: ' + FCurrentToken.Lexeme);

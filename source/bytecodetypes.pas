@@ -26,7 +26,17 @@ type
     BC_JUMP,          // Unconditional jump
     BC_JUMP_IF_FALSE, // Conditional jump
     BC_CALL,          // Call subroutine
-    BC_RETURN         // Return from subroutine
+    BC_RETURN,        // Return from subroutine
+    BC_CONCAT,        // String concatenation (&)
+    BC_NEG,           // Unary negation
+    BC_NOT,           // Logical NOT
+    BC_CMP_EQ,        // =
+    BC_CMP_NEQ,       // <>
+    BC_CMP_LT,        // <
+    BC_CMP_GT,        // >
+    BC_CMP_LE,        // <=
+    BC_CMP_GE,        // >=
+    BC_POP            // Discard the top of the evaluation stack
   );
 
   // Bytecode instruction structure
@@ -68,6 +78,9 @@ type
 
     // Add a string constant and return its index
     function AddStringConstant(const Literal: string): Integer;
+
+    // Add an integer literal and return its index
+    function AddIntegerLiteral(const Value: Int64): Integer;
 
     // File I/O
     procedure SaveToFile(const FileName: string);
@@ -145,6 +158,13 @@ begin
   // Also add to StringConstants for consistency
   if FStringConstants.IndexOf(Literal) < 0 then
     FStringConstants.Add(Literal);
+end;
+
+function TByteCodeProgram.AddIntegerLiteral(const Value: Int64): Integer;
+begin
+  Result := Length(FIntegerLiterals);
+  SetLength(FIntegerLiterals, Result + 1);
+  FIntegerLiterals[Result] := Value;
 end;
 
 procedure TByteCodeProgram.SaveToFile(const FileName: string);

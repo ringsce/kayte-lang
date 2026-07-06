@@ -8,10 +8,10 @@ Program kayte;
 {$mode objfpc}{$H+}
 {$NOTE 6058 OFF}  // Disable inline notes
 {$WARN 4046 OFF}
-{$HINTS ON}
+{$HINTS OFF}
 
 uses
-  SysUtils, Classes, Zipper, fphttpclient, fpjson, jsonparser, Process,
+  SysUtils, Classes,
   // Core compiler units
   Lexer in '../source/Lexer.pas',
   Parser in '../source/Parser.pas',
@@ -26,7 +26,13 @@ uses
   Bytecode in '../source/bytecode.pas',
   TestBytecode in '../source/TestBytecode.pas',
   XMLParser in '../source/XMLParser.pas',
+  {$IFDEF KAYTE_HTTP}
+  // Optional: pulls in fcl-web/fcl-net (fphttpserver, fpWeb, netdb...).
+  // Build with -dKAYTE_HTTP to enable `kayte --http`. Left out of the
+  // default build so the core language has no third-party dependencies
+  // beyond the standard FPC RTL.
   SimpleHTTPServer in '../components/http/SimpleHTTPServer.pas',
+  {$ENDIF}
   sdk in '../source/sdk.pas',
   c99 in '../source/c99.pas',
   kayte2pce in '../source/kayte2pce.pas',
@@ -313,6 +319,7 @@ begin
 end;
 
 procedure StartHTTPServer;
+{$IFDEF KAYTE_HTTP}
 var
   Port: Integer;
   Server: TSimpleHTTPServer;
@@ -346,6 +353,12 @@ begin
     Writeln('Server stopped.');
   end;
 end;
+{$ELSE}
+begin
+  Writeln('This build of Kayte was compiled without HTTP server support.');
+  Writeln('Rebuild with -dKAYTE_HTTP to enable the --http option.');
+end;
+{$ENDIF}
 
 procedure StartREPL;
 var

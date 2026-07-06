@@ -18,7 +18,8 @@ void test_parser(void) {
     assert(func->type == AST_FUNCTION_DECL);
     assert(strcmp(func->data.function_decl.name, "main") == 0);
     assert(func->data.function_decl.return_type == TYPE_INT);
-    
+    (void)func;
+
     ast_destroy(ast);
     parser_destroy(parser);
     lexer_destroy(lexer);

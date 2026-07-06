@@ -222,7 +222,7 @@ const char* disassemble_instruction(TInstruction instruction) {
     static char buffer[50];
     switch (instruction.Opcode) {
         case opPUSH:
-            sprintf(buffer, "PUSH %d", instruction.Operand);
+            snprintf(buffer, sizeof(buffer), "PUSH %d", instruction.Operand);
             break;
         case opADD:
             strcpy(buffer, "ADD");

@@ -8,7 +8,7 @@
         <Filename Value="kayte.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="11" Y="11"/>
+        <CursorPos X="12" Y="11"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
       </Unit>
@@ -327,7 +327,7 @@
         <EditorIndex Value="5"/>
         <TopLine Value="268"/>
         <CursorPos X="5" Y="302"/>
-        <UsageCount Value="165"/>
+        <UsageCount Value="167"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -336,7 +336,7 @@
         <UnitName Value="KayteArm64"/>
         <EditorIndex Value="6"/>
         <CursorPos Y="13"/>
-        <UsageCount Value="123"/>
+        <UsageCount Value="125"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -346,7 +346,7 @@
         <EditorIndex Value="9"/>
         <TopLine Value="57"/>
         <CursorPos Y="77"/>
-        <UsageCount Value="176"/>
+        <UsageCount Value="178"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -355,7 +355,7 @@
         <UnitName Value="TokenDefs"/>
         <EditorIndex Value="10"/>
         <CursorPos X="9" Y="8"/>
-        <UsageCount Value="166"/>
+        <UsageCount Value="168"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -363,9 +363,8 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Lexer"/>
         <EditorIndex Value="8"/>
-        <TopLine Value="227"/>
-        <CursorPos X="27" Y="243"/>
-        <UsageCount Value="175"/>
+        <CursorPos X="3" Y="13"/>
+        <UsageCount Value="177"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -375,7 +374,7 @@
         <EditorIndex Value="2"/>
         <TopLine Value="69"/>
         <CursorPos X="5" Y="103"/>
-        <UsageCount Value="75"/>
+        <UsageCount Value="77"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -385,7 +384,7 @@
         <EditorIndex Value="1"/>
         <TopLine Value="67"/>
         <CursorPos X="5" Y="101"/>
-        <UsageCount Value="75"/>
+        <UsageCount Value="77"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -395,20 +394,20 @@
         <EditorIndex Value="11"/>
         <TopLine Value="496"/>
         <CursorPos Y="496"/>
-        <UsageCount Value="74"/>
+        <UsageCount Value="76"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="../source/mathlibdylib.pas"/>
         <UnitName Value="MathLibDylib"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="20"/>
       </Unit>
       <Unit>
         <Filename Value="../source/sys_mac.pas"/>
         <EditorIndex Value="-1"/>
         <CursorPos Y="6"/>
-        <UsageCount Value="60"/>
+        <UsageCount Value="59"/>
       </Unit>
       <Unit>
         <Filename Value="../source/sys_ios.pas"/>
@@ -416,36 +415,32 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="82"/>
+        <UsageCount Value="81"/>
       </Unit>
       <Unit>
         <Filename Value="../source/basic.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="68"/>
         <CursorPos X="10" Y="84"/>
-        <UsageCount Value="135"/>
+        <UsageCount Value="134"/>
       </Unit>
       <Unit>
         <Filename Value="../source/n64.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="25"/>
         <CursorPos Y="44"/>
-        <UsageCount Value="121"/>
+        <UsageCount Value="120"/>
       </Unit>
       <Unit>
         <Filename Value="../source/bytecodevm.pas"/>
         <UnitName Value="BytecodeVM"/>
         <EditorIndex Value="14"/>
         <TopLine Value="627"/>
-        <UsageCount Value="82"/>
+        <UsageCount Value="84"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="../source/parser.pas"/>
-        <Caret Line="432" TopLine="398"/>
-      </Position>
       <Position>
         <Filename Value="../source/parser.pas"/>
         <Caret Line="555" Column="19" TopLine="538"/>
@@ -561,6 +556,10 @@
       <Position>
         <Filename Value="kayte.lpr"/>
         <Caret Line="41" Column="72" TopLine="22"/>
+      </Position>
+      <Position>
+        <Filename Value="kayte.lpr"/>
+        <Caret Line="11" Column="11"/>
       </Position>
     </JumpHistory>
     <RunParams>

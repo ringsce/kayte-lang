@@ -10,8 +10,6 @@ uses
 type
   TLexer = class
   private
-  FSource: String;
-    FPosition: Integer;
     FSourceCode: TStringList;
     FCurrentLineIndex: Integer;
     FCurrentCharIndex: Integer;
@@ -19,6 +17,7 @@ type
     FEOF: Boolean;
 
     procedure Advance;
+    procedure AdvanceLine;
     function CurrentChar: Char;
     function PeekChar: Char;
     procedure SkipWhitespace;
@@ -72,17 +71,31 @@ end;
 
 procedure TLexer.Advance;
 begin
+  // Intentionally never crosses a line boundary: a token being scanned
+  // character-by-character (identifier, number, operator, ...) must stop
+  // dead at the end of the current line, not silently continue reading
+  // into the next line's text (which previously merged e.g. "MyIntegerVar"
+  // at the end of one line with "DIM" at the start of the next into
+  // "MyIntegerVarDIM"). Line transitions are handled explicitly via
+  // AdvanceLine, from the End-of-Line handling in GetNextToken.
   if FEOF then Exit;
 
-  Inc(FCurrentCharIndex);
-  if FCurrentCharIndex >= Length(FCurrentLine) then
+  if FCurrentCharIndex < Length(FCurrentLine) then
+    Inc(FCurrentCharIndex);
+end;
+
+procedure TLexer.AdvanceLine;
+begin
+  if FEOF then Exit;
+
+  Inc(FCurrentLineIndex);
+  FCurrentCharIndex := 0;
+  if FCurrentLineIndex < FSourceCode.Count then
+    FCurrentLine := FSourceCode[FCurrentLineIndex]
+  else
   begin
-    Inc(FCurrentLineIndex);
-    FCurrentCharIndex := 0;
-    if FCurrentLineIndex < FSourceCode.Count then
-      FCurrentLine := FSourceCode[FCurrentLineIndex]
-    else
-      FEOF := True;
+    FCurrentLine := '';
+    FEOF := True;
   end;
 end;
 
@@ -164,7 +177,7 @@ begin
     'REM', 'END', 'SUB', 'FUNCTION', 'IF', 'THEN', 'ELSE', 'ELSEIF', 'ENDIF',
     'SELECT', 'CASE', 'END SELECT', 'WHILE', 'WEND', 'FOR', 'NEXT', 'TO', 'STEP',
     'DIM', 'AS', 'REDIM', 'PRESERVE', 'CALL', 'GOTO', 'GOSUB', 'RETURN',
-    'PRINT', 'INPUT', 'MSGBOX', 'FORM', 'END FORM', 'SHOW', 'HIDE':
+    'PRINT', 'INPUT', 'MSGBOX', 'FORM', 'END FORM', 'SHOW', 'HIDE', 'STRUCT':
       Result := tkKeyword;
     // Boolean Literals
     'TRUE', 'FALSE':
@@ -218,7 +231,7 @@ begin
   // Handle End of Line
   if (FCurrentCharIndex >= Length(FCurrentLine)) and (FCurrentLineIndex < FSourceCode.Count) then
   begin
-    Advance; // Move to the next line
+    AdvanceLine; // Move to the next line
     Result.TokenType := tkEndOfLine;
     Result.Lexeme := '';
     Exit;

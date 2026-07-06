@@ -11,8 +11,6 @@ type
   { TKayte2PCE }
   TKayte2PCE = class
   private
-    FSourceFile: string;
-    FOutputFile: string;
     FAssemblerPath: string;
     procedure CompileToAssembly(const Source, Target: string);
     procedure AssembleToROM(const AssemblyFile, ROMFile: string);
@@ -55,11 +53,8 @@ begin
 end;
 
 procedure TKayte2PCE.AssembleToROM(const AssemblyFile, ROMFile: string);
-var
-  Command: string;
 begin
-  Command := Format('"%s" -o "%s" "%s"', [FAssemblerPath, ROMFile, AssemblyFile]);
-  if SysUtils.ExecuteProcess('/bin/sh', ['-c', Command]) <> 0 then
+  if SysUtils.ExecuteProcess(FAssemblerPath, ['-o', ROMFile, AssemblyFile]) <> 0 then
     raise Exception.Create('Error assembling ROM from ' + AssemblyFile);
   Writeln('ROM generated: ', ROMFile);
 end;

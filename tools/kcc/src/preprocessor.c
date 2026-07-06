@@ -3,6 +3,65 @@
 #include <stdarg.h>
 #include <time.h>
 
+// Growable string buffer used by macro expansion/substitution so that
+// long macro arguments/bodies can never overflow a fixed-size estimate.
+typedef struct {
+    char *data;
+    size_t len;
+    size_t cap;
+} DynStr;
+
+static void dynstr_init(DynStr *s, size_t initial_cap) {
+    if (initial_cap < 32) initial_cap = 32;
+    s->data = malloc(initial_cap);
+    if (!s->data) {
+        error_fatal("Memory allocation failed for macro expansion buffer");
+        return;
+    }
+    s->data[0] = '\0';
+    s->len = 0;
+    s->cap = initial_cap;
+}
+
+static void dynstr_ensure(DynStr *s, size_t extra) {
+    size_t needed = s->len + extra + 1;
+    if (needed > s->cap) {
+        size_t new_cap = s->cap * 2;
+        if (new_cap < needed) new_cap = needed;
+        char *grown = realloc(s->data, new_cap);
+        if (!grown) {
+            error_fatal("Memory allocation failed for macro expansion buffer");
+            return;
+        }
+        s->data = grown;
+        s->cap = new_cap;
+    }
+}
+
+static void dynstr_append_n(DynStr *s, const char *text, size_t n) {
+    dynstr_ensure(s, n);
+    memcpy(s->data + s->len, text, n);
+    s->len += n;
+    s->data[s->len] = '\0';
+}
+
+static void dynstr_append(DynStr *s, const char *text) {
+    dynstr_append_n(s, text, strlen(text));
+}
+
+static void dynstr_append_char(DynStr *s, char c) {
+    dynstr_ensure(s, 1);
+    s->data[s->len++] = c;
+    s->data[s->len] = '\0';
+}
+
+static void dynstr_trim_trailing_space(DynStr *s) {
+    while (s->len > 0 && isspace((unsigned char)s->data[s->len - 1])) {
+        s->len--;
+    }
+    s->data[s->len] = '\0';
+}
+
 Preprocessor *preprocessor_create(void) {
     Preprocessor *pp = malloc(sizeof(Preprocessor));
     if (!pp) {
@@ -247,23 +306,22 @@ bool preprocessor_is_macro_defined(Preprocessor *pp, const char *name) {
 
 char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
     char *result = strdup(line);
-    char *temp;
     bool expanded;
 
     // Keep expanding until no more macros are found
     do {
         expanded = false;
-        temp = malloc(strlen(result) * 2 + 256); // Extra space for expansion
-        temp[0] = '\0';
+        DynStr temp;
+        dynstr_init(&temp, strlen(result) + 256);
 
         const char *ptr = result;
         while (*ptr) {
-            if (isalpha(*ptr) || *ptr == '_') {
+            if (isalpha((unsigned char)*ptr) || *ptr == '_') {
                 // Found potential identifier
                 char identifier[MAX_MACRO_NAME];
                 int i = 0;
 
-                while ((isalnum(*ptr) || *ptr == '_') && i < MAX_MACRO_NAME - 1) {
+                while ((isalnum((unsigned char)*ptr) || *ptr == '_') && i < MAX_MACRO_NAME - 1) {
                     identifier[i++] = *ptr++;
                 }
                 identifier[i] = '\0';
@@ -273,7 +331,7 @@ char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
                     expanded = true;
 
                     if (macro->type == MACRO_OBJECT) {
-                        strcat(temp, macro->body);
+                        dynstr_append(&temp, macro->body);
                     } else if (macro->type == MACRO_FUNCTION) {
                         // Check for function call syntax
                         if (*ptr == '(') {
@@ -296,7 +354,7 @@ char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
                                     arg_buffer[buffer_pos] = '\0';
                                     args[arg_count++] = strdup(preprocessor_trim_whitespace(arg_buffer));
                                     buffer_pos = 0;
-                                } else if (buffer_pos < sizeof(arg_buffer) - 1) {
+                                } else if (buffer_pos < (int)sizeof(arg_buffer) - 1) {
                                     arg_buffer[buffer_pos++] = *ptr;
                                 }
                                 ptr++;
@@ -310,7 +368,7 @@ char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
                                 }
 
                                 char *expanded_macro = preprocessor_expand_function_macro(pp, macro, (const char**)args, arg_count);
-                                strcat(temp, expanded_macro);
+                                dynstr_append(&temp, expanded_macro);
                                 free(expanded_macro);
 
                                 // Free argument strings
@@ -319,26 +377,24 @@ char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
                                 }
                             } else {
                                 // Malformed function call, treat as identifier
-                                strcat(temp, identifier);
+                                dynstr_append(&temp, identifier);
                             }
                         } else {
                             // Function macro without parentheses, treat as identifier
-                            strcat(temp, identifier);
+                            dynstr_append(&temp, identifier);
                         }
                     }
                 } else {
-                    strcat(temp, identifier);
+                    dynstr_append(&temp, identifier);
                 }
             } else {
                 // Not an identifier, copy character
-                size_t len = strlen(temp);
-                temp[len] = *ptr++;
-                temp[len + 1] = '\0';
+                dynstr_append_char(&temp, *ptr++);
             }
         }
 
         free(result);
-        result = temp;
+        result = temp.data;
     } while (expanded);
 
     return result;
@@ -362,8 +418,8 @@ char *preprocessor_expand_function_macro(Preprocessor *pp, Macro *macro,
 
 char *preprocessor_substitute_params(const char *body, const char *params[],
                                    const char *args[], int param_count) {
-    char *result = malloc(strlen(body) * 4 + 256); // Extra space for expansion
-    result[0] = '\0';
+    DynStr result;
+    dynstr_init(&result, strlen(body) + 64);
 
     const char *ptr = body;
     while (*ptr) {
@@ -373,19 +429,16 @@ char *preprocessor_substitute_params(const char *body, const char *params[],
                 // Token pasting operator
                 ptr++;
                 // Remove trailing whitespace from result
-                int len = strlen(result);
-                while (len > 0 && isspace(result[len - 1])) {
-                    result[--len] = '\0';
-                }
+                dynstr_trim_trailing_space(&result);
                 // Skip leading whitespace in remaining body
-                while (*ptr && isspace(*ptr)) {
+                while (*ptr && isspace((unsigned char)*ptr)) {
                     ptr++;
                 }
             } else {
                 // Stringizing operator
                 char param_name[MAX_MACRO_NAME];
                 int i = 0;
-                while ((isalnum(*ptr) || *ptr == '_') && i < MAX_MACRO_NAME - 1) {
+                while ((isalnum((unsigned char)*ptr) || *ptr == '_') && i < MAX_MACRO_NAME - 1) {
                     param_name[i++] = *ptr++;
                 }
                 param_name[i] = '\0';
@@ -394,19 +447,19 @@ char *preprocessor_substitute_params(const char *body, const char *params[],
                 for (int j = 0; j < param_count; j++) {
                     if (strcmp(param_name, params[j]) == 0) {
                         char *stringized = preprocessor_stringify(args[j]);
-                        strcat(result, stringized);
+                        dynstr_append(&result, stringized);
                         free(stringized);
                         break;
                     }
                 }
             }
-        } else if (isalpha(*ptr) || *ptr == '_') {
+        } else if (isalpha((unsigned char)*ptr) || *ptr == '_') {
             // Check if this is a parameter name
             char identifier[MAX_MACRO_NAME];
             int i = 0;
             const char *start = ptr;
 
-            while ((isalnum(*ptr) || *ptr == '_') && i < MAX_MACRO_NAME - 1) {
+            while ((isalnum((unsigned char)*ptr) || *ptr == '_') && i < MAX_MACRO_NAME - 1) {
                 identifier[i++] = *ptr++;
             }
             identifier[i] = '\0';
@@ -414,7 +467,7 @@ char *preprocessor_substitute_params(const char *body, const char *params[],
             bool found_param = false;
             for (int j = 0; j < param_count; j++) {
                 if (strcmp(identifier, params[j]) == 0) {
-                    strcat(result, args[j]);
+                    dynstr_append(&result, args[j]);
                     found_param = true;
                     break;
                 }
@@ -422,17 +475,15 @@ char *preprocessor_substitute_params(const char *body, const char *params[],
 
             if (!found_param) {
                 // Not a parameter, copy the identifier
-                strncat(result, start, ptr - start);
+                dynstr_append_n(&result, start, (size_t)(ptr - start));
             }
         } else {
             // Copy character as-is
-            size_t len = strlen(result);
-            result[len] = *ptr++;
-            result[len + 1] = '\0';
+            dynstr_append_char(&result, *ptr++);
         }
     }
 
-    return result;
+    return result.data;
 }
 
 bool preprocessor_process_directive(Preprocessor *pp, const char *line) {
@@ -838,6 +889,7 @@ bool preprocessor_handle_elif(Preprocessor *pp, const char *directive) {
 }
 
 bool preprocessor_handle_else(Preprocessor *pp, const char *directive) {
+    (void)directive;
     if (pp->cond_stack_depth == 0) {
         preprocessor_error(pp, "#else without matching #if");
         return false;
@@ -859,6 +911,7 @@ bool preprocessor_handle_else(Preprocessor *pp, const char *directive) {
 }
 
 bool preprocessor_handle_endif(Preprocessor *pp, const char *directive) {
+    (void)directive;
     if (pp->cond_stack_depth == 0) {
         preprocessor_error(pp, "#endif without matching #if");
         return false;
