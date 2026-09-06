@@ -15,7 +15,7 @@ type
   { TSuperNesRom }
   TSuperNesRom = class
   private
-    FData: TMemoryStream;  // Holds ROM data
+    FData: TMemoryStream;
     FHeader: array[0..ROMHeaderSize - 1] of Byte;
   public
     constructor Create;
@@ -37,7 +37,7 @@ implementation
 
 constructor TSuperNesRom.Create;
 begin
-  inherited Create; // Explicit call to parent constructor
+  inherited Create;
   FData := TMemoryStream.Create;
   FillChar(FHeader, SizeOf(FHeader), 0);
 end;
@@ -45,19 +45,19 @@ end;
 destructor TSuperNesRom.Destroy;
 begin
   FData.Free;
-  inherited Destroy; // Explicit call to parent destructor
+  inherited Destroy;
 end;
 
 procedure TSuperNesRom.LoadRom(const FileName: string);
 begin
   FData.LoadFromFile(FileName);
-  Writeln(Format('Loaded ROM from %s', [FileName])); // Format for clean message
+  Writeln(Format('Loaded ROM from %s', [FileName]));
 end;
 
 procedure TSuperNesRom.SaveRom(const FileName: string);
 begin
   FData.Position := 0;
-  FData.WriteBuffer(FHeader, SizeOf(FHeader)); // Include ROM header in save
+  FData.WriteBuffer(FHeader, SizeOf(FHeader)); // header goes first so the layout matches LoadRom's expectations
   FData.SaveToFile(FileName);
   Writeln(Format('ROM saved to %s', [FileName]));
 end;
@@ -69,7 +69,7 @@ begin
   else
     FData.Size := Address + 1;
 
-  FData.Write(Value, SizeOf(Value)); // Use Write to write the value
+  FData.Write(Value, SizeOf(Value));
 end;
 
 procedure TSuperNesRom.WriteBank(BankNum: Integer; BankData: TRomBank);
@@ -82,7 +82,7 @@ begin
   else
     FData.Size := BankAddress + ROMBankSize;
 
-  FData.Write(BankData, ROMBankSize); // Write entire bank
+  FData.Write(BankData, ROMBankSize);
 end;
 
 function TSuperNesRom.ReadByte(Address: Integer): Byte;
@@ -90,7 +90,7 @@ var
   Value: Byte;
 begin
   FData.Position := Address;
-  FData.Read(Value, SizeOf(Value)); // Read a single byte
+  FData.Read(Value, SizeOf(Value));
   Result := Value;
 end;
 

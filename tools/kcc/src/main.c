@@ -60,12 +60,10 @@ int compile_file(const char *input_file, const char *output_file, CompilerOption
         printf("KCC: Compiling '%s'...\n", input_file);
     }
 
-    // Initialize error handling
     error_init();
 
     char *source_code = NULL;
 
-    // Preprocessing phase
     if (!opts->no_preprocess) {
         if (opts->verbose) {
             printf("KCC: Preprocessing...\n");
@@ -84,7 +82,6 @@ int compile_file(const char *input_file, const char *output_file, CompilerOption
             return 1;
         }
 
-        // If only preprocessing requested, output and exit
         if (opts->preprocess_only) {
             printf("%s", preprocessed_code);
             free(preprocessed_code);
@@ -99,7 +96,6 @@ int compile_file(const char *input_file, const char *output_file, CompilerOption
             printf("=== END PREPROCESSED CODE ===\n\n");
         }
     } else {
-        // Read source without preprocessing
         source_code = read_file(input_file);
         if (!source_code) {
             return 1;
@@ -110,7 +106,6 @@ int compile_file(const char *input_file, const char *output_file, CompilerOption
         printf("KCC: Lexical analysis...\n");
     }
 
-    // Lexical analysis
     Lexer *lexer = lexer_create(source_code);
     if (!lexer) {
         free(source_code);
@@ -133,7 +128,6 @@ int compile_file(const char *input_file, const char *output_file, CompilerOption
         printf("KCC: Syntax analysis...\n");
     }
 
-    // Syntax analysis
     Parser *parser = parser_create(lexer);
     if (!parser) {
         lexer_destroy(lexer);
@@ -161,7 +155,6 @@ int compile_file(const char *input_file, const char *output_file, CompilerOption
         printf("KCC: Code generation...\n");
     }
 
-    // Code generation
     CodeGenerator *codegen = codegen_create(output_file);
     if (!codegen) {
         ast_destroy(ast);
@@ -173,7 +166,6 @@ int compile_file(const char *input_file, const char *output_file, CompilerOption
 
     bool codegen_success = codegen_generate(codegen, ast);
 
-    // Cleanup
     codegen_destroy(codegen);
     ast_destroy(ast);
     parser_destroy(parser);
@@ -208,7 +200,6 @@ int main(int argc, char *argv[]) {
     opts.preprocess_only = false;
     opts.no_preprocess = false;
 
-    // Parse command line arguments
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);

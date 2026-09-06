@@ -15,6 +15,10 @@ type
   // the dotted-identifier handling in AssignmentStatement/Primary).
   TStructFieldMap = specialize TFPGMap<string, TStringList>;
 
+  // A single-statement parsing method, used to plug the right statement
+  // vocabulary into ParseBlockBody (see its comment).
+  TStatementProc = procedure of object;
+
   TParser = class
   private
     FLexer: TLexer;
@@ -28,6 +32,9 @@ type
     // the token stream (e.g. constructor arguments to a not-yet-modeled
     // NEW ClassName(...)) so no value is left dangling on the VM stack.
     FSuppressCodeGen: Boolean;
+    // Name of the CLASS currently being parsed; only meaningful while
+    // ClassBodyStatement is on the call stack (see ClassDefinition).
+    FCurrentClassName: string;
 
     procedure Advance;
     procedure Match(ExpectedType: TTokenType);
@@ -37,6 +44,7 @@ type
     // Parsing rules (non-terminals)
     function Statement: TStatementNode;
     procedure DispatchStatement;
+    procedure ParseBlockBody(const Context: string; StatementHandler: TStatementProc);
     procedure StructDefinition;
     procedure DeclarationStatement;
     procedure AssignmentStatement;
@@ -44,6 +52,7 @@ type
     procedure InputStatement;
     procedure MsgBoxStatement;
     procedure CallStatement;
+    procedure ProcessStatement;
     procedure GoToStatement;
     procedure GoSubStatement;
     procedure ReturnStatement;
@@ -54,6 +63,9 @@ type
     procedure SubDefinition;
     procedure FunctionDefinition;
     procedure ClassDefinition;  // NEW: Handle CLASS definitions
+    procedure ClassBodyStatement;
+    procedure PropertyDefinition;
+    procedure PropertyBodyStatement;
     procedure FormDefinition;
     procedure ShowStatement;
     procedure HideStatement;
@@ -66,6 +78,7 @@ type
     // they only consume tokens and emit nothing.
     procedure Expression;
     procedure SkipExpression; // Parse and discard (see FSuppressCodeGen)
+    procedure SkipGenericParams; // Parse and discard "<T, U, ...>" (type erasure)
     procedure Equality;
     procedure Comparison;
     procedure Term;
@@ -103,19 +116,7 @@ begin
   FLexer := ALexer;
   FSuppressCodeGen := False;
   FStructs := TStructFieldMap.Create;
-
-  try
-    FCurrentToken := FLexer.GetNextToken;
-    WriteLn('DEBUG: First token type: ', Ord(FCurrentToken.TokenType));
-    WriteLn('DEBUG: First token lexeme: ', FCurrentToken.Lexeme);
-  except
-    on E: Exception do
-    begin
-      WriteLn('ERROR in parser constructor: ', E.Message);
-      raise;
-    end;
-  end;
-
+  FCurrentToken := FLexer.GetNextToken;
   FPreviousToken := FCurrentToken;
   FAssembler := TAssembler.Create;
 end;
@@ -132,86 +133,36 @@ begin
 end;
 
 function TParser.Parse: TByteCodeProgram;
-var
-  IterationCount: Integer;
 begin
-  IterationCount := 0;
-
-  // Set the program title
   FAssembler.SetProgramTitle('Kayte Program');
 
-  // Skip comments at the beginning of the file
   while FCurrentToken.TokenType = tkComment do
     Advance;
 
-  WriteLn('DEBUG: Starting main parse loop');
-  WriteLn('DEBUG: First token - Type=', Ord(FCurrentToken.TokenType),
-          ' Lexeme="', FCurrentToken.Lexeme, '"');
-
-  // The main parsing loop
   while FCurrentToken.TokenType <> tkEndOfFile do
   begin
-    Inc(IterationCount);
-    WriteLn('DEBUG: === Iteration ', IterationCount, ' ===');
-    WriteLn('DEBUG: Current token - Type=', Ord(FCurrentToken.TokenType),
-            ' Lexeme="', FCurrentToken.Lexeme, '"');
-
-    // Safety check to prevent infinite loops during debugging
-    if IterationCount > 100 then
-    begin
-      WriteLn('ERROR: Too many iterations, possible infinite loop!');
-      Break;
-    end;
-
     try
-      // Skip blank lines and comments
       while (FCurrentToken.TokenType = tkEndOfLine) or
             (FCurrentToken.TokenType = tkComment) do
-      begin
-        WriteLn('DEBUG: Skipping token type ', Ord(FCurrentToken.TokenType));
         Advance;
-        WriteLn('DEBUG: After skip - Type=', Ord(FCurrentToken.TokenType),
-                ' Lexeme="', FCurrentToken.Lexeme, '"');
-      end;
 
       if FCurrentToken.TokenType = tkEndOfFile then
-      begin
-        WriteLn('DEBUG: EOF detected, breaking');
         Break;
-      end;
 
-      // Handle special token types first
-      case FCurrentToken.TokenType of
-        tkOptionExplicitOn, tkOptionExplicitOff:
-          begin
-            WriteLn('DEBUG: Handling Option Explicit token');
-            Advance;
-            WriteLn('DEBUG: After Advance - Type=', Ord(FCurrentToken.TokenType),
-                    ' Lexeme="', FCurrentToken.Lexeme, '"');
-            Continue;
-          end;
-        tkComment:
-          begin
-            WriteLn('DEBUG: Handling Comment in case statement');
-            Advance;
-            Continue;
-          end;
+      // OPTION EXPLICIT ON/OFF is recognized by the lexer as its own
+      // token type (not routed through the OPTION keyword statement),
+      // so it needs handling here before falling through to DispatchStatement.
+      if (FCurrentToken.TokenType = tkOptionExplicitOn) or
+         (FCurrentToken.TokenType = tkOptionExplicitOff) then
+      begin
+        Advance;
+        Continue;
       end;
-
-      // Then handle keyword-based statements
-      WriteLn('DEBUG: Processing keyword: "', AnsiUpperCase(FCurrentToken.Lexeme), '"');
 
       DispatchStatement;
 
-      // Skip any end-of-line markers after the statement
-      WriteLn('DEBUG: Checking for trailing EndOfLine');
       while Check(tkEndOfLine) do
-      begin
-        WriteLn('DEBUG: Skipping trailing EndOfLine');
         Advance;
-      end;
-
-      WriteLn('DEBUG: End of iteration');
 
     except
       on E: Exception do
@@ -227,9 +178,6 @@ begin
     end;
   end;
 
-  WriteLn('DEBUG: Exited main loop after ', IterationCount, ' iterations');
-
-  // Finalize the program and return the bytecode
   Result := FAssembler.GetProgram;
 end;
 
@@ -291,16 +239,14 @@ end;
 // Helper functions for bytecode operand encoding
 function TParser.Op_Variable(const VarName: string): Integer;
 begin
-  // Add or get variable from the program's variable table.
-  // Uses CurrentProgram (not GetProgram), since GetProgram transfers
-  // ownership and nils out the assembler's program on first use - it
-  // must only be called once, after parsing has fully completed.
+  // Uses CurrentProgram, not GetProgram: GetProgram transfers ownership and
+  // nils out the assembler's program on first use, so it must only be
+  // called once, after parsing has fully completed.
   Result := FAssembler.CurrentProgram.AddVariable(VarName);
 end;
 
 function TParser.Op_StringLiteral(const Literal: string): Integer;
 begin
-  // Add string literal to the program's constant pool
   Result := FAssembler.CurrentProgram.AddStringConstant(Literal);
 end;
 
@@ -320,19 +266,19 @@ end;
 
 // Dispatches a single keyword-based statement starting at FCurrentToken.
 // Shared by the top-level parse loop and by any construct that embeds a
-// single statement (single-line IF-THEN, WHILE/FOR loop bodies).
+// single statement (single-line IF-THEN, WHILE/FOR loop bodies, and -
+// via ParseBlockBody - WITH/SUB/FUNCTION/FORM bodies).
 procedure TParser.DispatchStatement;
 begin
   case AnsiUpperCase(FCurrentToken.Lexeme) of
     'END':
-      begin
-        WriteLn('DEBUG: END statement');
-        Advance;
-      end;
+      Advance;
     'OPTION':
       OptionStatement;
     'PRINT':
       PrintStatement;
+    'PROCESS':
+      ProcessStatement;
     'INPUT':
       InputStatement;
     'MSGBOX':
@@ -341,7 +287,6 @@ begin
       AssignmentStatement;
     'SET':
       begin
-        WriteLn('DEBUG: SET statement for object assignment');
         Advance; // Consume SET
         AssignmentStatement;
       end;
@@ -378,34 +323,54 @@ begin
     'STRUCT':
       StructDefinition;
   else
-    WriteLn('DEBUG: In else clause');
     if FCurrentToken.TokenType = tkIdentifier then
     begin
-      WriteLn('DEBUG: Identifier token');
       // Could be a label, or an assignment (with or without LET, and
       // optionally to a struct field: "P.X = 10").
       if (PeekToken.TokenType = tkOperator) or (PeekToken.TokenType = tkDot) then
-      begin
-        WriteLn('DEBUG: Assignment without LET');
-        AssignmentStatement;
-      end
+        AssignmentStatement
       else
       begin
-        WriteLn('DEBUG: Label definition: ', FCurrentToken.Lexeme);
         FAssembler.DefineLabel(FCurrentToken.Lexeme);
         Advance;
       end;
     end
     else if FCurrentToken.TokenType = tkEndOfLine then
-    begin
-      WriteLn('DEBUG: Extra EndOfLine');
-      Advance;
-    end
+      Advance
     else
-    begin
-      WriteLn('DEBUG: ERROR - Unexpected token');
       Error('Unexpected token: ' + FCurrentToken.Lexeme);
+  end;
+end;
+
+// Parses statements via StatementHandler until the next token is the
+// keyword "END" that closes the block, skipping blank lines and comments
+// in between. Shared by every block construct (WITH/SUB/FUNCTION/FORM/
+// CLASS) so each one only has to supply what "a statement" means inside
+// it and what to do with the block's name - the surrounding "loop until
+// END, bail on EOF, skip blank lines" plumbing lives here once.
+// Does not consume the "END" token itself, nor the keyword that follows
+// it (e.g. "SUB") - the caller matches those since only it knows what
+// they should be.
+procedure TParser.ParseBlockBody(const Context: string; StatementHandler: TStatementProc);
+begin
+  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
+  begin
+    if FCurrentToken.TokenType = tkEndOfFile then
+    begin
+      Error('Unexpected end of file in ' + Context);
+      Break;
     end;
+
+    if Check(tkEndOfLine) or Check(tkComment) then
+    begin
+      Advance;
+      Continue;
+    end;
+
+    StatementHandler;
+
+    while Check(tkEndOfLine) do
+      Advance;
   end;
 end;
 
@@ -423,14 +388,13 @@ var
   StructName, FieldName: string;
   Fields: TStringList;
 begin
-  WriteLn('DEBUG: StructDefinition - Current token: ', FCurrentToken.Lexeme);
-
   Match(tkKeyword); // Consume STRUCT
 
   if not Check(tkIdentifier) then
     Error('Expected struct name after STRUCT');
   StructName := FCurrentToken.Lexeme;
   Advance; // Consume struct name
+  SkipGenericParams; // Optional "<T, U, ...>" - erased, see SkipGenericParams
 
   if FStructs.IndexOf(StructName) >= 0 then
     Error('Struct "' + StructName + '" is already defined');
@@ -462,7 +426,6 @@ begin
     end;
 
     FieldName := FCurrentToken.Lexeme;
-    WriteLn('DEBUG: StructDefinition - Field: ', FieldName);
     Advance; // Consume field name
 
     // Optional "AS Type" - parsed but not enforced (see unit comment).
@@ -476,6 +439,7 @@ begin
         Exit;
       end;
       Advance; // Consume type name
+      SkipGenericParams; // Optional "<T, U, ...>" - erased, see SkipGenericParams
     end;
 
     Fields.Add(FieldName);
@@ -488,38 +452,28 @@ begin
   Match(tkKeyword); // STRUCT
 
   FStructs.Add(StructName, Fields);
-  WriteLn('DEBUG: StructDefinition - Defined "', StructName, '" with ', Fields.Count, ' field(s)');
 end;
 
 procedure TParser.OptionStatement;
 begin
-  // Match OPTION keyword
-  Advance;
+  Advance; // Consume OPTION
 
-  // Consume the rest of the OPTION statement (e.g., "Explicit On", "Base 0", etc.)
-  // These are compile-time directives and don't generate bytecode
+  // OPTION directives (e.g. "Explicit On", "Base 0") are compile-time only
+  // and generate no bytecode, so the rest of the line is just discarded.
   while not Check(tkEndOfLine) and not Check(tkEndOfFile) do
     Advance;
-
-  // OPTION statements just set compiler flags, no bytecode needed
 end;
 
 procedure TParser.IfStatement;
 var
   JumpOverThen: Integer;
 begin
-  WriteLn('DEBUG: IfStatement - Current token: ', FCurrentToken.Lexeme);
-
   Match(tkKeyword); // Consume IF
-  WriteLn('DEBUG: IfStatement - Parsing condition');
   Expression; // Leaves the condition's truth value on the stack
 
   // Expect THEN
   if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'THEN') then
-  begin
-    WriteLn('DEBUG: IfStatement - Found THEN');
-    Advance; // Consume THEN
-  end
+    Advance // Consume THEN
   else
     Error('Expected THEN after IF condition');
 
@@ -536,8 +490,6 @@ begin
     DispatchStatement;
 
   FAssembler.PatchJumpTarget(JumpOverThen, FAssembler.CurrentInstructionIndex);
-
-  WriteLn('DEBUG: IfStatement - Complete');
 end;
 
 procedure TParser.DeclarationStatement;
@@ -547,8 +499,6 @@ var
   StructIdx, I, J: Integer;
   Fields: TStringList;
 begin
-  WriteLn('DEBUG: DeclarationStatement - Current token: ', FCurrentToken.Lexeme);
-
   // Consume DIM/PUBLIC/PRIVATE keyword
   Advance;
 
@@ -559,15 +509,12 @@ begin
       if not Check(tkIdentifier) then
         Error('Expected variable name in declaration');
 
-      WriteLn('DEBUG: Declaring variable: ', FCurrentToken.Lexeme);
       VarNames.Add(FCurrentToken.Lexeme);
-
       Advance; // Consume variable name
 
       // Check for comma (more variables)
       if Check(tkComma) then
       begin
-        WriteLn('DEBUG: Found comma, expecting another variable');
         Advance; // Consume comma
         Continue; // Get next variable
       end
@@ -585,8 +532,8 @@ begin
       if not Check(tkIdentifier) then
         Error('Expected type name after AS');
       TypeName := FCurrentToken.Lexeme;
-      WriteLn('DEBUG: Type: ', TypeName);
       Advance; // Consume type name
+      SkipGenericParams; // Optional "<T, U, ...>" - erased, see SkipGenericParams
     end;
 
     StructIdx := -1;
@@ -609,8 +556,6 @@ begin
   finally
     VarNames.Free;
   end;
-
-  WriteLn('DEBUG: DeclarationStatement complete');
 end;
 
 procedure TParser.AssignmentStatement;
@@ -701,6 +646,7 @@ procedure TParser.CallStatement;
 begin
   Match(tkKeyword);
   Match(tkIdentifier);
+  SkipGenericParams; // Optional "<T, U, ...>" - erased, see SkipGenericParams
   // User-defined SUB/FUNCTION calls aren't executable yet (no call stack
   // or parameter binding), so arguments are parsed for correct
   // tokenization only, without leaving values on the VM stack.
@@ -718,6 +664,45 @@ begin
     end;
     Match(tkParenthesisClose);
   end;
+end;
+
+// PROCESS <command-expr> [, <arg-expr>]* [TO <identifier>]
+//
+// Spawns an OS process: <command-expr> is the executable, each further
+// comma-separated expression is passed as a separate argument (not
+// shell-concatenated, so arguments containing spaces/quotes need no
+// escaping). If a "TO <identifier>" clause is given, the process's
+// captured output is stored in that variable; otherwise it's printed to
+// the console directly, like MSGBOX/PRINT.
+procedure TParser.ProcessStatement;
+var
+  ArgCount: Integer;
+  DestVarIndex: Integer;
+begin
+  Advance; // Consume PROCESS keyword
+
+  ArgCount := 0;
+  Expression; // Command
+  Inc(ArgCount);
+
+  while Check(tkComma) do
+  begin
+    Advance; // Consume ','
+    Expression; // Argument
+    Inc(ArgCount);
+  end;
+
+  DestVarIndex := -1;
+  if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'TO') then
+  begin
+    Advance; // Consume TO
+    if not Check(tkIdentifier) then
+      Error('Expected variable name after TO');
+    DestVarIndex := Op_Variable(FCurrentToken.Lexeme);
+    Advance; // Consume variable name
+  end;
+
+  FAssembler.Emit(BC_PROCESS, [ArgCount, DestVarIndex]);
 end;
 
 procedure TParser.GoToStatement;
@@ -741,8 +726,6 @@ procedure TParser.WhileStatement;
 var
   LoopStart, JumpToExit: Integer;
 begin
-  WriteLn('DEBUG: WhileStatement - Current token: ', FCurrentToken.Lexeme);
-
   Match(tkKeyword); // Consume WHILE
 
   // The condition is re-evaluated every iteration, so its bytecode lives
@@ -754,45 +737,12 @@ begin
   JumpToExit := FAssembler.CurrentInstructionIndex;
   FAssembler.Emit(BC_JUMP_IF_FALSE, [-1]);
 
-  WriteLn('DEBUG: WhileStatement - Entering body loop');
-
-  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'WEND')) do
-  begin
-    WriteLn('DEBUG: WhileStatement body - token: ', FCurrentToken.Lexeme);
-
-    // Check for EOF
-    if FCurrentToken.TokenType = tkEndOfFile then
-    begin
-      Error('Unexpected end of file in WHILE loop');
-      Break;
-    end;
-
-    // Skip blank lines
-    if Check(tkEndOfLine) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Skip comments
-    if Check(tkComment) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    DispatchStatement;
-
-    while Check(tkEndOfLine) do
-      Advance;
-  end;
+  ParseBlockBody('WHILE loop', @DispatchStatement);
 
   FAssembler.Emit(BC_JUMP, [LoopStart]);
   FAssembler.PatchJumpTarget(JumpToExit, FAssembler.CurrentInstructionIndex);
 
-  WriteLn('DEBUG: WhileStatement - Found WEND');
   Match(tkKeyword); // WEND
-  WriteLn('DEBUG: WhileStatement - Complete');
 end;
 
 procedure TParser.ForStatement;
@@ -802,8 +752,6 @@ var
   CmpOp: TByteCodeOp;
   LoopStart, JumpToExit: Integer;
 begin
-  WriteLn('DEBUG: ForStatement - Current token: ', FCurrentToken.Lexeme);
-
   Match(tkKeyword); // Consume FOR
   if not Check(tkIdentifier) then
     Error('Expected loop variable after FOR');
@@ -855,38 +803,7 @@ begin
   JumpToExit := FAssembler.CurrentInstructionIndex;
   FAssembler.Emit(BC_JUMP_IF_FALSE, [-1]);
 
-  WriteLn('DEBUG: ForStatement - Entering body loop');
-
-  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'NEXT')) do
-  begin
-    WriteLn('DEBUG: ForStatement body - token: ', FCurrentToken.Lexeme);
-
-    // Check for EOF
-    if FCurrentToken.TokenType = tkEndOfFile then
-    begin
-      Error('Unexpected end of file in FOR loop');
-      Break;
-    end;
-
-    // Skip blank lines
-    if Check(tkEndOfLine) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Skip comments
-    if Check(tkComment) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    DispatchStatement;
-
-    while Check(tkEndOfLine) do
-      Advance;
-  end;
+  ParseBlockBody('FOR loop', @DispatchStatement);
 
   // loopvar := loopvar + step
   FAssembler.Emit(BC_LOAD_VAR, [Op_Variable(LoopVarName)]);
@@ -896,111 +813,32 @@ begin
   FAssembler.Emit(BC_JUMP, [LoopStart]);
   FAssembler.PatchJumpTarget(JumpToExit, FAssembler.CurrentInstructionIndex);
 
-  WriteLn('DEBUG: ForStatement - Found NEXT');
   Match(tkKeyword); // NEXT
   if Check(tkIdentifier) then
     Advance; // Optional loop variable after NEXT
-  WriteLn('DEBUG: ForStatement - Complete');
 end;
 
 procedure TParser.WithStatement;
-var
-  ObjectName: string;
 begin
-  WriteLn('DEBUG: WithStatement - Current token: ', FCurrentToken.Lexeme);
-
   Match(tkKeyword); // Consume WITH
 
   if not Check(tkIdentifier) then
     Error('Expected object name after WITH');
-
-  ObjectName := FCurrentToken.Lexeme;
-  WriteLn('DEBUG: WITH object: ', ObjectName);
   Advance; // Consume object name
 
   Match(tkEndOfLine);
 
-  WriteLn('DEBUG: WithStatement - Entering body loop');
+  ParseBlockBody('WITH block', @DispatchStatement);
 
-  // Parse the body of the WITH block
-  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
-  begin
-    WriteLn('DEBUG: WithStatement body - token: ', FCurrentToken.Lexeme);
-
-    // Check for EOF to prevent infinite loop
-    if FCurrentToken.TokenType = tkEndOfFile then
-    begin
-      Error('Unexpected end of file in WITH block');
-      Break;
-    end;
-
-    // Skip blank lines
-    if Check(tkEndOfLine) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Skip comments
-    if Check(tkComment) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Process statement based on keyword
-    case AnsiUpperCase(FCurrentToken.Lexeme) of
-      'PRINT': PrintStatement;
-      'LET': AssignmentStatement;
-      'SET':
-        begin
-          Advance; // Consume SET
-          AssignmentStatement;
-        end;
-      'DIM': DeclarationStatement;
-      'IF': IfStatement;
-      'WHILE': WhileStatement;
-      'FOR': ForStatement;
-      'CALL': CallStatement;
-    else
-      if FCurrentToken.TokenType = tkIdentifier then
-      begin
-        // Could be assignment or method call
-        if PeekToken.TokenType = tkOperator then
-          AssignmentStatement
-        else if PeekToken.TokenType = tkParenthesisOpen then
-          CallStatement
-        else
-        begin
-          // It's a label or property access
-          FAssembler.DefineLabel(FCurrentToken.Lexeme);
-          Advance;
-        end;
-      end
-      else
-        Error('Unexpected token in WITH block: ' + FCurrentToken.Lexeme);
-    end;
-
-    // Skip trailing end-of-line
-    while Check(tkEndOfLine) do
-      Advance;
-  end;
-
-  WriteLn('DEBUG: WithStatement - Found END');
   Match(tkKeyword); // END
   Match(tkKeyword); // WITH
-  WriteLn('DEBUG: WithStatement - Complete');
 end;
 
 procedure TParser.SubDefinition;
 begin
-  WriteLn('DEBUG: SubDefinition - Current token: ', FCurrentToken.Lexeme);
-
   Match(tkKeyword); // Consume SUB
-  WriteLn('DEBUG: After SUB, current token: ', FCurrentToken.Lexeme);
-
   Match(tkIdentifier); // Sub name
-  WriteLn('DEBUG: After sub name, current token: ', FCurrentToken.Lexeme);
+  SkipGenericParams; // Optional "<T, U, ...>" - erased, see SkipGenericParams
 
   Match(tkParenthesisOpen);
   if Check(tkIdentifier) then
@@ -1015,87 +853,17 @@ begin
   Match(tkParenthesisClose);
   Match(tkEndOfLine);
 
-  WriteLn('DEBUG: SubDefinition - Entering body loop');
+  ParseBlockBody('SUB definition', @DispatchStatement);
 
-  // Parse the body of the subroutine
-  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
-  begin
-    WriteLn('DEBUG: SubDefinition body - token: ', FCurrentToken.Lexeme);
-
-    // Check for EOF to prevent infinite loop
-    if FCurrentToken.TokenType = tkEndOfFile then
-    begin
-      Error('Unexpected end of file in SUB definition');
-      Break;
-    end;
-
-    // Skip blank lines
-    if Check(tkEndOfLine) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Skip comments
-    if Check(tkComment) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Process statement based on keyword
-    case AnsiUpperCase(FCurrentToken.Lexeme) of
-      'PRINT': PrintStatement;
-      'LET': AssignmentStatement;
-      'SET':
-        begin
-          Advance; // Consume SET
-          AssignmentStatement;
-        end;
-      'DIM': DeclarationStatement;
-      'IF': IfStatement;
-      'WHILE': WhileStatement;
-      'FOR': ForStatement;
-      'WITH': WithStatement;
-      'RETURN': ReturnStatement;
-      'CALL': CallStatement;
-    else
-      if FCurrentToken.TokenType = tkIdentifier then
-      begin
-        // Assignment without LET or label
-        if PeekToken.TokenType = tkOperator then
-          AssignmentStatement
-        else
-        begin
-          // It's a label
-          FAssembler.DefineLabel(FCurrentToken.Lexeme);
-          Advance;
-        end;
-      end
-      else
-        Error('Unexpected token in SUB body: ' + FCurrentToken.Lexeme);
-    end;
-
-    // Skip trailing end-of-line
-    while Check(tkEndOfLine) do
-      Advance;
-  end;
-
-  WriteLn('DEBUG: SubDefinition - Found END');
   Match(tkKeyword); // END
   Match(tkKeyword); // SUB
-  WriteLn('DEBUG: SubDefinition - Complete');
 end;
 
 procedure TParser.FunctionDefinition;
 begin
-  WriteLn('DEBUG: FunctionDefinition - Current token: ', FCurrentToken.Lexeme);
-
   Match(tkKeyword); // Consume FUNCTION
-  WriteLn('DEBUG: After FUNCTION, current token: ', FCurrentToken.Lexeme);
-
   Match(tkIdentifier); // Function name
-  WriteLn('DEBUG: After function name, current token: ', FCurrentToken.Lexeme);
+  SkipGenericParams; // Optional "<T, U, ...>" - erased, see SkipGenericParams
 
   Match(tkParenthesisOpen);
   if Check(tkIdentifier) then
@@ -1114,334 +882,143 @@ begin
   begin
     Advance; // Consume AS
     Match(tkIdentifier); // Type name
+    SkipGenericParams; // Optional "<T, U, ...>" - erased, see SkipGenericParams
   end;
 
   Match(tkEndOfLine);
 
-  WriteLn('DEBUG: FunctionDefinition - Entering body loop');
+  ParseBlockBody('FUNCTION definition', @DispatchStatement);
 
-  // Parse the body of the function
-  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
-  begin
-    WriteLn('DEBUG: FunctionDefinition body - token: ', FCurrentToken.Lexeme);
-
-    // Check for EOF to prevent infinite loop
-    if FCurrentToken.TokenType = tkEndOfFile then
-    begin
-      Error('Unexpected end of file in FUNCTION definition');
-      Break;
-    end;
-
-    // Skip blank lines
-    if Check(tkEndOfLine) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Skip comments
-    if Check(tkComment) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Process statement based on keyword
-    case AnsiUpperCase(FCurrentToken.Lexeme) of
-      'PRINT': PrintStatement;
-      'LET': AssignmentStatement;
-      'SET':
-        begin
-          Advance; // Consume SET
-          AssignmentStatement;
-        end;
-      'DIM': DeclarationStatement;
-      'IF': IfStatement;
-      'WHILE': WhileStatement;
-      'FOR': ForStatement;
-      'WITH': WithStatement;
-      'RETURN': ReturnStatement;
-      'CALL': CallStatement;
-    else
-      if FCurrentToken.TokenType = tkIdentifier then
-      begin
-        // Assignment without LET or label
-        if PeekToken.TokenType = tkOperator then
-          AssignmentStatement
-        else
-        begin
-          // It's a label
-          FAssembler.DefineLabel(FCurrentToken.Lexeme);
-          Advance;
-        end;
-      end
-      else
-        Error('Unexpected token in FUNCTION body: ' + FCurrentToken.Lexeme);
-    end;
-
-    // Skip trailing end-of-line
-    while Check(tkEndOfLine) do
-      Advance;
-  end;
-
-  WriteLn('DEBUG: FunctionDefinition - Found END');
   Match(tkKeyword); // END
   Match(tkKeyword); // FUNCTION
-  WriteLn('DEBUG: FunctionDefinition - Complete');
 end;
 
 procedure TParser.FormDefinition;
 begin
-  WriteLn('DEBUG: FormDefinition - Current token: ', FCurrentToken.Lexeme);
-
   Match(tkKeyword); // Consume FORM
-  WriteLn('DEBUG: After FORM, current token: ', FCurrentToken.Lexeme);
-
   Match(tkIdentifier); // Form name
-  WriteLn('DEBUG: After form name, current token: ', FCurrentToken.Lexeme);
 
   Match(tkEndOfLine);
 
-  WriteLn('DEBUG: FormDefinition - Entering body loop');
+  ParseBlockBody('FORM definition', @DispatchStatement);
 
-  // Parse the body of the form
-  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
-  begin
-    WriteLn('DEBUG: FormDefinition body - token: ', FCurrentToken.Lexeme);
-
-    // Check for EOF to prevent infinite loop
-    if FCurrentToken.TokenType = tkEndOfFile then
-    begin
-      Error('Unexpected end of file in FORM definition');
-      Break;
-    end;
-
-    // Skip blank lines
-    if Check(tkEndOfLine) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Skip comments
-    if Check(tkComment) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Process statement based on keyword
-    case AnsiUpperCase(FCurrentToken.Lexeme) of
-      'PRINT': PrintStatement;
-      'LET': AssignmentStatement;
-      'DIM': DeclarationStatement;
-      'IF': IfStatement;
-      'WHILE': WhileStatement;
-      'FOR': ForStatement;
-      'SUB': SubDefinition;
-      'FUNCTION': FunctionDefinition;
-      'SHOW': ShowStatement;
-      'HIDE': HideStatement;
-      'CALL': CallStatement;
-    else
-      if FCurrentToken.TokenType = tkIdentifier then
-      begin
-        // Assignment without LET or label
-        if PeekToken.TokenType = tkOperator then
-          AssignmentStatement
-        else
-        begin
-          // It's a label or control definition
-          FAssembler.DefineLabel(FCurrentToken.Lexeme);
-          Advance;
-        end;
-      end
-      else
-        Error('Unexpected token in FORM body: ' + FCurrentToken.Lexeme);
-    end;
-
-    // Skip trailing end-of-line
-    while Check(tkEndOfLine) do
-      Advance;
-  end;
-
-  WriteLn('DEBUG: FormDefinition - Found END');
   Match(tkKeyword); // END
   Match(tkKeyword); // FORM
-  WriteLn('DEBUG: FormDefinition - Complete');
+end;
+
+// PROPERTY GET/SET Name [(params)]
+//   ...
+// END PROPERTY
+//
+// Modeled the same way as SUB/FUNCTION bodies (a plain statement list),
+// since properties have no distinct runtime representation.
+procedure TParser.PropertyDefinition;
+begin
+  Advance; // Consume PROPERTY
+
+  if not (Check(tkKeyword) and ((AnsiUpperCase(FCurrentToken.Lexeme) = 'GET') or
+                                (AnsiUpperCase(FCurrentToken.Lexeme) = 'SET'))) then
+    Exit;
+
+  Advance; // Consume GET or SET
+  Match(tkIdentifier); // Property name
+
+  // Handle parameters for SET
+  if Check(tkParenthesisOpen) then
+  begin
+    Advance;
+    if Check(tkIdentifier) then
+    begin
+      Advance;
+      while Check(tkComma) do
+      begin
+        Advance;
+        Match(tkIdentifier);
+      end;
+    end;
+    Match(tkParenthesisClose);
+  end;
+
+  Match(tkEndOfLine);
+
+  ParseBlockBody('PROPERTY definition', @PropertyBodyStatement);
+
+  Match(tkKeyword); // END
+  Match(tkKeyword); // PROPERTY
+end;
+
+// One statement inside a PROPERTY GET/SET body.
+procedure TParser.PropertyBodyStatement;
+begin
+  case AnsiUpperCase(FCurrentToken.Lexeme) of
+    'LET': AssignmentStatement;
+    'RETURN': ReturnStatement;
+  else
+    if FCurrentToken.TokenType = tkIdentifier then
+      AssignmentStatement
+    else
+      Error('Unexpected token in PROPERTY body');
+  end;
+end;
+
+// One statement inside a CLASS body: property declarations, methods, and
+// property accessors get their own handling (see PropertyDefinition);
+// anything else falling through to a bare identifier is treated as an
+// implicit (Dim-less) property/label, qualified with the class's name.
+procedure TParser.ClassBodyStatement;
+begin
+  case AnsiUpperCase(FCurrentToken.Lexeme) of
+    'DIM', 'PUBLIC', 'PRIVATE':
+      DeclarationStatement;
+    'SUB':
+      SubDefinition;
+    'FUNCTION':
+      FunctionDefinition;
+    'PROPERTY':
+      PropertyDefinition;
+  else
+    if FCurrentToken.TokenType = tkIdentifier then
+    begin
+      FAssembler.DefineLabel(FCurrentClassName + '.' + FCurrentToken.Lexeme);
+      Advance;
+    end
+    else
+      Error('Unexpected token in CLASS body: ' + FCurrentToken.Lexeme);
+  end;
 end;
 
 procedure TParser.ClassDefinition;
 var
   ClsName: string;
-  BaseClass: string;
 begin
-  WriteLn('DEBUG: ClassDefinition - Current token: ', FCurrentToken.Lexeme);
-
   Match(tkKeyword); // Consume CLASS
-  WriteLn('DEBUG: After CLASS, current token: ', FCurrentToken.Lexeme);
 
-  // Get class name
   if not Check(tkIdentifier) then
     Error('Expected class name after CLASS keyword');
 
   ClsName := FCurrentToken.Lexeme;
-  WriteLn('DEBUG: Class name: ', ClsName);
   Advance; // Consume class name
+  SkipGenericParams; // Optional "<T, U, ...>" - erased, see SkipGenericParams
 
   // Check for inheritance: CLASS Derived INHERITS Base
   if Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'INHERITS') then
   begin
-    WriteLn('DEBUG: Found INHERITS keyword');
     Advance; // Consume INHERITS
 
     if not Check(tkIdentifier) then
       Error('Expected base class name after INHERITS');
 
-    BaseClass := FCurrentToken.Lexeme;
-    WriteLn('DEBUG: Base class: ', BaseClass);
-    Advance; // Consume base class name
+    Advance; // Consume base class name (inheritance not yet modeled in codegen)
   end;
 
   Match(tkEndOfLine);
 
-  WriteLn('DEBUG: ClassDefinition - Entering body loop');
+  FCurrentClassName := ClsName;
+  ParseBlockBody('CLASS definition', @ClassBodyStatement);
+  FCurrentClassName := '';
 
-  // Parse the body of the class
-  while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
-  begin
-    WriteLn('DEBUG: ClassDefinition body - token: ', FCurrentToken.Lexeme);
-
-    // Check for EOF to prevent infinite loop
-    if FCurrentToken.TokenType = tkEndOfFile then
-    begin
-      Error('Unexpected end of file in CLASS definition');
-      Break;
-    end;
-
-    // Skip blank lines
-    if Check(tkEndOfLine) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Skip comments
-    if Check(tkComment) then
-    begin
-      Advance;
-      Continue;
-    end;
-
-    // Process statement based on keyword
-    case AnsiUpperCase(FCurrentToken.Lexeme) of
-      'DIM', 'PUBLIC', 'PRIVATE':
-        begin
-          WriteLn('DEBUG: Class property declaration');
-          DeclarationStatement;
-        end;
-      'SUB':
-        begin
-          WriteLn('DEBUG: Class method (Sub)');
-          SubDefinition;
-        end;
-      'FUNCTION':
-        begin
-          WriteLn('DEBUG: Class method (Function)');
-          FunctionDefinition;
-        end;
-      'PROPERTY':
-        begin
-          WriteLn('DEBUG: Property accessor');
-          // Handle Property Get/Set
-          Advance; // Consume PROPERTY
-
-          // Check for Get or Set
-          if Check(tkKeyword) and ((AnsiUpperCase(FCurrentToken.Lexeme) = 'GET') or
-                                   (AnsiUpperCase(FCurrentToken.Lexeme) = 'SET')) then
-          begin
-            Advance; // Consume GET or SET
-            Match(tkIdentifier); // Property name
-
-            // Handle parameters for SET
-            if Check(tkParenthesisOpen) then
-            begin
-              Advance;
-              if Check(tkIdentifier) then
-              begin
-                Advance;
-                while Check(tkComma) do
-                begin
-                  Advance;
-                  Match(tkIdentifier);
-                end;
-              end;
-              Match(tkParenthesisClose);
-            end;
-
-            Match(tkEndOfLine);
-
-            // Parse property body
-            while not (Check(tkKeyword) and (AnsiUpperCase(FCurrentToken.Lexeme) = 'END')) do
-            begin
-              if FCurrentToken.TokenType = tkEndOfFile then
-              begin
-                Error('Unexpected end of file in PROPERTY definition');
-                Break;
-              end;
-
-              if Check(tkEndOfLine) then
-              begin
-                Advance;
-                Continue;
-              end;
-
-              if Check(tkComment) then
-              begin
-                Advance;
-                Continue;
-              end;
-
-              // Parse property statements
-              case AnsiUpperCase(FCurrentToken.Lexeme) of
-                'LET': AssignmentStatement;
-                'RETURN': ReturnStatement;
-              else
-                if FCurrentToken.TokenType = tkIdentifier then
-                  AssignmentStatement
-                else
-                  Error('Unexpected token in PROPERTY body');
-              end;
-
-              while Check(tkEndOfLine) do
-                Advance;
-            end;
-
-            Match(tkKeyword); // END
-            Match(tkKeyword); // PROPERTY
-          end;
-        end;
-    else
-      if FCurrentToken.TokenType = tkIdentifier then
-      begin
-        // Could be a property without Dim keyword (legacy VB style)
-        WriteLn('DEBUG: Implicit property or label: ', FCurrentToken.Lexeme);
-        FAssembler.DefineLabel(ClsName + '.' + FCurrentToken.Lexeme);
-        Advance;
-      end
-      else
-        Error('Unexpected token in CLASS body: ' + FCurrentToken.Lexeme);
-    end;
-
-    // Skip trailing end-of-line
-    while Check(tkEndOfLine) do
-      Advance;
-  end;
-
-  WriteLn('DEBUG: ClassDefinition - Found END');
   Match(tkKeyword); // END
   Match(tkKeyword); // CLASS
-  WriteLn('DEBUG: ClassDefinition - Complete for class: ', ClsName);
 end;
 
 procedure TParser.ShowStatement;
@@ -1474,6 +1051,38 @@ begin
   finally
     FSuppressCodeGen := False;
   end;
+end;
+
+// Kayte has no static type system (see TValueKind in VirtualMachine.pas),
+// so type parameters can't be checked or specialized at compile time.
+// Rather than reject generic-looking syntax outright, an optional
+// "<T, U, ...>" list right after a name (STRUCT/CLASS/SUB/FUNCTION
+// definitions, CALL and NEW instantiation sites, and "AS Type" type
+// names) is parsed here and discarded: generic code runs exactly like
+// its non-generic equivalent. Does not support nested type arguments
+// (e.g. "List<List<T>>").
+procedure TParser.SkipGenericParams;
+begin
+  if not (Check(tkOperator) and (FCurrentToken.Lexeme = '<')) then
+    Exit;
+
+  Advance; // Consume '<'
+
+  if not Check(tkIdentifier) then
+    Error('Expected type parameter name after "<"');
+  Advance;
+
+  while Check(tkComma) do
+  begin
+    Advance; // Consume ','
+    if not Check(tkIdentifier) then
+      Error('Expected type parameter name after ","');
+    Advance;
+  end;
+
+  if not (Check(tkOperator) and (FCurrentToken.Lexeme = '>')) then
+    Error('Expected ">" to close type parameter list');
+  Advance; // Consume '>'
 end;
 
 procedure TParser.Expression;
@@ -1596,7 +1205,6 @@ end;
 procedure TParser.Primary;
 var
   Token: TToken;
-  ClsName: string;
   VarName: string;
 begin
   Token := FCurrentToken;
@@ -1653,15 +1261,13 @@ begin
         // Handle NEW keyword for object instantiation
         if AnsiUpperCase(Token.Lexeme) = 'NEW' then
         begin
-          WriteLn('DEBUG: NEW keyword detected for object instantiation');
           Advance; // Consume NEW
 
           if not Check(tkIdentifier) then
             Error('Expected class name after NEW');
 
-          ClsName := FCurrentToken.Lexeme;
-          WriteLn('DEBUG: Instantiating class: ', ClsName);
-          Advance; // Consume class name
+          Advance; // Consume class name (no object model in the VM yet, so it's discarded)
+          SkipGenericParams; // Optional "<T, U, ...>" - erased, see SkipGenericParams
 
           // Handle optional constructor parameters. There's no object
           // model in the VM yet, so arguments are parsed for correct

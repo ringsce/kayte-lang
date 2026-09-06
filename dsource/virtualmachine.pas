@@ -10,7 +10,7 @@ uses
 type
   TVirtualMachine = class
   private
-    // Add fields to store the bytecode, registers, etc.
+    // TODO: bytecode/register storage fields
   public
     procedure LoadBytecode(const FileName: string);
     procedure Run;
@@ -25,15 +25,14 @@ begin
   if not FileExists(FileName) then
     raise Exception.Create('Bytecode file not found.');
 
-  // Add the logic to load the bytecode from the file
+  // TODO: actually read the bytecode instead of just logging the path
   Writeln('Bytecode loaded from: ', FileName);
 end;
 
 procedure TVirtualMachine.Run;
 begin
-  // Add the execution logic for the bytecode
+  // stub — doesn't execute anything yet
   Writeln('Executing bytecode...');
-  // For now, just simulate running the bytecode
 end;
 
 end.

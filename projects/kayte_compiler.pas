@@ -14,44 +14,28 @@ function CompileKayteToObject(const KayteFile, OutputObject: string): Boolean;
 
 implementation
 
-function RunCommandAndWait(const CmdLine: string): Boolean;
+function RunCommandAndWait(const Executable: string; const Args: array of string): Boolean;
 var
-  AProcess: TProcess;
+  Output: string;
 begin
-  AProcess := TProcess.Create(nil);
-  try
-    AProcess.Executable := '/bin/sh';
-    AProcess.Parameters.Add('-c');
-    AProcess.Parameters.Add(CmdLine);
-    AProcess.Options := [poWaitOnExit, poUsePipes];
-    AProcess.Execute;
-    Result := AProcess.ExitStatus = 0;
-  finally
-    AProcess.Free;
-  end;
+  Result := RunCommand(Executable, Args, Output);
 end;
 
 function CompileKayteToObject(const KayteFile, OutputObject: string): Boolean;
 var
   TempBin: string;
-  Cmd: string;
 begin
   if not FileExists(KayteFile) then
     raise EKayteCompileError.Create('Input file not found: ' + KayteFile);
 
   TempBin := ChangeFileExt(KayteFile, '.bin');
 
-  // Step 1: Compile .kayte file to .bin (raw bytecode)
-  Cmd := Format('kaytec "%s" -o "%s"', [KayteFile, TempBin]);
-  if not RunCommandAndWait(Cmd) then
+  if not RunCommandAndWait('kaytec', [KayteFile, '-o', TempBin]) then
     raise EKayteCompileError.Create('Kayte compiler failed.');
 
-  // Step 2: Convert .bin to .o (object file)
-  Cmd := Format('ld -r -b binary -o "%s" "%s"', [OutputObject, TempBin]);
-  if not RunCommandAndWait(Cmd) then
+  if not RunCommandAndWait('ld', ['-r', '-b', 'binary', '-o', OutputObject, TempBin]) then
     raise EKayteCompileError.Create('Failed to convert .bin to .o');
 
-  // Optional: Remove temp .bin
   DeleteFile(TempBin);
 
   Result := True;

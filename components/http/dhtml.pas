@@ -1,25 +1,21 @@
-// In your dhtml.pas unit (interface section)
 unit dhtml;
 
 interface
 uses
   Classes, SysUtils, contnrs,
-  // NEW: Add a unit for your QuickJS/Duktape bindings
-  JSBindings; // This would be the unit you create in step 2
+  JSBindings; // QuickJS/Duktape bindings unit - not implemented yet
 
 type
-  // Forward declarations (details depend on engine API)
-  JSContextHandle = Pointer; // Represents a JavaScript context
-  JSValueHandle = Pointer;   // Represents a JavaScript value
+  // opaque handles; layout is defined by whichever JS engine backs JSBindings
+  JSContextHandle = Pointer;
+  JSValueHandle = Pointer;
 
   THTMLElement = class
     TagName: String;
     Attributes: TStringList;
     Children: TObjectList;
     InnerText: String;
-    // Store a reference to the JavaScript object representing this element
-    // This allows JS to access the element's properties and methods
-    JSObjectRef: JSValueHandle; // <--- NEW: Link to JS object
+    JSObjectRef: JSValueHandle; // the JS-side object mirroring this element, so JS can read/write it
     procedure AddChild(Element: THTMLElement);
     constructor Create(ATag: String);
     destructor Destroy; override;
@@ -28,8 +24,7 @@ type
   THTMLDocument = class
   private
     FRoot: THTMLElement;
-    FJSContext: JSContextHandle; // <--- NEW: The JavaScript execution context
-    // Private helper to recursively expose DOM to JS
+    FJSContext: JSContextHandle;
     procedure ExposeElementToJS(Element: THTMLElement; JSContext: JSContextHandle; ParentJSObj: JSValueHandle);
   public
     function LoadFromFile(const Filename: String): Boolean;
@@ -38,12 +33,10 @@ type
     function FindElementById(const ID: String): THTMLElement;
     property Root: THTMLElement read FRoot;
 
-    // NEW: JavaScript integration methods
-    constructor Create; // Updated constructor to initialize JS engine
+    constructor Create;
     destructor Destroy; override;
     procedure ExecuteScript(const Script: String);
-    procedure ExposeObjectToJS(const Name: String; Obj: TObject); // For exposing custom objects
-    // Property to access the global 'document' object in JS
+    procedure ExposeObjectToJS(const Name: String; Obj: TObject);
     function GetJSDocumentObject: JSValueHandle;
   end;
 
@@ -55,7 +48,7 @@ type
     Value: String;
     OnChange: TDOMEventCallback;
     procedure TriggerChange;
-    // Optionally, override JSObjectRef creation for specific form element behaviors
+    // subclasses could override how JSObjectRef gets created for form-specific behavior
   end;
 
 implementation
@@ -67,13 +60,13 @@ begin
   TagName := ATag;
   Attributes := TStringList.Create;
   Children := TObjectList.Create(True);
-  JSObjectRef := nil; // Initialize
+  JSObjectRef := nil;
 end;
 
 destructor THTMLElement.Destroy;
 begin
-  // Release the JavaScript object reference if necessary (engine-specific)
-  // JSBindings.ReleaseJSValue(JSObjectRef); // Example
+  // JSObjectRef isn't released here - freeing it is the JS engine's job, and
+  // that hook isn't wired up yet (JSBindings.ReleaseJSValue)
   Attributes.Free;
   Children.Free;
   inherited Destroy;
@@ -82,8 +75,8 @@ end;
 procedure THTMLElement.AddChild(Element: THTMLElement);
 begin
   Children.Add(Element);
-  // When a child is added, you might want to expose it to the JS DOM automatically
-  // (This logic would be better placed within THTMLDocument's exposure process)
+  // doesn't expose the new child to the JS DOM automatically - that happens
+  // separately via THTMLDocument.ExposeElementToJS
 end;
 
 { TFormElement }
@@ -92,9 +85,8 @@ procedure TFormElement.TriggerChange;
 begin
   if Assigned(OnChange) then
     OnChange(Self);
-  // NEW: Also trigger a JavaScript 'change' event if a JS handler is attached
-  // This requires looking up event listeners in the JS engine
-  // JSBindings.TriggerJSHTMLEvent(JSObjectRef, 'change'); // Example
+  // should also fire a JS-side 'change' event via JSBindings once event
+  // listener lookup exists there
 end;
 
 { THTMLDocument }
@@ -102,19 +94,15 @@ end;
 constructor THTMLDocument.Create;
 begin
   inherited Create;
-  // Initialize the JavaScript engine and context
-  FJSContext := JSBindings.CreateJSContext; // Example from your JSBindings unit
-  FRoot := THTMLElement.Create('html'); // Create the root HTML element
-  // Expose the global 'document' object to JavaScript
-  JSBindings.ExposeGlobalObject(FJSContext, 'document', GetJSDocumentObject); // Example
-  // Expose standard DOM methods (e.g., document.getElementById)
-  JSBindings.DefineJSFunction(FJSContext, GetJSDocumentObject, 'getElementById', @JS_getElementById_callback); // Example
+  FJSContext := JSBindings.CreateJSContext;
+  FRoot := THTMLElement.Create('html');
+  JSBindings.ExposeGlobalObject(FJSContext, 'document', GetJSDocumentObject);
+  JSBindings.DefineJSFunction(FJSContext, GetJSDocumentObject, 'getElementById', @JS_getElementById_callback);
 end;
 
 destructor THTMLDocument.Destroy;
 begin
-  // Release JavaScript context and associated resources
-  JSBindings.ReleaseJSContext(FJSContext); // Example
+  JSBindings.ReleaseJSContext(FJSContext);
   FRoot.Free;
   inherited Destroy;
 end;
@@ -135,49 +123,40 @@ end;
 
 function THTMLDocument.LoadFromString(const HTML: String): Boolean;
 begin
-  // TODO: Implement actual HTML parser here.
-  // After parsing, you need to recursively create THTMLElement objects
-  // and then expose them to the JavaScript context.
-  FRoot.Destroy; // Clear existing DOM
-  FRoot := THTMLElement.Create('html'); // Placeholder for actual parsed root
-  // ... actual parsing logic ...
+  // TODO: no real HTML parser yet - should recursively build THTMLElement
+  // nodes from the markup and then expose them to the JS context
+  FRoot.Destroy;
+  FRoot := THTMLElement.Create('html'); // placeholder root until parsing exists
 
-  // After building the Free Pascal DOM tree:
-  // Expose the entire DOM tree to the JavaScript context
-  ExposeElementToJS(FRoot, FJSContext, JSBindings.GetGlobalJSObject(FJSContext)); // Expose from HTML root
+  ExposeElementToJS(FRoot, FJSContext, JSBindings.GetGlobalJSObject(FJSContext));
 
-  Result := True; // Assume success for now
+  Result := True; // always reports success since there's no parser to fail yet
 end;
 
 procedure THTMLDocument.ExposeElementToJS(Element: THTMLElement; JSContext: JSContextHandle; ParentJSObj: JSValueHandle);
 var
-  // This is a highly simplified example.
-  // Real implementation needs to handle properties, methods, events, etc.
+  // minimal mirror: tag name, inner text, and attributes only - no methods or events yet
   JSObj: JSValueHandle;
   Attr: String;
   ChildElement: THTMLElement;
   i: Integer;
 begin
-  JSObj := JSBindings.CreateJSObject(JSContext); // Create a new JS object for this element
+  JSObj := JSBindings.CreateJSObject(JSContext);
   JSBindings.SetJSObjectProperty(JSContext, JSObj, 'tagName', JSBindings.CreateJSString(JSContext, Element.TagName));
   JSBindings.SetJSObjectProperty(JSContext, JSObj, 'innerText', JSBindings.CreateJSString(JSContext, Element.InnerText));
 
-  // Expose attributes
   for Attr in Element.Attributes do
     JSBindings.SetJSObjectProperty(JSContext, JSObj, Attr, JSBindings.CreateJSString(JSContext, Element.Attributes.Values[Attr]));
 
-  // Link the Pascal object to the JS object for callbacks
-  JSBindings.SetNativePascalObject(JSContext, JSObj, Element); // Store a reference to the Pascal object
+  JSBindings.SetNativePascalObject(JSContext, JSObj, Element);
 
-  Element.JSObjectRef := JSObj; // Store the JS object reference in the Pascal element
+  Element.JSObjectRef := JSObj;
 
-  // Add to parent's children (e.g., using a 'children' array in JS)
-  // This is complex: you need to create JS array, add elements, and expose it
-  // For simplicity, we just link JSObj to its parent's JS representation.
+  // no real 'children' array on the JS side yet - each child just links back
+  // to its parent's JS object rather than being added to a proper collection
   if Assigned(ParentJSObj) then
-    JSBindings.AddJSChildElement(JSContext, ParentJSObj, JSObj); // Example: a custom function in JSBindings
+    JSBindings.AddJSChildElement(JSContext, ParentJSObj, JSObj);
 
-  // Recursively expose children
   for i := 0 to Element.Children.Count - 1 do
   begin
     ChildElement := THTMLElement(Element.Children[i]);
@@ -191,7 +170,7 @@ var
 begin
   AssignFile(F, Filename);
   Rewrite(F);
-  // TODO: Serialize DOM back to HTML (needs to walk the FRoot tree)
+  // TODO: serialize the FRoot tree back to HTML instead of this stub
   WriteLn(F, '<html><body></body></html>');
   CloseFile(F);
   Result := True;
@@ -219,50 +198,43 @@ end;
 
 function THTMLDocument.GetJSDocumentObject: JSValueHandle;
 begin
-  // This function would return the JavaScript object that represents 'document'
-  // It needs to be initialized once in the constructor.
-  // For instance, if you have a special JS object created for 'document'.
-  Result := JSBindings.GetGlobalProperty(FJSContext, 'document'); // Example
+  // returns the JS object created for 'document' in the constructor
+  Result := JSBindings.GetGlobalProperty(FJSContext, 'document');
 end;
 
 procedure THTMLDocument.ExecuteScript(const Script: String);
 begin
-  // Evaluate the JavaScript code within the active context
-  JSBindings.EvaluateJSCode(FJSContext, Script); // Example from your JSBindings unit
+  JSBindings.EvaluateJSCode(FJSContext, Script);
 end;
 
 procedure THTMLDocument.ExposeObjectToJS(const Name: String; Obj: TObject);
 begin
-  // This would create a JavaScript object that wraps your Pascal object
-  // and expose it to the JavaScript global scope under 'Name'.
-  // E.g., to expose 'console' or custom helper objects.
-  JSBindings.ExposePascalObject(FJSContext, Name, Obj); // Example
+  // wraps Obj as a JS object and binds it to the global scope under Name
+  // (e.g. exposing 'console' or another host object)
+  JSBindings.ExposePascalObject(FJSContext, Name, Obj);
 end;
 
-// --- Callbacks from JavaScript into Pascal (Crucial for DOM interaction) ---
-// These are functions that the JS engine calls when JS code invokes a function
-// that you've exposed from Pascal.
+// --- callbacks the JS engine invokes when script calls into exposed Pascal functions ---
 
-// Example: Implementation of document.getElementById
-// This would be a procedure pointer exposed via JSBindings.DefineJSFunction
+// backs document.getElementById(id) from JS
 procedure JS_getElementById_callback(JSContext: JSContextHandle; JSThis: JSValueHandle;
   JSArgs: array of JSValueHandle; ArgCount: Integer; var JSResult: JSValueHandle); cdecl;
 var
-  Doc: THTMLDocument; // Assuming JSThis refers to the 'document' object linked to THTMLDocument
+  Doc: THTMLDocument;
   ElementID: String;
   FoundElement: THTMLElement;
 begin
-  JSResult := JSBindings.CreateJSUndefined(JSContext); // Default to undefined
-  // Get the Pascal THTMLDocument instance from JSThis
-  // Doc := THTMLDocument(JSBindings.GetNativePascalObject(JSContext, JSThis)); // Example
-  Doc := MainForm.HTMLDoc; // Assuming MainForm holds the THTMLDocument instance
+  JSResult := JSBindings.CreateJSUndefined(JSContext);
+  // JSThis isn't actually used to resolve the document instance yet - this
+  // just grabs it from MainForm, which assumes a single global document
+  Doc := MainForm.HTMLDoc;
 
   if (Doc <> nil) and (ArgCount >= 1) and JSBindings.IsJSString(JSArgs[0]) then
   begin
     ElementID := JSBindings.JSValueToString(JSContext, JSArgs[0]);
     FoundElement := Doc.FindElementById(ElementID);
     if Assigned(FoundElement) then
-      JSResult := FoundElement.JSObjectRef; // Return the JS object linked to the found element
+      JSResult := FoundElement.JSObjectRef;
   end;
 end;
 

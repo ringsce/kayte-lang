@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-// Forward declarations of test functions
 void test_lexer(void);
 void test_parser(void);
 

@@ -206,7 +206,6 @@ var
 
 
 begin
-  // Initialize CLI handler for arguments
   CLIHandler := TCLIHandler.Create('kc', '1.0.0');
   try
     CLIHandler.ParseArgs;
@@ -229,20 +228,16 @@ begin
 
 
   try
-    // Define the port number on which the server will run
-    Port := 8080;  // You can change this port number if needed
+    Port := 8080;
 
-    // Create the HTTP server
     Server := TSimpleHTTPServer.Create(Port);
 
-    // Start the server
     Writeln('Starting Kings server on port ', Port);
     Server.StartServer;
 
-    // Keep the server running until manually stopped
     Writeln('Server is running. Press [Ctrl+C] to stop...');
     while True do
-      Sleep(1000);  // Keep the main thread alive
+      Sleep(1000);
 
   except
     on E: Exception do
@@ -253,20 +248,14 @@ begin
     end;
   end;
 
-  // Initialize the virtual machine
   VM := TVirtualMachine.Create;
   try
-    (* Download Maps *)
     DownloadMapsFromGitHubRepo('https://github.com/yourusername/your-repo/maps.zip');
-
-    (* Check for Updates *)
     CheckForUpdates('https://example.com/version.txt');
 
-    // Initialize the virtual machine with 1024 bytes of memory and 16 registers
     VM.Init(1024, 16);
     VM.Run;
 
-    // Create a PK3 file from the VM source code
     CreatePK3File('kings.lpr', 'vm.pk3');
   finally
     VM.Free;

@@ -97,13 +97,11 @@ typedef struct {
     uint32_t Characteristics;
 } IMAGE_SECTION_HEADER;
 
-// Emit ARM64 instruction
 static void emit_arm64_insn(uint32_t **code_ptr, uint32_t instruction) {
     **code_ptr = instruction;
     (*code_ptr)++;
 }
 
-// Generate ARM64 machine code
 static size_t generate_arm64_code(kayte_insn_t *instructions, int count, uint32_t **out_code) {
     uint32_t *code = malloc(count * 10 * sizeof(uint32_t));
     uint32_t *code_ptr = code;
@@ -126,7 +124,6 @@ static size_t generate_arm64_code(kayte_insn_t *instructions, int count, uint32_
                 break;
                 
             case 14: // OP_HALT
-                // Exit via ExitProcess (syscall or function call)
                 emit_arm64_insn(&code_ptr, 0xD2800000); // mov x0, #0
                 emit_arm64_insn(&code_ptr, 0xD4000001); // svc #0 (simplified)
                 break;
@@ -145,7 +142,6 @@ static size_t generate_arm64_code(kayte_insn_t *instructions, int count, uint32_
     return (code_ptr - code) * sizeof(uint32_t);
 }
 
-// Main compilation function
 int kayte_arm64_compile_pe(kayte_insn_t *instructions, int instruction_count, const char *output_path) {
     FILE *fp;
     uint32_t *code = NULL;
@@ -161,25 +157,21 @@ int kayte_arm64_compile_pe(kayte_insn_t *instructions, int instruction_count, co
         return -1;
     }
     
-    // Generate ARM64 machine code
     code_size = generate_arm64_code(instructions, instruction_count, &code);
     if (code_size == 0) {
         fprintf(stderr, "Failed to generate machine code\n");
         return -1;
     }
-    
-    // Setup DOS header
+
     dos_header.e_magic = 0x5A4D; // "MZ"
     dos_header.e_lfanew = sizeof(IMAGE_DOS_HEADER);
-    
-    // Setup PE file header
+
     file_header.Machine = IMAGE_FILE_MACHINE_ARM64;
     file_header.NumberOfSections = 1;
     file_header.TimeDateStamp = (uint32_t)time(NULL);
     file_header.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER64);
     file_header.Characteristics = IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_LARGE_ADDRESS_AWARE;
-    
-    // Setup optional header
+
     opt_header.Magic = 0x020B; // PE32+
     opt_header.SizeOfCode = (uint32_t)code_size;
     opt_header.AddressOfEntryPoint = 0x1000;
@@ -192,34 +184,28 @@ int kayte_arm64_compile_pe(kayte_insn_t *instructions, int instruction_count, co
     opt_header.SizeOfImage = 0x2000;
     opt_header.SizeOfHeaders = 0x200;
     opt_header.Subsystem = 3; // Console
-    
-    // Setup .text section
+
     strncpy((char*)text_section.Name, ".text", 8);
     text_section.VirtualSize = (uint32_t)code_size;
     text_section.VirtualAddress = 0x1000;
     text_section.SizeOfRawData = (uint32_t)((code_size + 0x1FF) & ~0x1FF);
     text_section.PointerToRawData = 0x200;
     text_section.Characteristics = 0x60000020; // CODE | EXECUTE | READ
-    
-    // Write PE file
+
     fp = fopen(output_path, "wb");
     if (!fp) {
         fprintf(stderr, "Failed to open output file: %s\n", output_path);
         free(code);
         return -1;
     }
-    
-    // Write headers
+
     fwrite(&dos_header, sizeof(dos_header), 1, fp);
     fwrite(&pe_signature, sizeof(pe_signature), 1, fp);
     fwrite(&file_header, sizeof(file_header), 1, fp);
     fwrite(&opt_header, sizeof(opt_header), 1, fp);
     fwrite(&text_section, sizeof(text_section), 1, fp);
-    
-    // Pad to file alignment
-    fseek(fp, 0x200, SEEK_SET);
-    
-    // Write code
+
+    fseek(fp, 0x200, SEEK_SET); // pad to file alignment before the code section
     fwrite(code, code_size, 1, fp);
     
     fclose(fp);

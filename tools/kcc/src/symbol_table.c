@@ -36,7 +36,6 @@ void symbol_table_enter_scope(SymbolTable *table) {
 }
 
 void symbol_table_exit_scope(SymbolTable *table) {
-    // Remove all symbols in the current scope
     for (int i = 0; i < SYMBOL_TABLE_SIZE; i++) {
         Symbol **current = &table->table[i];
         while (*current) {
@@ -65,9 +64,8 @@ unsigned int symbol_table_hash(const char *name) {
 }
 
 bool symbol_table_insert(SymbolTable *table, const char *name, SymbolType symbol_type, DataType data_type) {
-    // Check if symbol already exists in current scope
     if (symbol_table_lookup_current_scope(table, name)) {
-        return false; // Symbol already exists in current scope
+        return false;
     }
     
     unsigned int index = symbol_table_hash(name);

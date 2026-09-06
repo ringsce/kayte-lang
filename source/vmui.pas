@@ -1,10 +1,15 @@
-// In VMUI.pas (or extend BytecodeTypes.pas)
 unit VMUI;
+
+{$mode objfpc}{$H+}
 
 interface
 
 uses
-  SysUtils, Classes, Forms, Controls, StdCtrls; // For TForm, TButton, TLabel etc.
+  SysUtils, Classes, Contnrs; // Contnrs for TObjectList - no GUI/LCL dependency:
+                              // these are plain data classes describing a form,
+                              // not a live GUI. See KfmParser.pas for the .kfm
+                              // reader/writer and KfmLibGen.pas for compiling a
+                              // form definition into a shared library.
 
 type
   TVMControlType = (

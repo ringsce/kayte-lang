@@ -66,7 +66,7 @@ ASTNode *parser_parse_program(Parser *parser) {
         if (declaration) {
             ast_add_declaration(program, declaration);
         } else {
-            // Skip to next potential declaration
+            // recover by skipping tokens until something that looks like a new declaration
             while (!parser_match(parser, TOKEN_EOF) &&
                    !parser_is_type_specifier(parser->current_token.type)) {
                 parser_advance(parser);
@@ -96,10 +96,8 @@ ASTNode *parser_parse_declaration(Parser *parser) {
     parser_advance(parser);
 
     if (parser_match(parser, TOKEN_LPAREN)) {
-        // Function declaration
         return parser_parse_function_declaration(parser, type, name);
     } else {
-        // Variable declaration
         ASTNode *var_decl = parser_parse_variable_declaration(parser, type);
         if (var_decl) {
             free(var_decl->data.var_decl.name);
@@ -116,7 +114,6 @@ ASTNode *parser_parse_function_declaration(Parser *parser, DataType return_type,
 
     parser_expect(parser, TOKEN_LPAREN);
 
-    // Parse parameters
     if (!parser_match(parser, TOKEN_RPAREN)) {
         do {
             if (!parser_is_type_specifier(parser->current_token.type)) {
@@ -150,7 +147,6 @@ ASTNode *parser_parse_function_declaration(Parser *parser, DataType return_type,
 
     parser_expect(parser, TOKEN_RPAREN);
 
-    // Parse function body
     if (parser_match(parser, TOKEN_LBRACE)) {
         func_decl->data.function_decl.body = parser_parse_compound_statement(parser);
     } else {
@@ -207,7 +203,6 @@ ASTNode *parser_parse_compound_statement(Parser *parser) {
         ASTNode *stmt = NULL;
 
         if (parser_is_type_specifier(parser->current_token.type)) {
-            // Variable declaration
             DataType var_type = parser_parse_type_specifier(parser);
 
             if (parser_match(parser, TOKEN_IDENTIFIER)) {
@@ -244,7 +239,7 @@ ASTNode *parser_parse_expression_statement(Parser *parser) {
 }
 
 ASTNode *parser_parse_return_statement(Parser *parser) {
-    parser_advance(parser); // consume 'return'
+    parser_advance(parser);
 
     ASTNode *expr = NULL;
     if (!parser_match(parser, TOKEN_SEMICOLON)) {
@@ -257,7 +252,7 @@ ASTNode *parser_parse_return_statement(Parser *parser) {
 }
 
 ASTNode *parser_parse_if_statement(Parser *parser) {
-    parser_advance(parser); // consume 'if'
+    parser_advance(parser);
 
     parser_expect(parser, TOKEN_LPAREN);
     ASTNode *condition = parser_parse_expression(parser);
@@ -275,7 +270,7 @@ ASTNode *parser_parse_if_statement(Parser *parser) {
 }
 
 ASTNode *parser_parse_while_statement(Parser *parser) {
-    parser_advance(parser); // consume 'while'
+    parser_advance(parser);
 
     parser_expect(parser, TOKEN_LPAREN);
     ASTNode *condition = parser_parse_expression(parser);
@@ -287,7 +282,7 @@ ASTNode *parser_parse_while_statement(Parser *parser) {
 }
 
 ASTNode *parser_parse_for_statement(Parser *parser) {
-    parser_advance(parser); // consume 'for'
+    parser_advance(parser);
 
     parser_expect(parser, TOKEN_LPAREN);
 
@@ -459,7 +454,6 @@ ASTNode *parser_parse_primary_expression(Parser *parser) {
             return NULL;
     }
 
-    // Handle function calls
     if (primary && primary->type == AST_IDENTIFIER && parser_match(parser, TOKEN_LPAREN)) {
         primary = parser_parse_call_expression(parser, primary);
     }
@@ -474,7 +468,7 @@ ASTNode *parser_parse_call_expression(Parser *parser, ASTNode *primary) {
 
     ASTNode *call = ast_create_call_expr(primary->data.identifier.name);
 
-    parser_advance(parser); // consume '('
+    parser_advance(parser);
 
     if (!parser_match(parser, TOKEN_RPAREN)) {
         do {

@@ -30,15 +30,7 @@ void kayte_show_form(const char* form_name) {
 }
 
 char* kayte_get_control_text(const char* form_name, const char* control_name) {
-    printf("Kayte Runtime (GUI): Request to get text from control '%s' on form '%s'. (Dummy: Returning hardcoded value)\n", control_name, form_name);
-
-    if (strcmp(form_name, "LoginForm") == 0) {
-        if (strcmp(control_name, "EditUsername") == 0) {
-            return strdup("admin");
-        } else if (strcmp(control_name, "EditPassword") == 0) {
-            return strdup("password");
-        }
-    }
+    printf("Kayte Runtime (GUI): Request to get text from control '%s' on form '%s'. (Dummy: no real GUI backing, returning empty string)\n", control_name, form_name);
     return strdup("");
 }
 

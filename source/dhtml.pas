@@ -67,13 +67,12 @@ begin
   TagName := ATag;
   Attributes := TStringList.Create;
   Children := TObjectList.Create(True);
-  JSObjectRef := nil; // Initialize
+  JSObjectRef := nil;
 end;
 
 destructor THTMLElement.Destroy;
 begin
-  // Release the JavaScript object reference if necessary (engine-specific)
-  // JSBindings.ReleaseJSValue(JSObjectRef); // Example
+  // JSObjectRef isn't released here - no engine-specific teardown wired up yet.
   Attributes.Free;
   Children.Free;
   inherited Destroy;
@@ -82,8 +81,7 @@ end;
 procedure THTMLElement.AddChild(Element: THTMLElement);
 begin
   Children.Add(Element);
-  // When a child is added, you might want to expose it to the JS DOM automatically
-  // (This logic would be better placed within THTMLDocument's exposure process)
+  // Not auto-exposed to the JS DOM - that belongs in THTMLDocument's exposure process.
 end;
 
 { TFormElement }
@@ -92,9 +90,7 @@ procedure TFormElement.TriggerChange;
 begin
   if Assigned(OnChange) then
     OnChange(Self);
-  // NEW: Also trigger a JavaScript 'change' event if a JS handler is attached
-  // This requires looking up event listeners in the JS engine
-  // JSBindings.TriggerJSHTMLEvent(JSObjectRef, 'change'); // Example
+  // Doesn't fire a JS-side 'change' event yet - no event-listener lookup wired up.
 end;
 
 { THTMLDocument }
@@ -102,19 +98,15 @@ end;
 constructor THTMLDocument.Create;
 begin
   inherited Create;
-  // Initialize the JavaScript engine and context
-  FJSContext := JSBindings.CreateJSContext; // Example from your JSBindings unit
-  FRoot := THTMLElement.Create('html'); // Create the root HTML element
-  // Expose the global 'document' object to JavaScript
-  JSBindings.ExposeGlobalObject(FJSContext, 'document', GetJSDocumentObject); // Example
-  // Expose standard DOM methods (e.g., document.getElementById)
-  JSBindings.DefineJSFunction(FJSContext, GetJSDocumentObject, 'getElementById', @JS_getElementById_callback); // Example
+  FJSContext := JSBindings.CreateJSContext;
+  FRoot := THTMLElement.Create('html');
+  JSBindings.ExposeGlobalObject(FJSContext, 'document', GetJSDocumentObject);
+  JSBindings.DefineJSFunction(FJSContext, GetJSDocumentObject, 'getElementById', @JS_getElementById_callback);
 end;
 
 destructor THTMLDocument.Destroy;
 begin
-  // Release JavaScript context and associated resources
-  JSBindings.ReleaseJSContext(FJSContext); // Example
+  JSBindings.ReleaseJSContext(FJSContext);
   FRoot.Free;
   inherited Destroy;
 end;
@@ -171,13 +163,11 @@ begin
 
   Element.JSObjectRef := JSObj; // Store the JS object reference in the Pascal element
 
-  // Add to parent's children (e.g., using a 'children' array in JS)
-  // This is complex: you need to create JS array, add elements, and expose it
-  // For simplicity, we just link JSObj to its parent's JS representation.
+  // Simplified: just links JSObj into its parent's JS representation, rather
+  // than building a full JS 'children' array.
   if Assigned(ParentJSObj) then
-    JSBindings.AddJSChildElement(JSContext, ParentJSObj, JSObj); // Example: a custom function in JSBindings
+    JSBindings.AddJSChildElement(JSContext, ParentJSObj, JSObj);
 
-  // Recursively expose children
   for i := 0 to Element.Children.Count - 1 do
   begin
     ChildElement := THTMLElement(Element.Children[i]);
@@ -219,43 +209,31 @@ end;
 
 function THTMLDocument.GetJSDocumentObject: JSValueHandle;
 begin
-  // This function would return the JavaScript object that represents 'document'
-  // It needs to be initialized once in the constructor.
-  // For instance, if you have a special JS object created for 'document'.
-  Result := JSBindings.GetGlobalProperty(FJSContext, 'document'); // Example
+  Result := JSBindings.GetGlobalProperty(FJSContext, 'document');
 end;
 
 procedure THTMLDocument.ExecuteScript(const Script: String);
 begin
-  // Evaluate the JavaScript code within the active context
-  JSBindings.EvaluateJSCode(FJSContext, Script); // Example from your JSBindings unit
+  JSBindings.EvaluateJSCode(FJSContext, Script);
 end;
 
 procedure THTMLDocument.ExposeObjectToJS(const Name: String; Obj: TObject);
 begin
-  // This would create a JavaScript object that wraps your Pascal object
-  // and expose it to the JavaScript global scope under 'Name'.
-  // E.g., to expose 'console' or custom helper objects.
-  JSBindings.ExposePascalObject(FJSContext, Name, Obj); // Example
+  JSBindings.ExposePascalObject(FJSContext, Name, Obj);
 end;
 
-// --- Callbacks from JavaScript into Pascal (Crucial for DOM interaction) ---
-// These are functions that the JS engine calls when JS code invokes a function
-// that you've exposed from Pascal.
-
-// Example: Implementation of document.getElementById
-// This would be a procedure pointer exposed via JSBindings.DefineJSFunction
+// Callbacks the JS engine invokes when script calls a function exposed from
+// Pascal (e.g. document.getElementById), routed through
+// JSBindings.DefineJSFunction as procedure pointers.
 procedure JS_getElementById_callback(JSContext: JSContextHandle; JSThis: JSValueHandle;
   JSArgs: array of JSValueHandle; ArgCount: Integer; var JSResult: JSValueHandle); cdecl;
 var
-  Doc: THTMLDocument; // Assuming JSThis refers to the 'document' object linked to THTMLDocument
+  Doc: THTMLDocument; // Assumes JSThis is the 'document' object bound to THTMLDocument
   ElementID: String;
   FoundElement: THTMLElement;
 begin
-  JSResult := JSBindings.CreateJSUndefined(JSContext); // Default to undefined
-  // Get the Pascal THTMLDocument instance from JSThis
-  // Doc := THTMLDocument(JSBindings.GetNativePascalObject(JSContext, JSThis)); // Example
-  Doc := MainForm.HTMLDoc; // Assuming MainForm holds the THTMLDocument instance
+  JSResult := JSBindings.CreateJSUndefined(JSContext);
+  Doc := MainForm.HTMLDoc; // No per-context native-object lookup yet, so this reads it off MainForm directly
 
   if (Doc <> nil) and (ArgCount >= 1) and JSBindings.IsJSString(JSArgs[0]) then
   begin

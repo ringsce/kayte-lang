@@ -8,7 +8,6 @@ uses
   SysUtils;
 
 type
-  // Define the types of tokens our lexer can recognize
   TTokenType = (
     // Special tokens
     tkUnknown,        // For unrecognized tokens

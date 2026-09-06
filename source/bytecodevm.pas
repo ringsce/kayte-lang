@@ -38,9 +38,50 @@ type
     constructor Create(AReturnAddress: Integer);
   end;
 
+  { Legacy stack-VM opcode/instruction format, private to this unit. Predates
+    the BC_* refactor of BytecodeTypes.TByteCodeOp/TBCInstruction that the
+    kayte.lpi compiler pipeline now uses; kept distinct rather than merged
+    since nothing in this codebase currently produces or consumes it. }
+  TVMOpCode = (
+    OP_PUSH_INT, OP_PUSH_STRING, OP_PUSH_VAR, OP_POP_VAR, OP_POP,
+    OP_ADD_INT, OP_SUB_INT, OP_MUL_INT, OP_DIV_INT, OP_ADD_STRING,
+    OP_EQUAL, OP_NOT_EQUAL, OP_GREATER, OP_LESS,
+    OP_GREATER_EQUAL, OP_LESS_EQUAL,
+    OP_AND, OP_OR, OP_NOT,
+    OP_JUMP, OP_JUMP_IF_FALSE, OP_CALL, OP_RETURN, OP_HALT,
+    OP_DECL_VAR, OP_PRINT, OP_INPUT, OP_SHOW_FORM,
+    OP_CASE_COND, OP_ENDCASE,
+    OP_FOREACH_INIT, OP_FOREACH_ITER, OP_FOREACH_END,
+    OP_CALL_PROC, OP_RETURN_PROC,
+    OP_FORM_START, OP_FORM_END,
+    OP_KEY_PRESSED, OP_READ_KEY
+  );
+
+  TVMInstruction = record
+    OpCode: TVMOpCode;
+    Operand1: LongInt;
+    Operand2: LongInt;
+  end;
+
+  TVMInstructionArray = array of TVMInstruction;
+
+  TVMByteCodeProgram = class(TObject)
+  public
+    Instructions: TVMInstructionArray;
+    StringLiterals: TStringList;
+    IntegerLiterals: array of Int64;
+    VariableMap: TStringIntMap;
+    SubroutineMap: TStringIntMap;
+    FormMap: TStringIntMap;
+    ProgramTitle: String;
+
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
   TBytecodeVM = class
   private
-    FProgram: TByteCodeProgram;
+    FProgram: TVMByteCodeProgram;
     FInstructionPointer: Integer;
     FOperandStack: TObjectList; // Stores TBCValueObject
     FCallStack: TObjectList;    // Stores TCallFrameObject
@@ -55,7 +96,7 @@ type
     procedure InitVMState;
     procedure CleanupVMState;
   public
-    constructor Create(AProgram: TByteCodeProgram); // Accepts a pre-loaded program
+    constructor Create(AProgram: TVMByteCodeProgram); // Accepts a pre-loaded program
     destructor Destroy; override;
     procedure Run; // Renamed from Execute to avoid confusion with file loading
   end;
@@ -74,19 +115,14 @@ type
     function ReadInteger(AStream: TStream): Integer;
 
   public
-    // This procedure saves a TByteCodeProgram to a file.
-    // It serializes all components of the program: title, instructions,
-    // and all associated literal and symbol maps.
-    (*procedure SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: String);*)
+    (*procedure SaveProgramToFile(AProgram: TVMByteCodeProgram; const OutputFilePath: String);*)
 
-    // This function loads a TByteCodeProgram from any TStream.
-    // It reconstructs the program by reading all components in the same order
-    // they were written by SaveProgramToFile. This is the core loading logic.
-    function LoadProgramFromStream(AStream: TStream): TByteCodeProgram;
+    // Reads back everything SaveProgramToFile wrote, in the same order:
+    // title, instructions, then the literal and symbol maps.
+    function LoadProgramFromStream(AStream: TStream): TVMByteCodeProgram;
 
-    // This function loads a TByteCodeProgram from a file.
-    // It now acts as a wrapper around LoadProgramFromStream.
-    function LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
+    // Thin wrapper: opens InputFilePath and hands it to LoadProgramFromStream.
+    function LoadProgramFromFile(const InputFilePath: String): TVMByteCodeProgram;
   end;
 
 
@@ -182,9 +218,32 @@ begin
   Frame.ReturnAddress := AReturnAddress;
 end;
 
+{ TVMByteCodeProgram }
+
+constructor TVMByteCodeProgram.Create;
+begin
+  inherited Create;
+  StringLiterals := TStringList.Create;
+  VariableMap := TStringIntMap.Create;
+  SubroutineMap := TStringIntMap.Create;
+  FormMap := TStringIntMap.Create;
+  SetLength(Instructions, 0);
+  SetLength(IntegerLiterals, 0);
+  ProgramTitle := 'Kayte Application';
+end;
+
+destructor TVMByteCodeProgram.Destroy;
+begin
+  StringLiterals.Free;
+  VariableMap.Free;
+  SubroutineMap.Free;
+  FormMap.Free;
+  inherited Destroy;
+end;
+
 { TBytecodeVM }
 
-constructor TBytecodeVM.Create(AProgram: TByteCodeProgram);
+constructor TBytecodeVM.Create(AProgram: TVMByteCodeProgram);
 begin
   inherited Create;
   FProgram := AProgram;
@@ -208,19 +267,19 @@ end;
 
 { TBytecodeGenerator }
 
-function TBytecodeGenerator.LoadProgramFromStream(AStream: TStream): TByteCodeProgram;
+function TBytecodeGenerator.LoadProgramFromStream(AStream: TStream): TVMByteCodeProgram;
 var
-  LProgram: TByteCodeProgram; // Renamed from 'Program' to 'LProgram'
+  LProgram: TVMByteCodeProgram; // Renamed from 'Program' to 'LProgram'
   Count: LongInt;
   i: Integer;
-  Instruction: TBCInstruction;
+  Instruction: TVMInstruction;
   KeyString: String;
   ValueLongInt: LongInt;
   Int64Value: Int64;
 begin
   LProgram := nil; // Initialize to nil for safe cleanup in except block
   try
-    LProgram := TByteCodeProgram.Create;
+    LProgram := TVMByteCodeProgram.Create;
 
     // 1. Read ProgramTitle
     LProgram.ProgramTitle := ReadString(AStream);
@@ -290,7 +349,7 @@ begin
   end;
 end;
 
-function TBytecodeGenerator.LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
+function TBytecodeGenerator.LoadProgramFromFile(const InputFilePath: String): TVMByteCodeProgram;
 var
   FileStream: TFileStream;
 begin
@@ -379,7 +438,7 @@ end;
 
 procedure TBytecodeVM.Run;
 var
-  CurrentInstruction: TBCInstruction;
+  CurrentInstruction: TVMInstruction;
   Val1, Val2, ResultVal: TBCValue;
   TargetIP: Integer;
   SubroutineTargetAddress: LongInt;
@@ -548,11 +607,8 @@ begin
         end;
       OP_CALL:
       begin
-        // The 'Items' property of FProgram.SubroutineMap (likely a TList or similar)
-        // returns a generic Pointer. Since SubroutineTargetAddress is a LongInt,
-        // we need to explicitly cast the Pointer back to a LongInt.
-        // This assumes that the subroutine target addresses were stored as
-        // Pointer(LongIntAddress) when they were added to the map.
+        // SubroutineMap.Items returns a generic Pointer; this assumes the address
+        // was stored as Pointer(LongIntAddress), so casting straight back is safe.
         SubroutineTargetAddress := LongInt(FProgram.SubroutineMap.Items[CurrentInstruction.Operand1]);
         FCallStack.Add(TCallFrameObject.Create(FInstructionPointer));
         FInstructionPointer := SubroutineTargetAddress;

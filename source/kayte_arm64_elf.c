@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <elf.h>
 
 // Instruction structure matching Pascal
@@ -16,7 +17,6 @@ typedef struct {
 #define ELF_MACHINE_AARCH64 183
 #define PAGE_SIZE 4096
 
-// Function to write ELF header
 static int write_elf_header(FILE *fp, size_t code_size) {
     Elf64_Ehdr ehdr = {0};
     
@@ -44,7 +44,6 @@ static int write_elf_header(FILE *fp, size_t code_size) {
     return fwrite(&ehdr, sizeof(ehdr), 1, fp) == 1 ? 0 : -1;
 }
 
-// Function to write program header
 static int write_program_header(FILE *fp, size_t code_size) {
     Elf64_Phdr phdr = {0};
     
@@ -60,15 +59,13 @@ static int write_program_header(FILE *fp, size_t code_size) {
     return fwrite(&phdr, sizeof(phdr), 1, fp) == 1 ? 0 : -1;
 }
 
-// Emit ARM64 instruction
 static void emit_arm64_insn(uint32_t **code_ptr, uint32_t instruction) {
     **code_ptr = instruction;
     (*code_ptr)++;
 }
 
-// Generate ARM64 machine code from Kayte instructions
 static size_t generate_arm64_code(kayte_insn_t *instructions, int count, uint32_t **out_code) {
-    // Allocate code buffer (estimate 10 ARM64 instructions per Kayte instruction)
+    // each Kayte instruction can expand to several ARM64 ones, 10x is a safe upper bound
     uint32_t *code = malloc(count * 10 * sizeof(uint32_t));
     uint32_t *code_ptr = code;
     
@@ -119,7 +116,6 @@ static size_t generate_arm64_code(kayte_insn_t *instructions, int count, uint32_
     return (code_ptr - code) * sizeof(uint32_t);
 }
 
-// Main compilation function
 int kayte_arm64_compile_elf(kayte_insn_t *instructions, int instruction_count, const char *output_path) {
     FILE *fp;
     uint32_t *code = NULL;
@@ -131,34 +127,29 @@ int kayte_arm64_compile_elf(kayte_insn_t *instructions, int instruction_count, c
         return -1;
     }
     
-    // Generate ARM64 machine code
     code_size = generate_arm64_code(instructions, instruction_count, &code);
     if (code_size == 0) {
         fprintf(stderr, "Failed to generate machine code\n");
         return -1;
     }
-    
-    // Open output file
+
     fp = fopen(output_path, "wb");
     if (!fp) {
         fprintf(stderr, "Failed to open output file: %s\n", output_path);
         free(code);
         return -1;
     }
-    
-    // Write ELF header
+
     if (write_elf_header(fp, code_size) != 0) {
         fprintf(stderr, "Failed to write ELF header\n");
         goto cleanup;
     }
-    
-    // Write program header
+
     if (write_program_header(fp, code_size) != 0) {
         fprintf(stderr, "Failed to write program header\n");
         goto cleanup;
     }
-    
-    // Write code
+
     if (fwrite(code, code_size, 1, fp) != 1) {
         fprintf(stderr, "Failed to write code section\n");
         goto cleanup;

@@ -17,10 +17,9 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    // Core function to execute a Kayte file
     procedure ExecuteKayteFile(const FilePath: String);
 
-    // Functions to manage VM state on the Java side
+    // VM state, mirrored on the Java side
     procedure InitVM;
     procedure PushInt(Value: Int64);
     procedure PushString(const Value: String);

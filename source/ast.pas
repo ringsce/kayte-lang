@@ -5,24 +5,18 @@ unit AST;
 interface
 
 uses
-  SysUtils, Classes, TokenDefs; // Make sure TokenDefs is also included here
+  SysUtils, Classes, TokenDefs;
 
-// Define the core AST node types as classes
 type
-  // Define a base class for all expression nodes
   TExpressionNode = class(TObject);
-
-  // Define a base class for all statement nodes
   TStatementNode = class(TObject);
 
-  // A list to hold multiple statement nodes
   TStatementNodeList = class(TList)
     function Add(AStatement: TStatementNode): Integer;
     function GetItem(Index: Integer): TStatementNode;
     property Items[Index: Integer]: TStatementNode read GetItem; default;
   end;
 
-  // Now, declare the concrete expression node classes
   TLiteralNode = class(TExpressionNode)
   public
     Lexeme: String;

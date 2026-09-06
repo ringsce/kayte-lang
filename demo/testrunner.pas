@@ -3,7 +3,7 @@ program TestRunner;
 {$mode objfpc}{$H+}
 
 uses
-  fpcunit, testregistry, TestBytecode; // Use correct units for fpcunit
+  fpcunit, testregistry, TestBytecode;
 
 begin
   RunRegisteredTests;

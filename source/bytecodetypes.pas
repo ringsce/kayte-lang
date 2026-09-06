@@ -36,7 +36,8 @@ type
     BC_CMP_GT,        // >
     BC_CMP_LE,        // <=
     BC_CMP_GE,        // >=
-    BC_POP            // Discard the top of the evaluation stack
+    BC_POP,           // Discard the top of the evaluation stack
+    BC_PROCESS        // Spawn an OS process (PROCESS statement)
   );
 
   // Bytecode instruction structure
@@ -49,6 +50,19 @@ type
 
   // Instruction array type
   TBCInstructionArray = array of TBCInstruction;
+
+  // Runtime value type used by BytecodeVM (the tree-walking VB6 VM, distinct
+  // from the TByteCodeOp instruction stream above)
+  TBCValueType = (bcvtNull, bcvtInteger, bcvtString, bcvtBoolean);
+
+  TBCValue = record
+    ValueType: TBCValueType;
+    IntValue: Int64;
+    StringValue: String;
+    BoolValue: Boolean;
+  end;
+
+  TVMVariable = TBCValue;
 
   // Integer literal array type
   TIntegerLiteralArray = array of Int64;
@@ -100,7 +114,52 @@ type
     property FormMap: TStringIntMap read FFormMap;
   end;
 
+function CreateBCValueNull: TBCValue;
+function CreateBCValueInteger(A: Int64): TBCValue;
+function CreateBCValueString(const S: String): TBCValue;
+function CreateBCValueBoolean(B: Boolean): TBCValue;
+function BCValueToString(const AValue: TBCValue): String;
+
 implementation
+
+function CreateBCValueNull: TBCValue;
+begin
+  Result.ValueType := bcvtNull;
+  Result.IntValue := 0;
+  Result.StringValue := '';
+  Result.BoolValue := False;
+end;
+
+function CreateBCValueInteger(A: Int64): TBCValue;
+begin
+  Result := CreateBCValueNull;
+  Result.ValueType := bcvtInteger;
+  Result.IntValue := A;
+end;
+
+function CreateBCValueString(const S: String): TBCValue;
+begin
+  Result := CreateBCValueNull;
+  Result.ValueType := bcvtString;
+  Result.StringValue := S;
+end;
+
+function CreateBCValueBoolean(B: Boolean): TBCValue;
+begin
+  Result := CreateBCValueNull;
+  Result.ValueType := bcvtBoolean;
+  Result.BoolValue := B;
+end;
+
+function BCValueToString(const AValue: TBCValue): String;
+begin
+  case AValue.ValueType of
+    bcvtNull: Result := 'NULL';
+    bcvtInteger: Result := IntToStr(AValue.IntValue);
+    bcvtString: Result := AValue.StringValue;
+    bcvtBoolean: Result := BoolToStr(AValue.BoolValue, True);
+  end;
+end;
 
 { TByteCodeProgram }
 
@@ -133,29 +192,26 @@ end;
 
 function TByteCodeProgram.AddVariable(const VarName: string): Integer;
 begin
-  // Check if variable already exists
   if FVariableMap.IndexOf(VarName) >= 0 then
   begin
     Result := FVariableMap.KeyData[VarName];
     Exit;
   end;
 
-  // Add new variable
   Result := FVariables.Add(VarName);
   FVariableMap.Add(VarName, Result);
 end;
 
 function TByteCodeProgram.AddStringConstant(const Literal: string): Integer;
 begin
-  // Check if string constant already exists in StringLiterals (for compatibility)
   Result := FStringLiterals.IndexOf(Literal);
   if Result >= 0 then
     Exit;
 
-  // Add new string constant
   Result := FStringLiterals.Add(Literal);
 
-  // Also add to StringConstants for consistency
+  // Kept in sync with StringLiterals for older code paths that read
+  // StringConstants directly.
   if FStringConstants.IndexOf(Literal) < 0 then
     FStringConstants.Add(Literal);
 end;

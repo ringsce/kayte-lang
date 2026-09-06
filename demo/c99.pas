@@ -46,7 +46,7 @@ begin
     InFunction := False;
     for Line in Lines do
     begin
-      TrimmedLine := Trim(Line); // Use a separate variable for the trimmed line
+      TrimmedLine := Trim(Line);
       if TrimmedLine.Contains('(') and TrimmedLine.Contains(')') and TrimmedLine.Contains('{') then
       begin
         InFunction := True;

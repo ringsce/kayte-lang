@@ -36,6 +36,3 @@ begin
 end;
 
 end.
-// This code defines a simple input box component in Pascal that prompts the user for input.
-// It includes a method to display a prompt and return the user's input, defaulting to a specified value if no input is given.
-// The `Register` procedure is included but does not register the component in a Lazarus IDE context, as it is not applicable here.

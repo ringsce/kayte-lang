@@ -84,7 +84,6 @@ Preprocessor *preprocessor_create(void) {
     pp->current_line = 1;
     pp->skip_lines = false;
 
-    // Add predefined macros
     preprocessor_add_predefined_macros(pp);
 
     return pp;
@@ -93,7 +92,6 @@ Preprocessor *preprocessor_create(void) {
 void preprocessor_destroy(Preprocessor *pp) {
     if (!pp) return;
 
-    // Free include stack
     for (int i = 0; i < pp->include_depth; i++) {
         free(pp->include_stack[i].filename);
         free(pp->include_stack[i].content);
@@ -157,7 +155,6 @@ char *preprocessor_process_string(Preprocessor *pp, const char *source, const ch
     const char *src_ptr = source;
 
     while (*src_ptr) {
-        // Extract line
         int i = 0;
         while (*src_ptr && *src_ptr != '\n' && i < MAX_LINE_LENGTH - 1) {
             line[i++] = *src_ptr++;
@@ -168,9 +165,8 @@ char *preprocessor_process_string(Preprocessor *pp, const char *source, const ch
             src_ptr++;
         }
 
-        // Process line
         if (preprocessor_should_skip_line(pp)) {
-            // Still need to process conditional directives when skipping
+            // still need to track conditional nesting even while skipping
             if (preprocessor_is_directive(line)) {
                 char *directive = preprocessor_get_directive_name(line);
                 if (strcmp(directive, "endif") == 0 ||
@@ -186,7 +182,6 @@ char *preprocessor_process_string(Preprocessor *pp, const char *source, const ch
                     preprocessor_error(pp, "Error processing directive: %s", line);
                 }
             } else {
-                // Expand macros and add to output
                 char *expanded = preprocessor_expand_macros(pp, line);
                 preprocessor_append_output(pp, expanded);
                 preprocessor_append_output(pp, "\n");
@@ -197,7 +192,6 @@ char *preprocessor_process_string(Preprocessor *pp, const char *source, const ch
         pp->current_line++;
     }
 
-    // Check for unmatched conditionals
     if (pp->cond_stack_depth > 0) {
         preprocessor_error(pp, "Unmatched conditional directive");
     }
@@ -211,11 +205,9 @@ bool preprocessor_define_macro(Preprocessor *pp, const char *name, const char *b
         return false;
     }
 
-    // Check if macro already exists
     Macro *existing = preprocessor_find_macro(pp, name);
     if (existing && !existing->is_predefined) {
         preprocessor_warning(pp, "Macro '%s' redefined", name);
-        // Replace existing macro
         strncpy(existing->body, body, MAX_MACRO_BODY - 1);
         existing->body[MAX_MACRO_BODY - 1] = '\0';
         return true;
@@ -279,7 +271,6 @@ bool preprocessor_undefine_macro(Preprocessor *pp, const char *name) {
                 return false;
             }
 
-            // Shift remaining macros
             free(pp->macros[i].file_defined);
             for (int j = i; j < pp->macro_count - 1; j++) {
                 pp->macros[j] = pp->macros[j + 1];
@@ -317,7 +308,6 @@ char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
         const char *ptr = result;
         while (*ptr) {
             if (isalpha((unsigned char)*ptr) || *ptr == '_') {
-                // Found potential identifier
                 char identifier[MAX_MACRO_NAME];
                 int i = 0;
 
@@ -333,16 +323,14 @@ char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
                     if (macro->type == MACRO_OBJECT) {
                         dynstr_append(&temp, macro->body);
                     } else if (macro->type == MACRO_FUNCTION) {
-                        // Check for function call syntax
                         if (*ptr == '(') {
-                            ptr++; // skip '('
+                            ptr++;
                             char *args[MAX_MACRO_PARAMS];
                             int arg_count = 0;
                             char arg_buffer[1024];
                             int buffer_pos = 0;
                             int paren_depth = 0;
 
-                            // Parse arguments
                             while (*ptr && (paren_depth > 0 || *ptr != ')')) {
                                 if (*ptr == '(') {
                                     paren_depth++;
@@ -361,7 +349,7 @@ char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
                             }
 
                             if (*ptr == ')') {
-                                ptr++; // skip ')'
+                                ptr++;
                                 if (buffer_pos > 0 && arg_count < MAX_MACRO_PARAMS) {
                                     arg_buffer[buffer_pos] = '\0';
                                     args[arg_count++] = strdup(preprocessor_trim_whitespace(arg_buffer));
@@ -371,7 +359,6 @@ char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
                                 dynstr_append(&temp, expanded_macro);
                                 free(expanded_macro);
 
-                                // Free argument strings
                                 for (int j = 0; j < arg_count; j++) {
                                     free(args[j]);
                                 }
@@ -388,7 +375,6 @@ char *preprocessor_expand_macros(Preprocessor *pp, const char *line) {
                     dynstr_append(&temp, identifier);
                 }
             } else {
-                // Not an identifier, copy character
                 dynstr_append_char(&temp, *ptr++);
             }
         }
@@ -426,16 +412,14 @@ char *preprocessor_substitute_params(const char *body, const char *params[],
         if (*ptr == '#') {
             ptr++;
             if (*ptr == '#') {
-                // Token pasting operator
+                // '##' token-pasting: joins the tokens on either side, dropping whitespace between them
                 ptr++;
-                // Remove trailing whitespace from result
                 dynstr_trim_trailing_space(&result);
-                // Skip leading whitespace in remaining body
                 while (*ptr && isspace((unsigned char)*ptr)) {
                     ptr++;
                 }
             } else {
-                // Stringizing operator
+                // '#' stringizing: turns the parameter into a quoted string literal
                 char param_name[MAX_MACRO_NAME];
                 int i = 0;
                 while ((isalnum((unsigned char)*ptr) || *ptr == '_') && i < MAX_MACRO_NAME - 1) {
@@ -443,7 +427,6 @@ char *preprocessor_substitute_params(const char *body, const char *params[],
                 }
                 param_name[i] = '\0';
 
-                // Find parameter
                 for (int j = 0; j < param_count; j++) {
                     if (strcmp(param_name, params[j]) == 0) {
                         char *stringized = preprocessor_stringify(args[j]);
@@ -454,7 +437,6 @@ char *preprocessor_substitute_params(const char *body, const char *params[],
                 }
             }
         } else if (isalpha((unsigned char)*ptr) || *ptr == '_') {
-            // Check if this is a parameter name
             char identifier[MAX_MACRO_NAME];
             int i = 0;
             const char *start = ptr;
@@ -474,11 +456,9 @@ char *preprocessor_substitute_params(const char *body, const char *params[],
             }
 
             if (!found_param) {
-                // Not a parameter, copy the identifier
                 dynstr_append_n(&result, start, (size_t)(ptr - start));
             }
         } else {
-            // Copy character as-is
             dynstr_append_char(&result, *ptr++);
         }
     }
@@ -540,7 +520,6 @@ bool preprocessor_handle_define(Preprocessor *pp, const char *directive) {
         return false;
     }
 
-    // Check for function-like macro
     char *paren = strchr(name, '(');
     if (paren) {
         *paren = '\0';
@@ -553,7 +532,6 @@ bool preprocessor_handle_define(Preprocessor *pp, const char *directive) {
         }
         *close_paren = '\0';
 
-        // Parse parameters
         const char *params[MAX_MACRO_PARAMS];
         int param_count = 0;
 
@@ -565,19 +543,16 @@ bool preprocessor_handle_define(Preprocessor *pp, const char *directive) {
             }
         }
 
-        // Get body (everything after the parameter list)
         char *body = close_paren + 1;
-        while (*body && isspace(*body)) body++; // Skip whitespace
+        while (*body && isspace(*body)) body++;
 
         bool result = preprocessor_define_function_macro(pp, name, params, param_count, body);
         free(args);
         return result;
     } else {
-        // Object-like macro
-        char *body = strtok(NULL, ""); // Get rest of line
+        char *body = strtok(NULL, "");
         if (!body) body = "";
 
-        // Skip leading whitespace in body
         while (*body && isspace(*body)) body++;
 
         bool result = preprocessor_define_macro(pp, name, body);
@@ -605,8 +580,6 @@ bool preprocessor_handle_undef(Preprocessor *pp, const char *directive) {
     return result;
 }
 
-// Utility functions implementation continues...
-
 bool preprocessor_is_directive(const char *line) {
     const char *ptr = line;
     while (*ptr && isspace(*ptr)) ptr++;
@@ -618,7 +591,7 @@ char *preprocessor_get_directive_name(const char *line) {
     while (*ptr && isspace(*ptr)) ptr++;
     if (*ptr != '#') return NULL;
 
-    ptr++; // skip '#'
+    ptr++;
     while (*ptr && isspace(*ptr)) ptr++;
 
     const char *start = ptr;
@@ -638,10 +611,9 @@ char *preprocessor_get_directive_args(const char *line) {
     while (*ptr && isspace(*ptr)) ptr++;
     if (*ptr != '#') return NULL;
 
-    ptr++; // skip '#'
+    ptr++;
     while (*ptr && isspace(*ptr)) ptr++;
 
-    // Skip directive name
     while (*ptr && (isalnum(*ptr) || *ptr == '_')) ptr++;
     while (*ptr && isspace(*ptr)) ptr++;
 
@@ -649,10 +621,8 @@ char *preprocessor_get_directive_args(const char *line) {
 }
 
 char *preprocessor_trim_whitespace(char *str) {
-    // Trim leading whitespace
     while (*str && isspace(*str)) str++;
 
-    // Trim trailing whitespace
     char *end = str + strlen(str) - 1;
     while (end > str && isspace(*end)) {
         *end = '\0';
@@ -729,20 +699,17 @@ bool preprocessor_handle_include(Preprocessor *pp, const char *directive) {
         return false;
     }
 
-    // Parse include filename
     char *filename = NULL;
     bool is_system_header = false;
 
     char *trimmed = preprocessor_trim_whitespace(args);
     if (trimmed[0] == '"') {
-        // User header: "filename.h"
         char *end = strchr(trimmed + 1, '"');
         if (end) {
             *end = '\0';
             filename = strdup(trimmed + 1);
         }
     } else if (trimmed[0] == '<') {
-        // System header: <filename.h>
         char *end = strchr(trimmed + 1, '>');
         if (end) {
             *end = '\0';
@@ -758,14 +725,12 @@ bool preprocessor_handle_include(Preprocessor *pp, const char *directive) {
         return false;
     }
 
-    // Check include depth
     if (pp->include_depth >= MAX_INCLUDE_DEPTH) {
         preprocessor_error(pp, "Include depth exceeded");
         free(filename);
         return false;
     }
 
-    // Read and process included file
     char *content = preprocessor_read_file(filename);
     if (!content) {
         if (!is_system_header) {
@@ -775,21 +740,18 @@ bool preprocessor_handle_include(Preprocessor *pp, const char *directive) {
         return !is_system_header; // System headers are optional
     }
 
-    // Save current state
     IncludeFile *current = &pp->include_stack[pp->include_depth++];
     current->filename = pp->current_file;
     current->content = NULL; // We don't need to save content
     current->line = pp->current_line;
     current->pos = 0;
 
-    // Process included file
     char *processed = preprocessor_process_string(pp, content, filename);
     if (processed) {
         preprocessor_append_output(pp, processed);
         free(processed);
     }
 
-    // Restore state
     pp->include_depth--;
     pp->current_file = current->filename;
     pp->current_line = current->line;
@@ -944,8 +906,7 @@ bool preprocessor_handle_warning(Preprocessor *pp, const char *directive) {
 bool preprocessor_handle_pragma(Preprocessor *pp, const char *directive) {
     char *args = preprocessor_get_directive_args(directive);
 
-    // Simple pragma handling - just ignore for now
-    // In a full implementation, you'd handle specific pragmas
+    // pragmas aren't implemented, just report and move on
     preprocessor_warning(pp, "Pragma ignored: %s", args ? args : "");
 
     if (args) free(args);
@@ -970,7 +931,6 @@ bool preprocessor_handle_line(Preprocessor *pp, const char *directive) {
     }
 
     if (filename) {
-        // Remove quotes if present
         if (filename[0] == '"') {
             filename++;
             char *end = strrchr(filename, '"');
@@ -1025,7 +985,6 @@ bool preprocessor_evaluate_condition(Preprocessor *pp, const char *condition) {
 bool preprocessor_should_skip_line(Preprocessor *pp) {
     if (pp->cond_stack_depth == 0) return false;
 
-    // Check all conditional levels
     for (int i = 0; i < pp->cond_stack_depth; i++) {
         ConditionalState *cond = &pp->cond_stack[i];
 

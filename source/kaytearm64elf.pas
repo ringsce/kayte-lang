@@ -48,6 +48,9 @@ function CompileToELF(const Instructions: array of TKayteInsn; const OutputPath:
 
 implementation
 
+uses
+  BaseUnix;
+
 function MakeInsn(OpCode: TKayteOpcode; Operand: Int64): TKayteInsn;
 begin
   Result.OpCode := OpCode;

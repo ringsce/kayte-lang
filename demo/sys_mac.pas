@@ -5,7 +5,7 @@ unit sys_mac;
 interface
 
 uses
-  Classes, SysUtils, MacOSAll; // MacOSAll contains macOS-specific API definitions
+  Classes, SysUtils, MacOSAll;
 
 type
   TMacOSSystemInfo = record
@@ -32,7 +32,6 @@ var
   HostName: NSString;
 begin
   try
-    // Get macOS version and hostname
     OSVersion := TNSString.Wrap(NSProcessInfo.processInfo.operatingSystemVersionString);
     HostName := TNSString.Wrap(NSProcessInfo.processInfo.hostName);
 
@@ -51,7 +50,6 @@ var
   ScriptPath, Output: string;
 begin
   try
-    // Save the script to a temporary file
     ScriptFile := TStringList.Create;
     try
       ScriptFile.Text := Script;
@@ -61,7 +59,6 @@ begin
       ScriptFile.Free;
     end;
 
-    // Execute the script using osascript command
     Output := ExecuteProcess('/usr/bin/osascript', [ScriptPath]);
     Result := Output;
   except

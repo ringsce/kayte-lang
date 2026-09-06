@@ -6,16 +6,16 @@
 
 // --- Simulated KVM Instruction Set ---
 typedef enum {
-    opPUSH,       // Push a literal value onto the stack
-    opADD,        // Pop two values, add them, and push the result
-    opSUB,        // Pop two values, subtract, and push the result
-    opPRINT,      // Pop a value and print it to the console
-    opHALT        // Stop execution
+    opPUSH,
+    opADD,
+    opSUB,
+    opPRINT,
+    opHALT
 } TKayteOpcode;
 
 typedef struct {
     TKayteOpcode Opcode;
-    int Operand; // Used by opPUSH for the value to push
+    int Operand; // only opPUSH uses this
 } TInstruction;
 
 // --- A simple Stack implementation for the VM ---
@@ -67,7 +67,7 @@ int stack_pop(TStack *stack) {
 
 int stack_peek(TStack *stack) {
     if (stack->top == NULL) {
-        return 0; // Or handle error
+        return 0;
     }
     return stack->top->data;
 }
@@ -109,8 +109,7 @@ void vm_destroy(TKayteVM *vm) {
 }
 
 void vm_load_program(TKayteVM *vm, const TInstruction *program, int count) {
-    // In a real application, you would deserialize from a .kbyte file here.
-    // For this example, we copy the provided instruction array.
+    // real programs would deserialize from a .kbyte file; here we just copy the array
     vm->instructions = (TInstruction*)malloc(count * sizeof(TInstruction));
     if (vm->instructions == NULL) {
         fprintf(stderr, "Memory allocation failed for program instructions.\n");
@@ -126,7 +125,6 @@ TInstruction vm_get_current_instruction(TKayteVM *vm) {
     if (vm->program_counter < vm->instruction_count) {
         return vm->instructions[vm->program_counter];
     }
-    // Return a HALT instruction if program has finished
     return (TInstruction){opHALT, 0};
 }
 
@@ -269,10 +267,9 @@ void debugger_run(TKayteDebugger *debugger) {
             break;
         }
         
-        // Remove newline character
         input_line[strcspn(input_line, "\n")] = 0;
 
-        // Convert to lowercase for case-insensitive comparison
+        // lowercase it so commands are case-insensitive
         for (int i = 0; input_line[i]; i++) {
             input_line[i] = tolower(input_line[i]);
         }

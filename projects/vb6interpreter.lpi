@@ -166,8 +166,10 @@
       </Debugging>
     </Linking>
     <Other>
-      <CustomOptions Value="-order_file /Users/pedro/Projects/kayte-lang/projects/symbol_order.fpc
--WM10.15"/>
+      <Conditionals Value="if TargetOS='darwin' then
+begin
+  CustomOptions := CustomOptions+' -k-order_file -k../KayteControls/symbol_order.fpc -WM10.15';
+end;"/>
     </Other>
   </CompilerOptions>
   <Debugging>

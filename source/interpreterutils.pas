@@ -104,18 +104,18 @@ var
   labelName: String;
   LineData: PLineNumberData;
 begin
-  Labels.Clear; // Clear existing labels
+  Labels.Clear;
 
   for i := 0 to Code.Count - 1 do
   begin
     trimmedLine := Trim(Code[i]);
-    // Check if the line ends with a colon, indicating a label
+    // A line ending in ':' is a label.
     if (Length(trimmedLine) > 0) and (trimmedLine[Length(trimmedLine)] = ':') then
     begin
-      labelName := Copy(trimmedLine, 1, Length(trimmedLine) - 1); // Remove the colon
+      labelName := Copy(trimmedLine, 1, Length(trimmedLine) - 1);
       labelName := LowerCase(Trim(labelName));
 
-      if Labels.IndexOf(labelName) = -1 then // Only add if it's a new label
+      if Labels.IndexOf(labelName) = -1 then
       begin
         New(LineData);
         LineData^.Line := i; // Store the 0-based line index

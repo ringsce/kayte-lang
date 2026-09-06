@@ -257,12 +257,17 @@
       <OtherUnitFiles Value="../source;../jvm"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
+    <Conditionals Value="if TargetOS='linux' then
+  CustomOptions += ' -k-rpath=$ORIGIN';"/>
+    <CodeGeneration>
+      <Optimizations>
+        <OptimizationLevel Value="2"/>
+      </Optimizations>
+    </CodeGeneration>
     <Other>
-      <CustomOptions Value="-vm4046
--vn6058
+      <CustomOptions Value="-vm3057,4046,5071,6058
 -vn
--vh
--O2"/>
+-vh"/>
     </Other>
   </CompilerOptions>
   <Debugging>

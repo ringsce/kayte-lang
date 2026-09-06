@@ -42,9 +42,17 @@ uses
   kayte_runtime in '../source/kayte_runtime.pas',
   kayte_loader in '../source/kayte_loader.pas',
   kayte_vm in '../source/kayte_vm.pas',
-  mathlib in '../source/mathlib.pas'
+  mathlib in '../source/mathlib.pas',
+  kayte_sdl3 in '../source/kayte_sdl3.pas',
+  kayte_sdl2 in '../source/kayte_sdl2.pas'
   {$IFDEF DARWIN}
   ,KayteArm64 in '../source/KayteArm64.pas'
+  {$ENDIF}
+  {$IFDEF LINUX}
+  ,KayteArm64ELF in '../source/kaytearm64elf.pas'
+  {$ENDIF}
+  {$IFDEF WINDOWS}
+  ,KayteArm64PE in '../source/kaytearm64pe.pas'
   {$ENDIF}
   ;
 type
@@ -300,7 +308,7 @@ end;
 
 procedure ShowVersion;
 begin
-  Writeln('Kayte Language v0.9.0');
+  Writeln('Kayte Language v0.9.10'); // Changing version, upgrade, 0.9.10
   Writeln('Copyright (c) Pedro Dias Vicente 2024-2026');
   {$IFDEF CPUAARCH64}
     {$IFDEF DARWIN}

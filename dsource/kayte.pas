@@ -29,16 +29,15 @@ TVirtualMachine = class
     procedure Run;
   end;
 
-  (* Download Repo *)
   procedure DownloadMapsFromGitHubRepo(const RepoURL: string);
 var
   Process: TProcess;
 begin
   Process := TProcess.Create(nil);
   try
-    Process.Executable := '/usr/bin/curl'; // Path to the curl executable
-    Process.Parameters.Add('-LOk'); // -LOk flags to download files and follow redirects
-    Process.Parameters.Add(RepoURL); // GitHub repository URL
+    Process.Executable := '/usr/bin/curl';
+    Process.Parameters.Add('-LOk'); // -L follow redirects, -O save to file, -k skip cert checks
+    Process.Parameters.Add(RepoURL);
     Process.Options := Process.Options + [poWaitOnExit];
     Process.Execute;
     Writeln('Maps downloaded successfully from GitHub repository.');
@@ -47,7 +46,6 @@ begin
   end;
 end;
 
-(* Check for Updates *)
 procedure CheckForUpdates(const URL: string);
 var
   Process: TProcess;
@@ -56,9 +54,9 @@ begin
   Process := TProcess.Create(nil);
   Response := TStringList.Create;
   try
-    Process.Executable := '/usr/bin/curl'; // Path to the curl executable
-    Process.Parameters.Add('-sI'); // -s silent mode to suppress progress meter and error messages, -I fetches headers only
-    Process.Parameters.Add(URL); // Resource URL
+    Process.Executable := '/usr/bin/curl';
+    Process.Parameters.Add('-sI'); // -s silent, -I headers only
+    Process.Parameters.Add(URL);
     Process.Options := Process.Options + [poUsePipes, poWaitOnExit];
     Process.Execute;
     Response.LoadFromStream(Process.Output);
@@ -116,7 +114,6 @@ begin
   end;
 end;
 
-(* Procedure to save .kayte files *)
 procedure SaveKayteFileToBytecode(const SourceFile, OutputFile: string);
 var
   BytecodeGen: TBytecodeGenerator;
@@ -152,10 +149,9 @@ procedure TVirtualMachine.Run;
 begin
   if (FPC >= 0) and (FPC < Length(FMemory)) then
   begin
-    // Main execution loop using repeat-until (do-while equivalent)
+    // repeat-until stands in for do-while here
     repeat
-      // Simulating fetching an instruction and executing it
-      // Here we just cycle through some sample instructions for demonstration
+      // placeholder fetch/execute — just cycles a few sample instructions
       case FPC of
         0: ExecuteInstruction(NOP);
         1: ExecuteInstruction(LOAD);
@@ -163,7 +159,7 @@ begin
         3: ExecuteInstruction(SUB);
         4: ExecuteInstruction(HALT);
       else
-        ExecuteInstruction(HALT); // Default to HALT if out of range
+        ExecuteInstruction(HALT); // fall back to HALT once FPC runs past the sample range
       end;
 
       Inc(FPC);
@@ -206,7 +202,6 @@ var
 
 
 begin
-  // Initialize CLI handler for arguments
   CLIHandler := TCLIHandler.Create('kc', '1.0.0');
   try
     CLIHandler.ParseArgs;
@@ -229,20 +224,16 @@ begin
 
 
   try
-    // Define the port number on which the server will run
-    Port := 8080;  // You can change this port number if needed
+    Port := 8080; // hardcoded for now
 
-    // Create the HTTP server
     Server := TSimpleHTTPServer.Create(Port);
 
-    // Start the server
     Writeln('Starting Kings server on port ', Port);
     Server.StartServer;
 
-    // Keep the server running until manually stopped
     Writeln('Server is running. Press [Ctrl+C] to stop...');
     while True do
-      Sleep(1000);  // Keep the main thread alive
+      Sleep(1000);
 
   except
     on E: Exception do
@@ -253,20 +244,15 @@ begin
     end;
   end;
 
-  // Initialize the virtual machine
   VM := TVirtualMachine.Create;
   try
-    (* Download Maps *)
     DownloadMapsFromGitHubRepo('https://github.com/yourusername/your-repo/maps.zip');
 
-    (* Check for Updates *)
     CheckForUpdates('https://example.com/version.txt');
 
-    // Initialize the virtual machine with 1024 bytes of memory and 16 registers
     VM.Init(1024, 16);
     VM.Run;
 
-    // Create a PK3 file from the VM source code
     CreatePK3File('kings.lpr', 'vm.pk3');
   finally
     VM.Free;
@@ -321,9 +307,8 @@ procedure TVirtualMachine.Run;
   begin
     if (FPC >= 0) and (FPC < Length(FMemory)) then
     begin
-      // Placeholder for the main execution loop
+      // placeholder — real fetch/execute logic goes here
       Writeln('Running the virtual machine from PC = ', FPC, '...');
-      // Add your execution logic here
     end
     else
     begin
@@ -337,32 +322,28 @@ procedure TVirtualMachine.Run;
 begin
     VM := TVirtualMachine.Create;
     try
-      VM.Init(1024, 16); // Initialize with 1024 bytes of memory and 16 registers
+      VM.Init(1024, 16);
       VM.Run;
     finally
       VM.Free;
     end;
 end.
 
-// Function for addition
 function Add(a, b: Integer): Integer;
 begin
   Add := a + b;
 end;
 
-// Function for subtraction
 function Sub(a, b: Integer): Integer;
 begin
   Sub := a - b;
 end;
 
-// Function for multiplication
 function Mult(a, b: Integer): Integer;
 begin
   Mult := a * b;
 end;
 
-// Function for integer division
 function Divi(a, b: Integer): Integer;
 begin
   if b = 0 then
@@ -370,7 +351,6 @@ begin
   Divi := a div b;
 end;
 
-(* Function for modulus *)
 function Modu(a, b: Integer): Integer;
 begin
   if b = 0 then
@@ -396,9 +376,6 @@ end;
 //end;      *)
 
 
-(* Commands on the fly *)
-
-(* if else procedure*)
 procedure TVirtualMachine.ExecuteInstruction(Instruction: TInstruction);
 var
   Condition: Boolean;
@@ -415,11 +392,10 @@ begin
     end;
     IF_COND:
     begin
-      // Example: Check if Register 0 > 0 (This is just a placeholder condition)
+      // placeholder condition — real logic would check register 0 against something meaningful
       Condition := FRegisters[0] > 0;
       if not Condition then
       begin
-        // Skip to the next ELSE or ENDIF
         repeat
           Inc(FPC);
         until (FMemory[FPC] = Ord(ELSE_COND)) or (FMemory[FPC] = Ord(ENDIF));
@@ -427,36 +403,32 @@ begin
     end;
     ELSE_COND:
     begin
-      // Skip to the ENDIF
       repeat
         Inc(FPC);
       until FMemory[FPC] = Ord(ENDIF);
     end;
     ENDIF:
-      ; // No operation, just a marker for end of IF
+      ; // marker only, nothing to execute
   else
     Writeln('Unknown instruction');
   end;
 end;
 
-(* while function procedure *)
 procedure TVirtualMachine.ExecuteInstruction(Instruction: TInstruction);
 var
   CaseValue: Integer;
   Matched: Boolean;
 begin
   case Instruction of
-    // Existing cases...
     CASE_COND:
     begin
-      // Example: The case is based on the value in Register 1
+      // case value comes from register 1
       CaseValue := FRegisters[1];
       Matched := False;
 
-      // This is where you would check against the actual case values.
-      // Here, we'll just simulate skipping until the match is found or ENDCASE
+      // stand-in for real case matching — just checks for 0 and otherwise skips to ENDCASE
       if CaseValue = 0 then
-        Matched := True; // Assume some condition
+        Matched := True;
 
       if not Matched then
       begin
@@ -466,7 +438,7 @@ begin
       end;
     end;
     ENDCASE:
-      ; // No operation, just a marker for the end of CASE
+      ; // marker only, nothing to execute
   else
     Writeln('Unknown instruction');
   end;

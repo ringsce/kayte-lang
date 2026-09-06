@@ -1,5 +1,4 @@
-// UEventRouter.pas
-// Responsible for routing UI events from LCL controls to Kayte script functions.
+// Routes UI events from LCL controls to Kayte script functions.
 
 unit UEventRouter;
 
@@ -8,34 +7,29 @@ unit UEventRouter;
 interface
 
 uses
-  Classes, SysUtils, Controls, StdCtrls, Contnrs, Forms; // StdCtrls for TButton, TLabel, TEdit; Contnrs for TObjectList
+  Classes, SysUtils, Controls, StdCtrls, Contnrs, Forms;
 
-// IMPORTANT: This TKayteVM definition is a DUMMY for compilation purposes only.
-// In your actual project, you MUST REMOVE this dummy definition
-// and instead include your real Kayte VM unit in the 'uses' clause of your main project file
-// or any unit that needs to access TKayteVM (and consequently UEventRouter).
+// Stand-in for the real Kayte VM so this unit compiles standalone.
+// Swap in the actual VM unit and delete this once it's wired up.
 type
-  // Dummy TKayteVM definition - REMOVE THIS WHEN YOU HAVE THE REAL VM UNIT
   TKayteVM = class
   public
     procedure ExecuteFunction(const FunctionName: string);
   end;
-  // End of Dummy TKayteVM definition
 
 type
-  TEventRouter = class; // Forward declaration for TEventRouter
+  TEventRouter = class;
 
-  // TUIEventHandler: This class will act as the actual LCL event handler.
-  // We'll create instances of this dynamically and connect them to LCL control events.
-  // Each instance will know which Kayte function it needs to call.
+  // The actual LCL event handler: dynamically created and hooked to a control's
+  // event, each instance knows which Kayte function to call when it fires.
   TUIEventHandler = class(TObject)
   private
-    FEventRouter: TEventRouter; // Reference back to the main router
-    FKayteFunctionName: String; // The Kayte function this handler should call
+    FEventRouter: TEventRouter;
+    FKayteFunctionName: String;
 
   public
     constructor Create(ARouter: TEventRouter; const AFunctionName: String);
-    procedure HandleClick(Sender: TObject); // The actual method assigned to OnClick
+    procedure HandleClick(Sender: TObject);
 
     property KayteFunctionName: String read FKayteFunctionName;
   end;
@@ -43,28 +37,22 @@ type
 
   TEventRouter = class
   private
-    FVM: TKayteVM; // Reference to the Kayte Virtual Machine
-    // This list will hold the TUIEventHandler instances, so they are not freed prematurely.
-    FEventHandlers: TObjectList; // Owns the TUIEventHandler instances
+    FVM: TKayteVM;
+    FEventHandlers: TObjectList; // owns the TUIEventHandler instances
 
   public
     constructor Create(AVM: TKayteVM);
     destructor Destroy; override;
 
-    // Registers an OnClick event for a given LCL control to a Kayte function.
     procedure RegisterOnClickHandler(AControl: TControl; const AKayteFunctionName: String);
   end;
 
 implementation
 
-// { TKayteVM - Dummy Implementation for methods }
-// The class definition is now in the interface, but its methods are still here.
-// When you use the real TKayteVM unit, these implementations also need to be removed.
+{ TKayteVM (dummy) }
 procedure TKayteVM.ExecuteFunction(const FunctionName: string);
 begin
   WriteLn(SysUtils.Format('KayteVM: Executing Kayte function: %s (This is a DUMMY VM call)', [FunctionName]));
-  // In a real VM, you would look up and execute the bytecode/AST for FunctionName here.
-  // For example: YourVMInstance.CallFunction(FunctionName);
 end;
 
 
@@ -79,8 +67,6 @@ end;
 
 procedure TUIEventHandler.HandleClick(Sender: TObject);
 begin
-  // When the LCL control is clicked, this method is called.
-  // It then tells the EventRouter to execute the corresponding Kayte function.
   if Assigned(FEventRouter) and Assigned(FEventRouter.FVM) then
   begin
     WriteLn(SysUtils.Format('UEventRouter: Control "%s" Clicked. Calling Kayte function "%s".',
@@ -95,13 +81,13 @@ constructor TEventRouter.Create(AVM: TKayteVM);
 begin
   inherited Create;
   FVM := AVM;
-  FEventHandlers := TObjectList.Create(True); // Owns the TUIEventHandler instances
+  FEventHandlers := TObjectList.Create(True);
 end;
 
 destructor TEventRouter.Destroy;
 begin
-  FreeAndNil(FEventHandlers); // Frees all TUIEventHandler instances
-  FVM := nil; // Just nil the reference as it's owned externally
+  FreeAndNil(FEventHandlers);
+  FVM := nil; // owned externally
   inherited Destroy;
 end;
 
@@ -115,11 +101,10 @@ begin
     Exit;
 
   Handler := TUIEventHandler.Create(Self, AKayteFunctionName);
-  FEventHandlers.Add(Handler);          // keep it alive
+  FEventHandlers.Add(Handler); // keep it alive
 
-  {--- assign the event handler ---}
   if AControl is TButton then
-    TButton(AControl).OnClick := @Handler.HandleClick          //  ←  @ here!
+    TButton(AControl).OnClick := @Handler.HandleClick
   else if AControl is TLabel then
     WriteLn(Format(
       'UEventRouter: Warning: Cannot directly register OnClick for TLabel "%s".',

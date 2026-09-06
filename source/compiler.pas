@@ -95,10 +95,12 @@ begin
     try
       // Parse the code and generate bytecode
       ByteCodeProg := Parser.Parse;
-      FCompilerSuccess := True;
-      Result := True;
-      // The bytecode is now in ByteCodeProg
-      // You may want to do something with it here (save to file, etc.)
+      try
+        FCompilerSuccess := True;
+        Result := True;
+      finally
+        ByteCodeProg.Free;
+      end;
     finally
       Parser.Free;
     end;

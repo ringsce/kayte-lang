@@ -85,15 +85,15 @@ static void lexer_skip_comment(Lexer *lexer) {
             lexer_advance(lexer);
         }
     } else if (lexer_current_char(lexer) == '/' && lexer_peek_char(lexer) == '*') {
-        lexer_advance(lexer); // skip '/'
-        lexer_advance(lexer); // skip '*'
+        lexer_advance(lexer);
+        lexer_advance(lexer);
         while (!(lexer_current_char(lexer) == '*' && lexer_peek_char(lexer) == '/') &&
                lexer_current_char(lexer) != '\0') {
             lexer_advance(lexer);
         }
         if (lexer_current_char(lexer) == '*') {
-            lexer_advance(lexer); // skip '*'
-            lexer_advance(lexer); // skip '/'
+            lexer_advance(lexer);
+            lexer_advance(lexer);
         }
     }
 }
@@ -150,7 +150,7 @@ static Token lexer_read_string(Lexer *lexer) {
     token.line = lexer->line;
     token.column = lexer->column;
 
-    lexer_advance(lexer); // skip opening quote
+    lexer_advance(lexer);
 
     int i = 0;
     while (lexer_current_char(lexer) != '"' && lexer_current_char(lexer) != '\0' &&
@@ -172,7 +172,7 @@ static Token lexer_read_string(Lexer *lexer) {
     }
 
     if (lexer_current_char(lexer) == '"') {
-        lexer_advance(lexer); // skip closing quote
+        lexer_advance(lexer);
     } else {
         error_syntax(lexer->line, lexer->column, "Unterminated string literal");
     }

@@ -35,18 +35,15 @@ procedure TBytecodeGeneratorTest.TestBytecodeGeneration;
 var
   OutputFile: string;
 begin
-  // Test bytecode generation for a sample .kyte file
   OutputFile := 'test.bytecode';
   BytecodeGen.GenerateBytecode('example.kyte', OutputFile);
 
-  // Check if bytecode was generated successfully
   CheckTrue(FileExists(OutputFile), 'Bytecode file was not generated.');
-  DeleteFile(OutputFile); // Clean up
+  DeleteFile(OutputFile);
 end;
 
 procedure TBytecodeGeneratorTest.TestParseInstruction;
 begin
-  // Test individual instructions
   CheckEquals(Byte($00), BytecodeGen.ParseInstruction('NOP'), 'NOP failed');
   CheckEquals(Byte($01), BytecodeGen.ParseInstruction('LOAD'), 'LOAD failed');
   CheckEquals(Byte($02), BytecodeGen.ParseInstruction('ADD'), 'ADD failed');

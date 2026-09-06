@@ -53,7 +53,6 @@ begin
   vkDestroyDevice(FDevice, nil);
   vkDestroyInstance(FInstance, nil);
 
-  // Clean up SDL
   SDL_DestroyWindow(FWindow);
   SDL_Quit;
   inherited Destroy;
@@ -116,7 +115,6 @@ var
   PipelineInfo: TVkGraphicsPipelineCreateInfo;
   ShaderStageInfo: array[0..1] of TVkPipelineShaderStageCreateInfo;
 begin
-  // Setup your pipeline creation info here
   FillChar(PipelineInfo, SizeOf(PipelineInfo), 0);
   PipelineInfo.sType := VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 
@@ -147,9 +145,9 @@ begin
         Running := False;
     end;
 
-    // Handle Vulkan rendering here
+    // TODO: actual draw calls go here
 
-    SDL_Delay(16); // Simple frame limiter (~60 FPS)
+    SDL_Delay(16); // ~60 FPS frame limiter
   end;
 end;
 

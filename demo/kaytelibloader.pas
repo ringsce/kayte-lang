@@ -10,12 +10,10 @@ uses
 type
   TLoadMode = (lmSafe, lmUnsafe);
 
-  { Function to load a library safely or unsafely }
   function LoadLibraryFile(const FilePath: string; LoadMode: TLoadMode): Boolean;
 
 implementation
 
-{ Function to validate the file extension }
 function IsValidLibraryFile(const FilePath: string): Boolean;
 var
   Ext: string;
@@ -24,7 +22,6 @@ begin
   Result := (Ext = '.dll') or (Ext = '.so') or (Ext = '.a');
 end;
 
-{ Function to load a library file based on mode }
 function LoadLibraryFile(const FilePath: string; LoadMode: TLoadMode): Boolean;
 var
   LibraryHandle: TLibHandle;
@@ -49,7 +46,6 @@ begin
     begin
       WriteLn('Library loaded successfully: ', FilePath);
       Result := True;
-      // Remember to free the library after use
       FreeLibrary(LibraryHandle);
     end
     else

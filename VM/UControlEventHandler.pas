@@ -5,23 +5,23 @@ unit UControlEventHandler;
 interface
 
 uses
-  Classes, Controls, Forms; // Needed for TControl, TNotifyEvent
+  Classes, Controls, Forms;
 
 type
-  TEventRouter = class forward; // Forward declaration for circular reference
+  TEventRouter = class forward; // breaks the circular reference below
 
-  { TControlEventHandler: A helper class to hold control and function name,
-    used to route generic LCL events. Each instance will manage one control's event mapping. }
+  { Holds a control's interpreted function name and routes generic LCL
+    events to it. One instance per control/event mapping. }
   TControlEventHandler = class
   private
     FControl: TControl;
     FInterpretedFunctionName: String;
-    FEventRouter: TEventRouter; // Reference back to the main router instance
+    FEventRouter: TEventRouter;
   public
     constructor Create(AControl: TControl; const AInterpretedFunctionName: String; AEventRouter: TEventRouter);
     destructor Destroy; override;
 
-    // This is the actual method pointer that will be assigned to LCL events (e.g., OnClick, OnChange)
+    // Assigned directly to LCL events (OnClick, OnChange, etc.)
     procedure HandleEvent(Sender: TObject);
   end;
 
@@ -39,7 +39,7 @@ end;
 
 destructor TControlEventHandler.Destroy;
 begin
-  // Do NOT free FControl here, it's owned by the form
+  // FControl is owned by the form, not us — don't free it
   FControl := nil;
   FEventRouter := nil;
   inherited Destroy;
@@ -47,8 +47,7 @@ end;
 
 procedure TControlEventHandler.HandleEvent(Sender: TObject);
 begin
-  // When an LCL event fires, this method is called.
-  // It then asks the main EventRouter to dispatch it to the VM.
+  // Hand off to the router, which dispatches into the VM
   if Assigned(FEventRouter) then
     FEventRouter.GenericControlEventHandler(Sender);
 end;

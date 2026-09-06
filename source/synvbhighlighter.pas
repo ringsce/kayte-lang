@@ -33,11 +33,10 @@ type
     fOperators: TStringList;
     fInCommentBlock: Boolean;
 
-    // Define ANSI escape codes for colors
     FANSICodes: array[TSynIdentifier] of TVBHighlightStyle;
 
     procedure InitKeywords;
-    procedure InitANSICodes; // New procedure to set up ANSI codes
+    procedure InitANSICodes;
   protected
     procedure DoIdentifyLine(Line: Integer; var TokenOffset: Integer; var State: TSynHighlighterState); override;
     function GetDefaultKeywords(Index: Integer): String; override;
@@ -114,7 +113,6 @@ end;
 
 procedure TSynVBHighlighter.InitANSICodes;
 begin
-  // Initialize ANSI codes for each token type
   FANSICodes[SYN_KEYWORD].ANSINormal := ANSI_BLUE;
   FANSICodes[SYN_KEYWORD].ANSIBold := ANSI_BLUE + ANSI_BOLD;
   FANSICodes[SYN_KEYWORD].ANSIReset := ANSI_RESET;

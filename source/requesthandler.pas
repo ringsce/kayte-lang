@@ -6,7 +6,7 @@ interface
 
 uses
   SysUtils,
-  SimpleHTTPServer; // This unit defines the THTTPServerRequest and THTTPServerResponse types
+  SimpleHTTPServer;
 
 procedure MyRequestHandler(const ARequest: THTTPServerRequest; var AResponse: THTTPServerResponse);
 
@@ -14,14 +14,10 @@ implementation
 
 procedure MyRequestHandler(const ARequest: THTTPServerRequest; var AResponse: THTTPServerResponse);
 begin
-  // Set the HTTP status code to 200 (OK)
   AResponse.StatusCode := 200;
   AResponse.StatusText := 'OK';
-
-  // Set the content type to HTML
   AResponse.ContentType := 'text/html';
 
-  // Write a simple HTML page to the response stream
   AResponse.ContentStream.WriteString('<html>');
   AResponse.ContentStream.WriteString('<head>');
   AResponse.ContentStream.WriteString('<title>My Pascal Web Server</title>');

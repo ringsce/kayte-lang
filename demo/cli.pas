@@ -103,7 +103,6 @@ procedure TCLIHandler.RunBytecodeFile(const BytecodeFile: string);
 var
   VM: TVirtualMachine;
 begin
-  // Check if the bytecode file is provided and exists
   if BytecodeFile = '' then
   begin
     Writeln('Error: No bytecode file specified to run.');
@@ -120,7 +119,6 @@ begin
     if FOptions.Verbose then
       Writeln('Loading bytecode file: ', BytecodeFile);
 
-    // Attempt to load the bytecode file into the VM
     try
       VM.LoadBytecode(BytecodeFile);
     except
@@ -134,7 +132,6 @@ begin
     if FOptions.Verbose then
       Writeln('Executing bytecode...');
 
-    // Run the virtual machine with the loaded bytecode
     try
       VM.Run;
     except

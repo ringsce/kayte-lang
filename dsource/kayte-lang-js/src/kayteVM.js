@@ -1,4 +1,3 @@
-// src/kayteVM.js
 import { instructions } from './instructions.js';
 
 export class KayteVM {
@@ -10,7 +9,7 @@ export class KayteVM {
   }
 
   loadProgram(bytecode) {
-    this.memory.set(bytecode, 0);  // Load bytecode into memory starting at position 0
+    this.memory.set(bytecode, 0);
   }
 
   step() {

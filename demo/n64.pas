@@ -1,7 +1,7 @@
 unit n64;
 
-{$MODE OBJFPC}  // Use FreePascal Object Mode
-{$LINKLIB libdragon} // Link against libdragon for N64
+{$MODE OBJFPC}
+{$LINKLIB libdragon}
 
 interface
 
@@ -11,7 +11,7 @@ procedure RunKayteScript(const Script: PChar);
 implementation
 
 uses
-  ctypes;  // For C-style types
+  ctypes;
 
 
 // Import libdragon functions from C
@@ -34,40 +34,34 @@ procedure InitializeKayte;
 begin
   Writeln('Initializing Kayte for Nintendo 64...');
 
-  // Initialize the display
   display_init(RESOLUTION_320x240, DEPTH_16_BPP, 2);
   Writeln('Display initialized.');
 
-  // Initialize the controller
   controller_init;
   Writeln('Controller initialized.');
 
-  // Enable system interrupts
   irq_init;
   irq_enable;
   Writeln('Interrupts enabled.');
 
-  // Initialize console output
   console_init;
   Writeln('Console initialized.');
 
   Writeln('Kayte environment setup complete.');
 end;
 
-// Simulate running a Kayte script
+// stub — just echoes the script text instead of interpreting it
 procedure RunKayteScript(const Script: PChar);
 begin
   printf('Running Kayte script: %s'#10, Script);
 end;
 
-// Main loop for N64
 procedure MainLoop;
 begin
   while True do
   begin
-    controller_scan;  // Scan the controller state
+    controller_scan;
 
-    // If A button is pressed, run a Kayte script
     if (controller_pressed(CONTROLLER_1) and BUTTON_A) <> 0 then
     begin
       RunKayteScript('print("Hello from Kayte on N64!")');

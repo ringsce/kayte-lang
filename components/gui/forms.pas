@@ -5,22 +5,21 @@ unit Forms;
 interface
 
 uses
-  Classes, SysUtils, Contnrs; // Added Contnrs for TObjectList
+  Classes, SysUtils, Contnrs;
 
 type
   TForm = class
   private
-    FName: String; // To store the name of the form
+    FName: String;
   public
-    constructor Create(AOwner: TComponent; const AName: String); // Added constructor
-    destructor Destroy; override; // Added destructor for proper cleanup
+    constructor Create(AOwner: TComponent; const AName: String);
+    destructor Destroy; override;
     procedure Show; virtual;
-    property Name: String read FName; // Property to access the form's name
+    property Name: String read FName;
   end;
 
 var
-  // Global list to keep track of all instantiated forms
-  // This helps your interpreter find forms by name.
+  // lets the interpreter look forms up by name
   FormsList: TObjectList;
 
 procedure ApplicationInitialize;
@@ -30,15 +29,15 @@ implementation
 constructor TForm.Create(AOwner: TComponent; const AName: String);
 begin
   inherited Create(AOwner);
-  FName := AName; // Assign the name
-  FormsList.Add(Self); // Add this new form instance to the global list
-  Writeln('Form "' + FName + '" created.'); // Debug output
+  FName := AName;
+  FormsList.Add(Self);
+  Writeln('Form "' + FName + '" created.');
 end;
 
 destructor TForm.Destroy;
 begin
-  FormsList.Remove(Self); // Remove from the global list when destroyed
-  Writeln('Form "' + FName + '" destroyed.'); // Debug output
+  FormsList.Remove(Self);
+  Writeln('Form "' + FName + '" destroyed.');
   inherited Destroy;
 end;
 
@@ -55,8 +54,7 @@ begin
 end;
 
 initialization
-  FormsList := TObjectList.Create(True); // Create the list, set OwnsObjects to True
-                                        // so it frees TForm objects when removed/cleared.
+  FormsList := TObjectList.Create(True); // OwnsObjects=True: frees TForm instances when removed/cleared
 finalization
-  FreeAndNil(FormsList); // Free the list itself
+  FreeAndNil(FormsList);
 end.

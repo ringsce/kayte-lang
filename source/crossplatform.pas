@@ -74,10 +74,9 @@ end;
 procedure PrintCompilerInfo;
 begin
   WriteLn('--- Compiler Information ---');
-  // Check if we are running the Free Pascal Compiler
   {$IFDEF FPC}
   WriteLn('This code is being compiled by Free Pascal.');
-  {$ELSEIF DEFINED(DELPHI)} // Use DEFINED(DELPHI) for modern Delphi
+  {$ELSEIF DEFINED(DELPHI)}
   WriteLn('This code is being compiled by Delphi.');
   {$ELSE}
   WriteLn('This code is being compiled by an unknown compiler.');

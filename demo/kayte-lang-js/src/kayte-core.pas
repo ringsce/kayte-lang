@@ -1,4 +1,3 @@
-// kayte-core.pas
 program KayteCore;
 
 {$mode objfpc}{$H+}
@@ -44,7 +43,7 @@ exports.runKayteCode := @Interpreter.RunCode;
 exports.compileKayteCode := @Interpreter.CompileCode;
 {$ELSE}
 
-// Main program entry point for testing standalone execution
+// standalone entry point, used when not built as a Node addon
 var
   SampleCode: string;
 begin

@@ -8,7 +8,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "ffi-napi": "^3.0.1",          // For loading native modules
+    "ffi-napi": "^3.0.1",
     "ref-napi": "^3.0.3"
   },
   "devDependencies": {},

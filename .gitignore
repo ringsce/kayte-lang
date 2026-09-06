@@ -1,4 +1,5 @@
 .DS_Store
+build/
 # Uncomment these types if you want even more clean repository. But be careful.
 # It can make harm to an existing project source. Read explanations below.
 #
@@ -6,6 +7,8 @@
 # They can not be viewed as text or compared by diff-tools. Consider replacing them with .rc files.
 #*.res
 docs/
+tools/
+website/
 demo/lib
 demo/*.res
 source/lib
@@ -90,4 +93,7 @@ __recovery/
 
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
 modules/
+
+#remove claude
+.claude/
 

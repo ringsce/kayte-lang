@@ -15,6 +15,11 @@ uses
 
 type
   TBytecodeGenerator = class(TObject)
+  private
+    procedure WriteLenString(Stream: TFileStream; const S: AnsiString);
+    function ReadLenString(Stream: TFileStream): AnsiString;
+    procedure WriteStringIntMap(Stream: TFileStream; Map: TStringIntMap);
+    procedure ReadStringIntMap(Stream: TFileStream; Map: TStringIntMap);
   public
     procedure SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: String);
     function LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
@@ -54,14 +59,61 @@ implementation
 
 { TBytecodeGenerator }
 
+procedure TBytecodeGenerator.WriteLenString(Stream: TFileStream; const S: AnsiString);
+var
+  Len: LongInt;
+begin
+  Len := Length(S);
+  Stream.Write(Len, SizeOf(Len));
+  if Len > 0 then
+    Stream.Write(S[1], Len);
+end;
+
+function TBytecodeGenerator.ReadLenString(Stream: TFileStream): AnsiString;
+var
+  Len: LongInt;
+begin
+  Stream.Read(Len, SizeOf(Len));
+  SetLength(Result, Len);
+  if Len > 0 then
+    Stream.Read(Result[1], Len);
+end;
+
+procedure TBytecodeGenerator.WriteStringIntMap(Stream: TFileStream; Map: TStringIntMap);
+var
+  Len: LongInt;
+  I: Integer;
+begin
+  Len := Map.Count;
+  Stream.Write(Len, SizeOf(Len));
+  for I := 0 to Map.Count - 1 do
+  begin
+    WriteLenString(Stream, Map.Keys[I]);
+    Stream.Write(Map.Data[I], SizeOf(LongInt));
+  end;
+end;
+
+procedure TBytecodeGenerator.ReadStringIntMap(Stream: TFileStream; Map: TStringIntMap);
+var
+  Len: LongInt;
+  I: Integer;
+  Key: AnsiString;
+  Value: LongInt;
+begin
+  Stream.Read(Len, SizeOf(Len));
+  for I := 0 to Len - 1 do
+  begin
+    Key := ReadLenString(Stream);
+    Stream.Read(Value, SizeOf(Value));
+    Map.Add(Key, Value);
+  end;
+end;
+
 function TBytecodeGenerator.LoadProgramFromFile(const InputFilePath: String): TByteCodeProgram;
 var
   FileStream: TFileStream;
   Len: LongInt;
-  I, KeyLength: Integer;
-  Key: AnsiString;
-  Value: LongInt;
-  ProgramTitleBuffer: string;
+  I: Integer;
   TempInstructions: TBCInstructionArray;
   TempIntLiterals: TIntegerLiteralArray;
 begin
@@ -70,11 +122,7 @@ begin
   FileStream := TFileStream.Create(InputFilePath, fmOpenRead or fmShareDenyWrite);
   try
     // 1. Read ProgramTitle
-    FileStream.Read(Len, SizeOf(Len));
-    SetLength(ProgramTitleBuffer, Len);
-    if Len > 0 then
-      FileStream.Read(ProgramTitleBuffer[1], Len);
-    Result.ProgramTitle := ProgramTitleBuffer;
+    Result.ProgramTitle := ReadLenString(FileStream);
 
     // 2. Read Instructions
     FileStream.Read(Len, SizeOf(Len));
@@ -86,13 +134,7 @@ begin
     // 3. Read StringLiterals
     FileStream.Read(Len, SizeOf(Len));
     for I := 0 to Len - 1 do
-    begin
-      FileStream.Read(KeyLength, SizeOf(KeyLength));
-      SetLength(Key, KeyLength);
-      if KeyLength > 0 then
-        FileStream.Read(Key[1], KeyLength);
-      Result.StringLiterals.Add(Key);
-    end;
+      Result.StringLiterals.Add(ReadLenString(FileStream));
 
     // 4. Read IntegerLiterals
     FileStream.Read(Len, SizeOf(Len));
@@ -101,42 +143,10 @@ begin
       FileStream.Read(TempIntLiterals[0], Len * SizeOf(Int64));
     Result.IntegerLiterals := TempIntLiterals;
 
-    // 5. Read VariableMap
-    FileStream.Read(Len, SizeOf(Len));
-    for I := 0 to Len - 1 do
-    begin
-      FileStream.Read(KeyLength, SizeOf(KeyLength));
-      SetLength(Key, KeyLength);
-      if KeyLength > 0 then
-        FileStream.Read(Key[1], KeyLength);
-      FileStream.Read(Value, SizeOf(Value));
-      Result.VariableMap.Add(Key, Value);
-    end;
-
-    // 6. Read SubroutineMap
-    FileStream.Read(Len, SizeOf(Len));
-    for I := 0 to Len - 1 do
-    begin
-      FileStream.Read(KeyLength, SizeOf(KeyLength));
-      SetLength(Key, KeyLength);
-      if KeyLength > 0 then
-        FileStream.Read(Key[1], KeyLength);
-      FileStream.Read(Value, SizeOf(Value));
-      Result.SubroutineMap.Add(Key, Value);
-    end;
-
-    // 7. Read FormMap
-    FileStream.Read(Len, SizeOf(Len));
-    for I := 0 to Len - 1 do
-    begin
-      FileStream.Read(KeyLength, SizeOf(KeyLength));
-      SetLength(Key, KeyLength);
-      if KeyLength > 0 then
-        FileStream.Read(Key[1], KeyLength);
-      FileStream.Read(Value, SizeOf(Value));
-      Result.FormMap.Add(Key, Value);
-    end;
-
+    // 5-7. Read VariableMap, SubroutineMap, FormMap
+    ReadStringIntMap(FileStream, Result.VariableMap);
+    ReadStringIntMap(FileStream, Result.SubroutineMap);
+    ReadStringIntMap(FileStream, Result.FormMap);
   finally
     FileStream.Free;
   end;
@@ -146,19 +156,14 @@ procedure TBytecodeGenerator.SaveProgramToFile(AProgram: TByteCodeProgram; const
 var
   FileStream: TFileStream;
   Len: LongInt;
-  I, KeyLength: Integer;
-  Key: AnsiString;
-  Value: LongInt;
+  I: Integer;
   TempInstructions: TBCInstructionArray;
   TempIntLiterals: TIntegerLiteralArray;
 begin
   FileStream := TFileStream.Create(OutputFilePath, fmCreate);
   try
     // 1. Write ProgramTitle
-    Len := Length(AProgram.ProgramTitle);
-    FileStream.Write(Len, SizeOf(Len));
-    if Len > 0 then
-      FileStream.Write(AProgram.ProgramTitle[1], Len);
+    WriteLenString(FileStream, AProgram.ProgramTitle);
 
     // 2. Write Instructions
     TempInstructions := AProgram.Instructions;
@@ -171,13 +176,7 @@ begin
     Len := AProgram.StringLiterals.Count;
     FileStream.Write(Len, SizeOf(Len));
     for I := 0 to AProgram.StringLiterals.Count - 1 do
-    begin
-      Key := AProgram.StringLiterals[I];
-      KeyLength := Length(Key);
-      FileStream.Write(KeyLength, SizeOf(KeyLength));
-      if KeyLength > 0 then
-        FileStream.Write(Key[1], KeyLength);
-    end;
+      WriteLenString(FileStream, AProgram.StringLiterals[I]);
 
     // 4. Write IntegerLiterals
     TempIntLiterals := AProgram.IntegerLiterals;
@@ -186,50 +185,10 @@ begin
     if Len > 0 then
       FileStream.Write(TempIntLiterals[0], Len * SizeOf(Int64));
 
-    // 5. Write VariableMap
-    Len := AProgram.VariableMap.Count;
-    FileStream.Write(Len, SizeOf(Len));
-    for I := 0 to AProgram.VariableMap.Count - 1 do
-    begin
-      Key := AProgram.VariableMap.Keys[I];
-      KeyLength := Length(Key);
-      FileStream.Write(KeyLength, SizeOf(KeyLength));
-      if KeyLength > 0 then
-        FileStream.Write(Key[1], KeyLength);
-
-      Value := AProgram.VariableMap.Data[I];
-      FileStream.Write(Value, SizeOf(Value));
-    end;
-
-    // 6. Write SubroutineMap
-    Len := AProgram.SubroutineMap.Count;
-    FileStream.Write(Len, SizeOf(Len));
-    for I := 0 to AProgram.SubroutineMap.Count - 1 do
-    begin
-      Key := AProgram.SubroutineMap.Keys[I];
-      KeyLength := Length(Key);
-      FileStream.Write(KeyLength, SizeOf(KeyLength));
-      if KeyLength > 0 then
-        FileStream.Write(Key[1], KeyLength);
-
-      Value := AProgram.SubroutineMap.Data[I];
-      FileStream.Write(Value, SizeOf(Value));
-    end;
-
-    // 7. Write FormMap
-    Len := AProgram.FormMap.Count;
-    FileStream.Write(Len, SizeOf(Len));
-    for I := 0 to AProgram.FormMap.Count - 1 do
-    begin
-      Key := AProgram.FormMap.Keys[I];
-      KeyLength := Length(Key);
-      FileStream.Write(KeyLength, SizeOf(KeyLength));
-      if KeyLength > 0 then
-        FileStream.Write(Key[1], KeyLength);
-
-      Value := AProgram.FormMap.Data[I];
-      FileStream.Write(Value, SizeOf(Value));
-    end;
+    // 5-7. Write VariableMap, SubroutineMap, FormMap
+    WriteStringIntMap(FileStream, AProgram.VariableMap);
+    WriteStringIntMap(FileStream, AProgram.SubroutineMap);
+    WriteStringIntMap(FileStream, AProgram.FormMap);
   finally
     FileStream.Free;
   end;
@@ -524,13 +483,9 @@ begin
     Exit;
   end;
 
-  // If no specific action, show help
-  if (not FOptions.ShowHelp) and (not FOptions.ShowVersion) and
-     (not FOptions.CompileKayte) and (not FOptions.RunBytecode) and
-     (FOptions.InputFile = '') then
-  begin
+  // All actions above Exit when handled; reaching here means none applied.
+  if FOptions.InputFile = '' then
     ShowHelp;
-  end;
 end;
 
 procedure InitializeCLIHandler;

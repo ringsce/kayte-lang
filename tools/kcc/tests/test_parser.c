@@ -2,7 +2,6 @@
 #include <assert.h>
 
 void test_lexer(void) {
-    // Test basic tokenization
     const char *source = "int x = 42;";
     Lexer *lexer = lexer_create(source);
     

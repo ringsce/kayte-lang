@@ -87,8 +87,7 @@ end;
 
 function TKayteParser.Parse(const Content: string): string;
 begin
-  // Perform parsing logic here
-  Result := '<parsed>' + Content + '</parsed>';  // Example parsing logic
+  Result := '<parsed>' + Content + '</parsed>'; // stub
 end;
 
 function TKayteParser.ParseFunction: TKayteFunctionNode;
@@ -112,14 +111,12 @@ begin
 
       Inc(FCurrentLine);
 
-      // Parse function body
       while (FCurrentLine < FSource.Count) and (Trim(FSource[FCurrentLine]) <> 'end') do
       begin
         FuncNode.Body.Add(Trim(FSource[FCurrentLine]));
         Inc(FCurrentLine);
       end;
 
-      // Make sure we are at 'end'
       if (FCurrentLine >= FSource.Count) or (Trim(FSource[FCurrentLine]) <> 'end') then
         raise EKayteParserError.Create('Function definition not properly closed with "end".');
 
@@ -164,7 +161,6 @@ begin
         Continue;
       end;
 
-      // Parse line by line and build the AST
       Node := ParseLine(Line);
       AST.Add(Node);
 

@@ -127,7 +127,6 @@ begin
     NextCharIndex := 0;
     if NextLineIndex < FSourceCode.Count then
     begin
-      // Check if the next line is empty
       if Length(FSourceCode[NextLineIndex]) > 0 then
         Result := FSourceCode[NextLineIndex][NextCharIndex + 1]
       else
@@ -177,7 +176,8 @@ begin
     'REM', 'END', 'SUB', 'FUNCTION', 'IF', 'THEN', 'ELSE', 'ELSEIF', 'ENDIF',
     'SELECT', 'CASE', 'END SELECT', 'WHILE', 'WEND', 'FOR', 'NEXT', 'TO', 'STEP',
     'DIM', 'AS', 'REDIM', 'PRESERVE', 'CALL', 'GOTO', 'GOSUB', 'RETURN',
-    'PRINT', 'INPUT', 'MSGBOX', 'FORM', 'END FORM', 'SHOW', 'HIDE', 'STRUCT':
+    'PRINT', 'INPUT', 'MSGBOX', 'FORM', 'END FORM', 'SHOW', 'HIDE', 'STRUCT',
+    'PROCESS':
       Result := tkKeyword;
     // Boolean Literals
     'TRUE', 'FALSE':
@@ -415,21 +415,19 @@ begin
     Exit;
   end;
 
-  // Handle Operators and single-character tokens
-  // Initialize LexemeBuilder with the current character, assuming it's a single-char token
+  // Operators and single-character tokens; assume single-char until the
+  // case below says otherwise.
   LexemeBuilder := String(CurrentChar);
-  CurrentTokType := tkUnknown; // Default to unknown, will be updated in case
+  CurrentTokType := tkUnknown;
 
   case CurrentChar of
     '+', '-', '*': CurrentTokType := tkOperator;
     '/':
       begin
-        // Check if it's a comment (//) - this should have been caught earlier
-        // but just in case, we'll check here too
+        // '//' comments should already be consumed upstream of this point -
+        // seeing one here means that logic missed a case.
         if PeekChar = '/' then
         begin
-          // This is a comment, but it should have been handled earlier
-          // If we get here, something went wrong, but let's handle it gracefully
           raise Exception.CreateFmt('Lexer Error: Unexpected comment at %d:%d (should have been handled earlier)',
             [Result.Line + 1, Result.Column + 1]);
         end

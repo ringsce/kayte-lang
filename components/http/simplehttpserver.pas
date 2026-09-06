@@ -6,6 +6,9 @@ interface
 
 uses
   Classes, SysUtils, fphttpserver, HTTPDefs, fpWeb, process,
+  {$IFDEF UNIX}
+  BaseUnix,
+  {$ENDIF}
   KayteParser in '../source/KayteParser.pas'; // KayteParser processes .kayte files
 
 type
@@ -23,14 +26,118 @@ type
     destructor Destroy; override;
     procedure StartServer;
     procedure StopServer;
-    procedure StartNodeServer; // New: Starts a Node.js server
-    function CheckForNode: Boolean; // Checks if Node.js is installed
-    function CheckForNpm: Boolean;  // Checks if npm is installed
+    procedure StartNodeServer;
+    function CheckForNode: Boolean;
+    function CheckForNpm: Boolean;
   end;
 
 implementation
 
-{ Utility function to load a file into a string }
+{ Decodes percent-encoded sequences (e.g. "%2e" -> ".") in a request
+  path, so an encoded traversal attempt (e.g. "%2e%2e/") is normalized
+  before the safety check below, not just a literal ".." sequence. }
+function URLDecodePath(const S: string): string;
+var
+  I, CharCode: Integer;
+begin
+  Result := '';
+  I := 1;
+  while I <= Length(S) do
+  begin
+    if (S[I] = '%') and (I + 2 <= Length(S)) and
+       TryStrToInt('$' + Copy(S, I + 1, 2), CharCode) then
+    begin
+      Result := Result + Chr(CharCode);
+      Inc(I, 3);
+    end
+    else
+    begin
+      Result := Result + S[I];
+      Inc(I);
+    end;
+  end;
+end;
+
+{$IFDEF UNIX}
+{ ExpandFileName only normalizes "..'/"." lexically - it does not
+  follow symlinks. So a symlink planted inside BaseDir (e.g.
+  "public/escape -> /etc") would pass the textual prefix check below
+  while actually serving files outside BaseDir. This walks every path
+  component between BaseDir and the target and rejects the request if
+  any of them is a symlink, rather than trying to resolve where it
+  points - fail closed instead of chasing the link. }
+function PathHasSymlinkComponent(const BaseDir, FullPath: string): Boolean;
+var
+  Rel, Check, Part: string;
+  Info: Stat;
+  P: Integer;
+begin
+  Result := False;
+  Rel := Copy(FullPath, Length(BaseDir) + 1, MaxInt);
+  Check := ExcludeTrailingPathDelimiter(BaseDir);
+  while Length(Rel) > 0 do
+  begin
+    P := Pos(PathDelim, Rel);
+    if P = 0 then
+    begin
+      Part := Rel;
+      Rel := '';
+    end
+    else
+    begin
+      Part := Copy(Rel, 1, P - 1);
+      Rel := Copy(Rel, P + 1, MaxInt);
+    end;
+    if Part = '' then
+      Continue;
+    Check := Check + PathDelim + Part;
+    if (FpLStat(Check, Info) = 0) and FPS_ISLNK(Info.st_mode) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+{$ENDIF}
+
+{ Resolves a request URI to a file path confined to BaseDir, refusing
+  to leave BaseDir via "..", encoded traversal sequences, backslashes,
+  NUL bytes, or a symlink planted inside BaseDir that points outside
+  it. Returns '' if the resulting path would fall outside BaseDir.
+  Fixes a directory-traversal bug where ARequest.URI was concatenated
+  directly into a file path with no containment check, letting a
+  request like "GET /../../../../etc/passwd" read any file readable
+  by the server process. }
+function SafeResolvePath(const BaseDir, RequestURI: string): string;
+var
+  CleanURI, Decoded, Candidate, ExpandedBase, ExpandedCandidate: string;
+  QueryPos: Integer;
+begin
+  Result := '';
+  CleanURI := RequestURI;
+  QueryPos := Pos('?', CleanURI);
+  if QueryPos > 0 then
+    CleanURI := Copy(CleanURI, 1, QueryPos - 1);
+
+  Decoded := URLDecodePath(CleanURI);
+  if (Pos(#0, Decoded) > 0) or (Pos('\', Decoded) > 0) then
+    Exit;
+
+  Candidate := BaseDir + Decoded;
+  ExpandedBase := IncludeTrailingPathDelimiter(ExpandFileName(BaseDir));
+  ExpandedCandidate := ExpandFileName(Candidate);
+
+  if Copy(ExpandedCandidate, 1, Length(ExpandedBase)) <> ExpandedBase then
+    Exit;
+
+  {$IFDEF UNIX}
+  if PathHasSymlinkComponent(ExpandedBase, ExpandedCandidate) then
+    Exit;
+  {$ENDIF}
+
+  Result := ExpandedCandidate;
+end;
+
 function LoadFileAsString(const FileName: string): string;
 var
   FileStream: TFileStream;
@@ -48,7 +155,6 @@ begin
   end;
 end;
 
-{ Helper function to check if a command-line tool exists }
 function CheckForTool(const ToolName: string): Boolean;
 var
   P: TProcess;
@@ -58,7 +164,7 @@ begin
   try
     P := TProcess.Create(nil);
     P.Executable := ToolName;
-    P.Parameters.Add('-v'); // Use -v for version check, a common practice
+    P.Parameters.Add('-v'); // most CLI tools accept -v for a version check
     P.Options := [poUsePipes, poNoConsole]; // Hide console output
     P.Execute;
     if P.ExitStatus = 0 then
@@ -82,17 +188,12 @@ end;
 destructor TSimpleHTTPServer.Destroy;
 begin
   FreeAndNil(FServer);
-  if Assigned(FNodeProcess) then
-  begin
-    // The TProcess destructor handles termination, so we can
-    // safely remove the explicit Terminate call to fix the compile error.
-    // FNodeProcess.Terminate;
-  end;
+  // TProcess's own destructor already handles terminating the process,
+  // so there's no need to call Terminate explicitly here
   FreeAndNil(FNodeProcess);
   inherited Destroy;
 end;
 
-{ Parses a .kayte file and returns its HTML representation }
 function TSimpleHTTPServer.ParseKayteFile(const FilePath: string): string;
 var
   KayteContent: string;
@@ -104,34 +205,32 @@ begin
     KayteContent := LoadFileAsString(FilePath);
 
     KayteParser := TKayteParser.Create;
-    // Pass the AnsiString directly to the Parse method
     Result := KayteParser.Parse(KayteContent);
   finally
     FreeAndNil(KayteParser);
   end;
 end;
 
-{ Handles incoming HTTP requests }
 procedure TSimpleHTTPServer.OnRequestHandler(Sender: TObject; var ARequest: TFPHTTPConnectionRequest;
   var AResponse: TFPHTTPConnectionResponse);
 var
-  FilePath, ContentType: string;
+  FilePath, ContentType, RequestedURI: string;
 begin
-  FilePath := '.' + ARequest.URI;
-  if (ARequest.URI = '/') then
-    FilePath := './example.kayte'; // Default to example.kayte
+  RequestedURI := ARequest.URI;
+  if RequestedURI = '/' then
+    RequestedURI := '/example.kayte';
 
-  if FileExists(FilePath) then
+  FilePath := SafeResolvePath('.', RequestedURI);
+
+  if (FilePath <> '') and FileExists(FilePath) then
   begin
     if LowerCase(ExtractFileExt(FilePath)) = '.kayte' then
     begin
-      // Handle .kayte file and convert to HTML
       AResponse.ContentType := 'text/html';
       AResponse.Content := ParseKayteFile(FilePath);
     end
     else
     begin
-      // Handle regular files
       ContentType := 'text/html';
       if LowerCase(ExtractFileExt(FilePath)) = '.css' then
         ContentType := 'text/css'
@@ -142,7 +241,7 @@ begin
       AResponse.ContentStream := TFileStream.Create(FilePath, fmOpenRead or fmShareDenyWrite);
       // FPC automatically frees ContentStream after sending
     end;
-    AResponse.Code := 200; // OK
+    AResponse.Code := 200;
   end
   else
   begin

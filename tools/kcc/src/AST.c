@@ -362,7 +362,6 @@ void ast_print(ASTNode *node, int indent) {
 
     printf("\n");
 
-    // Print children
     switch (node->type) {
         case AST_PROGRAM:
             for (int i = 0; i < node->data.program.declaration_count; i++) {

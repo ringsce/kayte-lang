@@ -69,10 +69,7 @@ begin
   TempAssemblyFile := ChangeFileExt(SourceFile, '.asm');
 
   try
-    // Step 1: Compile Kayte Lang source to PCE assembly
     CompileToAssembly(SourceFile, TempAssemblyFile);
-
-    // Step 2: Assemble PCE assembly into a ROM
     AssembleToROM(TempAssemblyFile, OutputFile);
   finally
     if FileExists(TempAssemblyFile) then

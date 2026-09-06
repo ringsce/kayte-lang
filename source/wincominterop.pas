@@ -75,7 +75,6 @@ var
   pUnk: IUnknown;
 begin
   Result := nil;
-  // Initialize COM library for the current thread if not already initialized
   hr := CoInitialize(nil); // CoInitializeEx is often preferred
   if SUCCEEDED(hr) or (hr = S_FALSE) then // S_FALSE means already initialized
   begin

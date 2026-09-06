@@ -5,7 +5,7 @@ unit VirtualMachine;
 interface
 
 uses
-  SysUtils, Classes, TypInfo, BytecodeTypes; // BytecodeTypes unit is essential for TByteCodeProgram
+  SysUtils, Classes, TypInfo, Process, BytecodeTypes; // BytecodeTypes unit is essential for TByteCodeProgram
 
 type
   // Runtime values are dynamically typed (like a BASIC Variant), holding
@@ -52,14 +52,12 @@ implementation
 constructor TVirtualMachine.Create(AProgram: TByteCodeProgram);
 begin
   inherited Create;
-  // Store the loaded program object
   FProgram := AProgram;
-  // Initialize the instruction pointer to the start
   FInstructionPointer := 0;
   FStackTop := 0;
 
-  // Note: We don't own AProgram's memory, as it is owned and freed
-  // by the caller (TCLIHandler.RunBytecodeFile) after the VM is done.
+  // AProgram's memory isn't owned here - the caller
+  // (TCLIHandler.RunBytecodeFile) frees it after the VM is done.
 end;
 
 destructor TVirtualMachine.Destroy;
@@ -183,6 +181,9 @@ var
   MaxVarIndex, I, J: Integer;
   PrintArgs: array of TKayteValue;
   OutLine: string;
+  ProcArgs: array of TKayteValue;
+  ProcArgStrs: array of string;
+  ProcOutput: string;
 begin
   InstructionCount := Length(FProgram.Instructions);
 
@@ -316,6 +317,30 @@ begin
             FInstructionPointer := Instr.Operand1;
             Continue;
           end;
+        end;
+      BC_PROCESS:
+        begin
+          // Operand1 = pushed argument count (command + args), in order;
+          // Operand2 = destination variable index, or -1 to print output.
+          SetLength(ProcArgs, Instr.Operand1);
+          for J := Instr.Operand1 - 1 downto 0 do
+            ProcArgs[J] := Pop;
+
+          SetLength(ProcArgStrs, Instr.Operand1 - 1);
+          for J := 1 to Instr.Operand1 - 1 do
+            ProcArgStrs[J - 1] := ToDisplayString(ProcArgs[J]);
+
+          ProcOutput := '';
+          if not RunCommand(ToDisplayString(ProcArgs[0]), ProcArgStrs, ProcOutput) then
+            raise Exception.CreateFmt('Runtime Error: failed to run process "%s"', [ToDisplayString(ProcArgs[0])]);
+
+          if Instr.Operand2 >= 0 then
+          begin
+            CheckVarIndex(Instr.Operand2);
+            FVariables[Instr.Operand2] := MakeStr(ProcOutput);
+          end
+          else
+            Writeln(ProcOutput);
         end;
       BC_INPUT, BC_CALL, BC_RETURN:
         raise Exception.CreateFmt('Runtime Error: %s is not supported yet', [GetEnumName(TypeInfo(TByteCodeOp), Ord(Instr.OpCode))]);

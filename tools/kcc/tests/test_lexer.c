@@ -2,14 +2,12 @@
 #include <assert.h>
 
 void test_parser(void) {
-    // Test basic parsing
     const char *source = "int main() { return 0; }";
     Lexer *lexer = lexer_create(source);
     Parser *parser = parser_create(lexer);
-    
+
     ASTNode *ast = parser_parse_program(parser);
-    
-    // Basic checks
+
     assert(ast != NULL);
     assert(ast->type == AST_PROGRAM);
     assert(ast->data.program.declaration_count == 1);
