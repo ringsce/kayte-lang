@@ -3,7 +3,7 @@
 
 # Project Configuration
 PROJECT_NAME = kayte
-PROJECT_FILE = kayte.lpr
+PROJECT_FILE = source/kayte.lpr
 
 # FreePascal Compiler
 FPC = fpc
@@ -32,7 +32,7 @@ ARM64_STRIP = aarch64-linux-musl-strip
 AMD64_STRIP = x86_64-linux-musl-strip
 
 # Common FPC Options
-FPC_COMMON = -vh -O3 -CX -XX
+FPC_COMMON = -vh -O3 -CX -XX -Mobjfpc -Sh -Fusource -Fujvm -Fisource
 
 # ARM64 musl Compiler Options
 FPC_ARM64_OPTS = \

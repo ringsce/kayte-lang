@@ -1,0 +1,100 @@
+' Arrays and built-in functions
+'   bin/kayte --native examples/arrays.kayte -o arrays && ./arrays
+
+' DIM a(n) makes a(0) .. a(n), all 0
+DIM squares(5)
+FOR i = 0 TO UBOUND(squares)
+  squares(i) = i * i
+NEXT
+PRINT "squares:", squares, "count:", LEN(squares)
+
+' Several dimensions: an array of arrays
+DIM board(2, 2)
+FOR r = 0 TO 2
+  FOR c = 0 TO 2
+    board(r, c) = "."
+  NEXT
+NEXT
+board(1, 1) = "X"
+board(0, 2) = "O"
+FOR r = 0 TO 2
+  PRINT "  " & Join(board(r), " | ")
+NEXT
+
+' Arrays from values, from SPLIT, and growing with REDIM PRESERVE
+primes = Array(2, 3, 5, 7, 11)
+words = Split("the quick brown fox", " ")
+PRINT "third prime:", primes(2), " last word:", words(UBOUND(words))
+
+DIM evens()
+FOR n = 1 TO 10
+  IF n MOD 2 = 0 THEN
+    REDIM PRESERVE evens(UBOUND(evens) + 1)
+    evens(UBOUND(evens)) = n
+  END IF
+NEXT
+PRINT "evens:", evens
+
+' FOR EACH, and arrays passed to FUNCTIONs and SUBs
+PRINT "sum of primes:", Total(primes), " largest word:", Longest(words)
+CALL Reverse(primes) ' arrays are references: the SUB changes the caller's array
+PRINT "reversed:", primes
+copy = primes
+copy(0) = 0
+PRINT "copy is the same array:", primes(0)
+
+' Sorting an array in place
+scores = Array(42, 7, 99, 15, 63)
+CALL SortArray(scores)
+PRINT "sorted:", Join(scores, ", ")
+
+' String functions (positions start at 1, as in VB)
+title = "  Kayte Language  "
+t = Trim(title)
+PRINT "[" & t & "]", LEN(t), UCase(t), LCase(t)
+PRINT Left(t, 5), Right(t, 8), Mid(t, 7, 4), InStr(t, "Lang")
+PRINT Replace(t, "a", "@"), Chr(75) & Asc("K"), "[" & Space(2) & "]"
+PRINT "numbers:", Val("42 apples") + 1, CInt("17") * 2, Str(3) & "!", IsNumeric("12"), IsNumeric("twelve")
+PRINT "math:", Abs(-8), Sgn(-8), Min(5, 3, 9), Max(5, 3, 9), "dice:", Rnd(6) + 1 >= 1
+PRINT "types:", TypeName(1), TypeName("a"), TypeName(primes), IsArray(primes)
+
+FUNCTION Total(values)
+  DIM sum
+  FOR EACH v IN values
+    sum = sum + v
+  NEXT
+  Total = sum
+END FUNCTION
+
+FUNCTION Longest(items)
+  DIM best
+  best = ""
+  FOR EACH s IN items
+    IF LEN(s) > LEN(best) THEN best = s
+  NEXT
+  RETURN best
+END FUNCTION
+
+SUB Reverse(arr)
+  DIM i, j, tmp
+  j = UBOUND(arr)
+  FOR i = 0 TO (j - 1) \ 2
+    tmp = arr(i)
+    arr(i) = arr(j - i)
+    arr(j - i) = tmp
+  NEXT
+END SUB
+
+SUB SortArray(arr)
+  DIM i, j, tmp
+  FOR i = 1 TO UBOUND(arr)
+    tmp = arr(i)
+    j = i - 1
+    DO WHILE j >= 0
+      IF arr(j) <= tmp THEN EXIT DO
+      arr(j + 1) = arr(j)
+      j = j - 1
+    LOOP
+    arr(j + 1) = tmp
+  NEXT
+END SUB

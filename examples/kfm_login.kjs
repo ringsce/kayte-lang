@@ -1,0 +1,32 @@
+// The login form in examples/form1.kfm, driven from the JavaScript-like
+// front end - the same program as examples/kfm_login.kayte.
+// Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then, from the
+// repository root:
+//   kayte --compile examples/kfm_login.kjs -o kfm_login.bytecode
+//   kayte --run kfm_login.bytecode
+
+qt("init");
+const win = qt("loadform", "examples/form1.kfm");
+
+// Widgets are found by the id they have in the .kfm file.
+const userBox = qt("find", win, "usernameInput");
+const passBox = qt("find", win, "passwordInput");
+const message = qt("find", win, "messageLabel");
+
+qt("show", win);
+qt("run");
+print("Bye!");
+
+// Named in form1.kfm: onclick: handleLogin()
+function handleLogin() {
+  const user = qt("gettext", userBox);
+  const pass = qt("gettext", passBox);
+  if (user == "") {
+    qt("settext", message, "Please enter a username.");
+  } else if (pass != "kayte") {
+    qt("settext", message, "Wrong password (hint: kayte).");
+  } else {
+    qt("style", message, "color: green");
+    qt("settext", message, "Welcome, " + user + "!");
+  }
+}

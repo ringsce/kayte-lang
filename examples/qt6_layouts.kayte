@@ -1,0 +1,85 @@
+' Qt6 layouts - a resizable contact book, with no pixel positions.
+' Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then:
+'   kayte --compile examples/qt6_layouts.kayte -o qt6_layouts.bytecode
+'   kayte --run qt6_layouts.bytecode
+'
+' Widgets are created without x, y and placed by layouts instead, so the
+' window can be resized and everything reflows.
+
+QT "init"
+QT "window", "Kayte + Qt6 - Contacts", 420, 460 TO win
+QT "vbox", win TO main
+QT "margins", main, 12
+QT "spacing", main, 10
+
+' A titled group holding a form: "label: field" rows, labels aligned.
+QT "group", win, "New contact" TO card
+QT "form", card TO fields
+QT "edit", card, "" TO nameBox
+QT "edit", card, "" TO emailBox
+QT "combo", card TO kind
+QT "additem", kind, "Friend"
+QT "additem", kind, "Family"
+QT "additem", kind, "Work"
+QT "checkbox", card, "Favorite" TO fav
+QT "addrow", fields, "Name:", nameBox
+QT "addrow", fields, "Email:", emailBox
+QT "addrow", fields, "Group:", kind
+QT "add", fields, fav
+QT "add", main, card
+
+' Button row: the stretch pushes the buttons to the right edge.
+QT "hbox" TO buttons
+QT "stretch", buttons
+QT "button", win, "Clear" TO clearBtn
+QT "button", win, "Add contact" TO addBtn
+QT "add", buttons, clearBtn
+QT "add", buttons, addBtn
+QT "add", main, buttons
+
+' The list gets stretch factor 1, so it takes all the extra height when
+' the window grows.
+QT "list", win TO contacts
+QT "add", main, contacts, 1
+
+' Footer: a 2x2 grid - the status label spans both columns, and column 1
+' takes all the extra width so the count sits right next to its label.
+QT "grid" TO footer
+QT "colstretch", footer, 1, 1
+QT "label", win, "Count:" TO countLbl
+QT "label", win, "0" TO countVal
+QT "label", win, "Select a contact" TO status
+QT "add", footer, countLbl, 0, 0
+QT "add", footer, countVal, 0, 1
+QT "add", footer, status, 1, 0, 1, 2
+QT "add", main, footer
+
+QT "show", win
+total = 0
+
+QT "wait" TO ev
+WHILE ev <> 0
+  IF ev = addBtn THEN QT "gettext", nameBox TO who
+  IF ev = addBtn THEN IF who = "" THEN QT "message", "Missing name", "Please enter a name."
+  IF ev = addBtn THEN IF who <> "" THEN QT "gettext", emailBox TO mail
+  IF ev = addBtn THEN IF who <> "" THEN QT "gettext", kind TO grp
+  IF ev = addBtn THEN IF who <> "" THEN QT "getvalue", fav TO star
+  IF ev = addBtn THEN IF who <> "" THEN entry = who & " <" & mail & "> - " & grp
+  IF ev = addBtn THEN IF who <> "" THEN IF star = 1 THEN entry = "* " & entry
+  IF ev = addBtn THEN IF who <> "" THEN QT "additem", contacts, entry
+  IF ev = addBtn THEN IF who <> "" THEN total = total + 1
+  IF ev = addBtn THEN QT "settext", countVal, total
+
+  ' Clearing the form also follows "Add contact", ready for the next one.
+  IF ev = addBtn THEN ev = clearBtn
+  IF ev = clearBtn THEN QT "clear", nameBox
+  IF ev = clearBtn THEN QT "clear", emailBox
+  IF ev = clearBtn THEN QT "setvalue", fav, 0
+
+  IF ev = contacts THEN QT "gettext", contacts TO picked
+  IF ev = contacts THEN QT "settext", status, "Selected: " & picked
+
+  QT "wait" TO ev
+END WHILE
+
+PRINT "Bye!"

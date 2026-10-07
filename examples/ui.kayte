@@ -1,27 +1,17 @@
-// Define a top-level window element
-window main {
-  // Set window properties using key-value pairs
-  title: "Kayte GUI Demo"
-  width: 800
-  height: 600
+' A Kayte GUI: the window is declared in examples/ui.kfm and built as a
+' native Qt6 window by QT "loadform"; the click handler is the SUB below.
+' Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then, from the
+' repository root:
+'   kayte --compile examples/ui.kayte -o ui.bytecode
+'   kayte --run ui.bytecode
 
-  // Define the content of the window
-  content {
-    // Create a button widget
-    button {
-      // Assign an identifier to the button
-      id: "btnClickMe"
-      // Set the text displayed on the button
-      text: "Click Me!"
-      // Specify the function to call on a click event
-      onclick: showMessage()
-    }
-  }
-}
+QT "init"
+QT "loadform", "examples/ui.kfm" TO win
+QT "show", win
+QT "run"
 
-// Define the function that is called when the button is clicked
-function showMessage() {
-  // Use a built-in function to display a message, for example,
-  // in a pop-up dialog or the console
-  print("Button clicked!");
-}
+' Called when the button is clicked (onclick: showMessage() in ui.kfm)
+SUB showMessage()
+  PRINT "Button clicked!"
+  QT "message", "Kayte GUI Demo", "Button clicked!"
+END SUB

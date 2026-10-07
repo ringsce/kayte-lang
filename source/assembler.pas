@@ -34,6 +34,8 @@ type
     // jumps once the target address is known (e.g. the end of an IF's
     // THEN-branch, or a loop's exit point).
     procedure PatchJumpTarget(InstrIndex: Integer; Target: Integer);
+    // Overwrites an instruction (e.g. a BC_NOP placeholder) with Op, Operand1.
+    procedure ReplaceInstruction(InstrIndex: Integer; Op: TByteCodeOp; Operand1: Integer);
     // Returns the program being built, without transferring ownership.
     // Safe to call repeatedly while parsing is still in progress.
     function CurrentProgram: TByteCodeProgram;
@@ -119,6 +121,20 @@ begin
   if (InstrIndex < 0) or (InstrIndex >= Length(Instructions)) then
     raise Exception.CreateFmt('Assembler Error: Cannot patch out-of-range instruction %d.', [InstrIndex]);
   Instructions[InstrIndex].Operand1 := Target;
+  FProgram.Instructions := Instructions;
+end;
+
+procedure TAssembler.ReplaceInstruction(InstrIndex: Integer; Op: TByteCodeOp; Operand1: Integer);
+var
+  Instructions: TBCInstructionArray;
+begin
+  Instructions := FProgram.Instructions;
+  if (InstrIndex < 0) or (InstrIndex >= Length(Instructions)) then
+    raise Exception.CreateFmt('Assembler Error: Cannot replace out-of-range instruction %d.', [InstrIndex]);
+  Instructions[InstrIndex].OpCode := Op;
+  Instructions[InstrIndex].Operand1 := Operand1;
+  Instructions[InstrIndex].Operand2 := 0;
+  Instructions[InstrIndex].Operand3 := 0;
   FProgram.Instructions := Instructions;
 end;
 

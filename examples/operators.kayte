@@ -1,0 +1,115 @@
+' Operators and branching in BASIC-style Kayte: AND / OR / XOR / NOT, MOD,
+' integer division \,
+' SELECT CASE, and EXIT FOR / EXIT WHILE / EXIT SUB.
+'   kayte --compile examples/operators.kayte -o operators.bytecode
+'   kayte --run operators.bytecode
+
+' AND / OR / NOT
+x = 5
+IF x > 1 AND x < 9 THEN PRINT "in range"
+IF x < 1 OR x = 5 THEN PRINT "or works"
+IF NOT x = 4 THEN PRINT "NOT binds looser than ="
+PRINT "and/or values:", 2 AND 3, 0 OR 0, 1 AND 0 OR 1, NOT 0
+' the right side would divide by zero if it were evaluated
+IF 0 AND 1 / 0 = 1 THEN PRINT "never"
+IF 1 OR 1 / 0 = 1 THEN PRINT "short-circuit ok"
+
+' MOD
+PRINT "mod:", 17 MOD 5, -17 MOD 5, 17 MOD -5, 2 + 7 MOD 4 * 1, (2 + 7) MOD 4
+out = ""
+FOR i = 1 TO 15
+  IF i MOD 15 = 0 THEN
+    out = out & "FizzBuzz "
+  ELSEIF i MOD 3 = 0 THEN
+    out = out & "Fizz "
+  ELSEIF i MOD 5 = 0 THEN
+    out = out & "Buzz "
+  ELSE
+    out = out & i & " "
+  END IF
+NEXT
+PRINT out
+
+' SELECT CASE
+FOR n = 0 TO 12 STEP 3
+  SELECT CASE n
+    CASE 0
+      PRINT n, "zero"
+    CASE 1, 2, 3
+      PRINT n, "small"
+    CASE 4 TO 7
+      PRINT n, "medium"
+    CASE IS >= 11
+      PRINT n, "big"
+    CASE ELSE
+      PRINT n, "other"
+  END SELECT
+NEXT
+c = "b"
+SELECT CASE c
+  CASE "a"
+    PRINT "letter a"
+  CASE "b", "c"
+    PRINT "letter b or c"
+END SELECT
+SELECT CASE 99
+  CASE 1
+    PRINT "no"
+END SELECT
+PRINT "no case matched, continued"
+SELECT CASE x
+  CASE < 3
+    PRINT "lt 3"
+  CASE > 3
+    SELECT CASE x MOD 2
+      CASE 1
+        PRINT "x > 3 and odd"
+      CASE ELSE
+        PRINT "x > 3 and even"
+    END SELECT
+END SELECT
+
+' EXIT FOR / EXIT WHILE / EXIT SUB, WEND
+FOR i = 1 TO 100
+  IF i * i > 50 THEN EXIT FOR
+NEXT i
+PRINT "first square over 50 at i =", i
+found = 0
+FOR a = 1 TO 10
+  k = 0
+  WHILE k < 10
+    k = k + 1
+    IF a * k = 42 THEN
+      found = a * 100 + k
+      EXIT FOR
+    END IF
+  WEND
+NEXT a
+PRINT "EXIT FOR from inside a WHILE:", found
+w = 0
+WHILE TRUE
+  w = w + 1
+  IF w = 7 THEN EXIT WHILE
+END WHILE
+PRINT "EXIT WHILE at", w
+CALL Early(1)
+CALL Early(2)
+
+SUB Early(v)
+  IF v = 1 THEN EXIT SUB
+  PRINT "Early ran to the end with", v
+END SUB
+
+' XOR
+PRINT "xor table:", 0 XOR 0, 0 XOR 1, 1 XOR 0, 1 XOR 1
+PRINT "xor of truthy values:", 5 XOR 0, 5 XOR 7, "" XOR 0
+a = 3
+b = 8
+IF a > 1 XOR b > 10 THEN PRINT "exactly one is true"
+' XOR binds looser than OR: (1 OR 0) XOR 1 = 0
+PRINT "1 OR 0 XOR 1 =", 1 OR 0 XOR 1
+
+' integer division
+PRINT "17 \ 5 =", 17 \ 5, " -17 \ 5 =", -17 \ 5
+' VB precedence: * / bind tighter than \, which binds tighter than MOD
+PRINT "2 * 9 \ 4 =", 2 * 9 \ 4, " 20 \ 3 MOD 4 =", 20 \ 3 MOD 4

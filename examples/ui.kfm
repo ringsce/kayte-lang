@@ -1,0 +1,22 @@
+// The window for examples/ui.kayte, loaded with QT "loadform".
+
+// Define a top-level window element
+window main {
+  // Set window properties using key-value pairs
+  title: "Kayte GUI Demo"
+  width: 800
+  height: 600
+
+  // Define the content of the window
+  content {
+    // Create a button widget
+    button {
+      // Assign an identifier to the button
+      id: "btnClickMe"
+      // Set the text displayed on the button
+      text: "Click Me!"
+      // Specify the SUB to call on a click event
+      onclick: showMessage()
+    }
+  }
+}

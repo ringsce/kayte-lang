@@ -1,0 +1,96 @@
+' Error handling: TRY / CATCH / THROW
+'   bin/kayte --native examples/try_catch.kayte -o try_catch && ./try_catch
+
+' Runtime errors are caught; e is the message
+TRY
+  PRINT "10 / 0 ="
+  PRINT 10 / 0
+  PRINT "not printed"
+CATCH e
+  PRINT "  caught:", e
+END TRY
+
+DIM slots(2)
+TRY
+  slots(3) = "x"
+CATCH err AS Exception           ' VB.NET style; e.Message works too
+  PRINT "  caught:", err.Message
+END TRY
+
+' THROW raises your own errors - also from inside FUNCTIONs
+FOR EACH text IN Array("42", "-7", "abc", "1000")
+  TRY
+    PRINT text, "->", ParseAge(text)
+  CATCH e
+    PRINT text, "-> invalid:", e
+  END TRY
+NEXT
+
+' An error deep inside nested calls jumps straight to the CATCH;
+' each FUNCTION's local variables are restored on the way out.
+PRINT "search:", FindPath(4)
+
+' Re-throwing, and errors inside a CATCH, go to the next TRY out
+TRY
+  TRY
+    THROW "disk full"
+  CATCH e
+    PRINT "  logging:", e
+    THROW                          ' re-throw the same error
+  END TRY
+CATCH e
+  PRINT "  handled further out:", e
+END TRY
+
+' Leaving a TRY with EXIT / CONTINUE is fine
+attempts = 0
+DO
+  attempts = attempts + 1
+  TRY
+    IF attempts < 3 THEN THROW "try again"
+    EXIT DO
+  CATCH e
+    PRINT "  attempt", attempts, "failed:", e
+  END TRY
+LOOP
+PRINT "succeeded after", attempts, "attempts"
+
+' FINALLY runs however the block is left: normally, after CATCH,
+' when the error goes on to an outer TRY, or by RETURN / EXIT
+PRINT "Withdraw(50):", Withdraw(50)
+TRY
+  PRINT "Withdraw(500):", Withdraw(500)
+CATCH e
+  PRINT "  caller caught:", e
+END TRY
+
+' Without a TRY, an error ends the program with exit code 1
+PRINT "last: an uncaught THROW"
+THROW "goodbye"
+
+FUNCTION ParseAge(text)
+  IF NOT IsNumeric(text) THEN THROW "'" & text & "' is not a number"
+  ParseAge = CInt(text)
+  IF ParseAge < 0 OR ParseAge > 150 THEN THROW "age out of range"
+END FUNCTION
+
+FUNCTION Withdraw(amount)
+  PRINT "  [lock account]"
+  TRY
+    IF amount > 100 THEN THROW "not enough money for " & amount
+    RETURN 100 - amount
+  FINALLY
+    PRINT "  [unlock account]"     ' also on RETURN and on the error
+  END TRY
+END FUNCTION
+
+FUNCTION FindPath(depth)
+  DIM here
+  here = "level" & depth
+  IF depth = 0 THEN THROW "dead end"
+  TRY
+    FindPath = FindPath(depth - 1)
+  CATCH e
+    FindPath = e & ", backed out to " & here
+  END TRY
+END FUNCTION

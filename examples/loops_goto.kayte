@@ -1,0 +1,138 @@
+' DO ... LOOP (all five forms, EXIT DO), CONTINUE FOR / WHILE / DO, GOTO with labels, ":" between
+' statements and VB-style calls without parentheses.
+'   kayte --compile examples/loops_goto.kayte -o loops_goto.bytecode
+'   kayte --run loops_goto.bytecode
+
+i = 0
+DO WHILE i < 3
+  i = i + 1
+LOOP
+PRINT "DO WHILE:", i
+
+j = 0
+DO UNTIL j = 4
+  j = j + 1
+LOOP
+PRINT "DO UNTIL:", j
+
+k = 10
+DO
+  k = k + 1
+LOOP WHILE k < 5
+PRINT "LOOP WHILE runs the body once even if false:", k
+
+m = 0
+DO
+  m = m + 2
+LOOP UNTIL m >= 7
+PRINT "LOOP UNTIL:", m
+
+n = 0
+DO
+  n = n + 1
+  IF n = 6 THEN EXIT DO
+LOOP
+PRINT "EXIT DO at", n
+
+' EXIT DO from inside a FOR nested in the DO
+hits = 0
+DO
+  FOR q = 1 TO 10
+    hits = hits + 1
+    IF hits = 4 THEN EXIT DO
+  NEXT
+LOOP
+PRINT "EXIT DO through a FOR:", hits
+
+' GOTO: forward, backward, out of a loop, inside a function
+count = 0
+again:
+count = count + 1
+IF count < 3 THEN GOTO again
+PRINT "GOTO back:", count
+
+GOTO skip
+PRINT "this line is skipped"
+skip:
+PRINT "GOTO forward"
+
+FOR r = 1 TO 100
+  IF r * r > 30 THEN GOTO found
+NEXT
+found: PRINT "GOTO out of a FOR at r =", r
+
+PRINT "FirstDivisor(91) =", FirstDivisor(91)
+
+' ":" separates statements; VB-style calls without parentheses
+a = 1 : b = 2 : PRINT "colon-separated:", a + b
+Greet "Ada", 2
+Hello
+
+' CONTINUE FOR: skip the evens; the step still runs
+odds = ""
+FOR i = 1 TO 9
+  IF i MOD 2 = 0 THEN CONTINUE FOR
+  odds = odds & i & " "
+NEXT
+PRINT "odds:", odds
+
+' CONTINUE WHILE: re-tests the condition
+n = 0
+kept = 0
+WHILE n < 10
+  n = n + 1
+  IF n MOD 3 = 0 THEN CONTINUE WHILE
+  kept = kept + 1
+END WHILE
+PRINT "kept (not multiples of 3):", kept
+
+' CONTINUE DO, with the condition at the bottom and at the top
+m = 0
+sum = 0
+DO
+  m = m + 1
+  IF m = 2 THEN CONTINUE DO
+  sum = sum + m
+LOOP WHILE m < 5
+PRINT "sum 1..5 without 2:", sum
+t = 0
+skipped = 0
+DO UNTIL t >= 6
+  t = t + 1
+  IF t < 4 THEN
+    skipped = skipped + 1
+    CONTINUE DO
+  END IF
+LOOP
+PRINT "DO UNTIL with CONTINUE: t =", t, "skipped", skipped
+
+' CONTINUE FOR from inside a nested WHILE
+pairs = 0
+FOR x = 1 TO 3
+  y = 0
+  WHILE y < 3
+    y = y + 1
+    IF y = 2 THEN CONTINUE FOR
+    pairs = pairs + 1
+  END WHILE
+NEXT
+PRINT "pairs before y = 2 in each x:", pairs
+
+FUNCTION FirstDivisor(v)
+  DIM d
+  d = 2
+check:
+  IF v MOD d = 0 THEN GOTO done
+  d = d + 1
+  GOTO check
+done:
+  FirstDivisor = d
+END FUNCTION
+
+SUB Greet(who, times)
+  PRINT "hello", who, times
+END SUB
+
+SUB Hello
+  PRINT "hello with no arguments"
+END SUB

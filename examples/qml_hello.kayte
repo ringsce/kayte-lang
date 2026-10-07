@@ -1,0 +1,20 @@
+' Qt6 QML - the smallest QML program: the scene is inline QML source, and
+' Kayte polls for its events like examples/qt6_hello.kayte does. QML
+' statements start Qt themselves - no "init" needed.
+' Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then:
+'   kayte --compile examples/qml_hello.kayte -o qml_hello.bytecode
+'   kayte --run qml_hello.bytecode
+
+QML "source", "import QtQuick; import QtQuick.Controls; ApplicationWindow { width: 320; height: 160; title: 'Kayte + QML'; Column { anchors.centerIn: parent; spacing: 12; Label { objectName: 'greeting'; text: 'Drag the slider'; font.pixelSize: 20 } Slider { objectName: 'slider'; from: 0; to: 100; stepSize: 1 } } }" TO win
+QML "find", win, "greeting" TO greeting
+QML "find", win, "slider" TO slider
+QML "connect", slider, "moved" TO moved
+QML "show", win
+
+QML "wait" TO ev
+WHILE ev <> 0
+  IF ev = moved THEN QML "get", slider, "value" TO v
+  IF ev = moved THEN QML "set", greeting, "text", "Value: " & v
+  QML "wait" TO ev
+END WHILE
+PRINT "Bye!"

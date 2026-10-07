@@ -1,0 +1,92 @@
+' ByRef parameters in BASIC-style Kayte: a procedure's changes to a ByRef
+' parameter are copied back into the variable the caller passed.
+'   kayte --compile examples/byref.kayte -o byref.bytecode
+'   kayte --run byref.bytecode
+
+a = 1
+b = 2
+CALL Swap(a, b)                 ' called before Swap is defined
+PRINT "after swap:", a, b
+
+x = 10
+Bump(x)
+Bump(x)
+PRINT "bumped twice:", x
+
+' ByRef and ByVal side by side
+p = 5
+q = 5
+CALL Mixed(p, q)
+PRINT "ByRef p changed:", p, " ByVal q unchanged:", q
+
+' literal and expression arguments get a temporary copy, nothing to write back
+Bump(7)
+y = 3
+Bump(y + 1)
+PRINT "y unchanged by Bump(y + 1):", y
+
+' struct fields
+STRUCT Point
+  X AS Integer
+  Y AS Integer
+END STRUCT
+DIM pt AS Point
+pt.X = 1
+pt.Y = 9
+CALL Swap(pt.X, pt.Y)
+PRINT "swapped point:", pt.X, pt.Y
+
+' a FUNCTION returning a value and setting a ByRef output
+remainder = 0
+quotient = DivMod(17, 5, remainder)
+PRINT "17 / 5 =", quotient, "remainder", remainder
+
+' ByRef through recursion: sums 1..n into the caller's variable
+total = 0
+CALL SumInto(5, total)
+PRINT "sum 1..5 into total:", total
+
+' a function's own local passed ByRef
+PRINT "local counter:", CountTo(4)
+
+' swap later in the file (after the definition) works too
+s1 = "left"
+s2 = "right"
+CALL Swap(s1, s2)
+PRINT "strings:", s1, s2
+
+SUB Swap(ByRef first, ByRef second)
+  DIM t
+  t = first
+  first = second
+  second = t
+END SUB
+
+SUB Bump(ByRef n)
+  n = n + 1
+END SUB
+
+SUB Mixed(ByRef r, ByVal v)
+  r = r * 10
+  v = v * 10
+END SUB
+
+FUNCTION DivMod(a, b, ByRef rest)
+  rest = a MOD b
+  DivMod = a \ b
+END FUNCTION
+
+SUB SumInto(n, ByRef acc)
+  IF n = 0 THEN EXIT SUB
+  acc = acc + n
+  CALL SumInto(n - 1, acc)
+END SUB
+
+FUNCTION CountTo(limit)
+  DIM c, i
+  c = 0
+  FOR i = 1 TO limit
+    Bump(c)
+  NEXT
+  CountTo = c
+END FUNCTION

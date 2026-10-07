@@ -6,22 +6,22 @@
 # containers for Apple silicon Macs — https://github.com/apple/container),
 # uses it to build a Debian Linux image with FreePascal (fpc) and a
 # headless Lazarus IDE 4.x toolchain (lazbuild), then builds Kayte
-# (projects/kayte.lpi) inside that container.
+# (source/kayte.lpi) inside that container.
 #
 # Debian ships fpc directly (no extra repos needed) but has no `lazarus`
 # apt package, so Lazarus is built from source. Only `lazbuild` itself is
 # built with LCL_PLATFORM=nogui (it doesn't render UI) - but the image
 # also carries GTK2 dev packages so lazbuild can compile the real LCL
-# package on demand for GUI projects like projects/vb6interpreter.lpi.
+# package on demand for GUI projects like source/vb6interpreter.lpi.
 #
 # Usage:
 #   scripts/build-kayte-debian-container.sh [command]
 #
 # Commands:
 #   build   (default) install/start the container runtime, build the
-#           builder image if missing, compile projects/kayte.lpi inside
+#           builder image if missing, compile source/kayte.lpi inside
 #           it, and copy the resulting Linux binary out.
-#   vb6     same, but for projects/vb6interpreter.lpi (a GTK2 LCL app -
+#   vb6     same, but for source/vb6interpreter.lpi (a GTK2 LCL app -
 #           the produced binary needs a display, X11/Wayland or Xvfb, to
 #           actually render forms).
 #   image   only (re)build the builder image.
@@ -165,7 +165,8 @@ build_image() {
 }
 
 image_exists() {
-    container image list --format json 2>/dev/null | grep -q "\"$IMAGE_NAME\""
+    # (the JSON listing names images with their tag: "name:latest")
+    container image list 2>/dev/null | awk 'NR > 1 { print $1 }' | grep -qx "$IMAGE_NAME"
 }
 
 ensure_image() {
@@ -178,7 +179,7 @@ ensure_image() {
 
 compile_kayte() {
     mkdir -p "$OUT_DIR"
-    print_info "Building projects/kayte.lpi inside $IMAGE_NAME..."
+    print_info "Building source/kayte.lpi inside $IMAGE_NAME..."
     container run --rm \
         --name "$CONTAINER_NAME" \
         -v "$REPO_ROOT:/workspace" \
@@ -187,9 +188,8 @@ compile_kayte() {
         -lc "rm -f lib/libkaytearm64elf.so \
             && make elf \
             && cp -f lib/libkaytearm64elf.so /usr/local/lib/ \
-            && cd projects \
-            && lazbuild --lazarusdir=/opt/lazarus kayte.lpi \
-            && cp -f kayte /workspace/build/debian/kayte \
+            && cd source \
+            && lazbuild --lazarusdir=/opt/lazarus --opt=-o/workspace/build/debian/kayte kayte.lpi \
             && cp -f /workspace/lib/libkaytearm64elf.so /workspace/build/debian/"
 
     if [ -f "$OUT_DIR/kayte" ]; then
@@ -205,14 +205,13 @@ compile_kayte() {
 
 compile_vb6interpreter() {
     mkdir -p "$OUT_DIR"
-    print_info "Building projects/vb6interpreter.lpi inside $IMAGE_NAME..."
+    print_info "Building source/vb6interpreter.lpi inside $IMAGE_NAME..."
     container run --rm \
         --name "$CONTAINER_NAME" \
         -v "$REPO_ROOT:/workspace" \
-        -w /workspace/projects \
+        -w /workspace/source \
         "$IMAGE_NAME" \
-        -lc "lazbuild --lazarusdir=/opt/lazarus vb6interpreter.lpi \
-            && cp -f vb6interpreter /workspace/build/debian/vb6interpreter-linux-arm64"
+        -lc "lazbuild --lazarusdir=/opt/lazarus --opt=-o/workspace/build/debian/vb6interpreter-linux-arm64 vb6interpreter.lpi"
 
     if [ -f "$OUT_DIR/vb6interpreter-linux-arm64" ]; then
         print_success "Built: $OUT_DIR/vb6interpreter-linux-arm64"
@@ -297,9 +296,9 @@ Usage: $(basename "$0") [command]
 
 Commands:
   build   (default) install/start the container runtime, build the
-          builder image if missing, compile projects/kayte.lpi inside
+          builder image if missing, compile source/kayte.lpi inside
           it, and copy the resulting Linux binary out.
-  vb6     same, but for projects/vb6interpreter.lpi (a GTK2 LCL app -
+  vb6     same, but for source/vb6interpreter.lpi (a GTK2 LCL app -
           the produced binary needs a display, X11/Wayland or Xvfb, to
           actually render forms).
   image   only (re)build the builder image.

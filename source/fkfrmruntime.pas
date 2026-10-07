@@ -8,8 +8,8 @@ uses
   Classes, SysUtils, Forms, Controls, StdCtrls,
   Contnrs,             // <-- for TObjectList
   UKfrmTypes,
-  UKfrmParser in '../Parser/UKfrmParser.pas',         // <-- real (or stub) parser
-  UKfrmRenderer in '../Renderer/UKfrmRenderer.pas',       // <-- renderer unit already in project path (KEEP HERE)
+  UKfrmParser in '../kfrm/parser/UKfrmParser.pas',         // <-- real (or stub) parser
+  UKfrmRenderer in '../kfrm/renderer/UKfrmRenderer.pas',       // <-- renderer unit already in project path (KEEP HERE)
   UEventRouter;
 
 type

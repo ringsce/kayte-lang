@@ -8,7 +8,7 @@
 # binaries are built directly on the host - no container/VM needed, since
 # we're already on macOS. This script locates fpc + lazbuild, compiles the
 # native Mach-O backend object (source/kayte_arm64_emit.c), then builds
-# Kayte (projects/kayte.lpi) with lazbuild, which statically links it in
+# Kayte (source/kayte.lpi) with lazbuild, which statically links it in
 # (see source/kaytearm64.pas).
 #
 # Usage:
@@ -16,12 +16,14 @@
 #
 # Commands:
 #   build   (default) compile the native Mach-O backend object and
-#           projects/kayte.lpi, copying the resulting binary out.
-#   vb6     same, but for projects/vb6interpreter.lpi (an LCL app - on
+#           source/kayte.lpi, copying the resulting binary out.
+#   vb6     same, but for source/vb6interpreter.lpi (an LCL app - on
+#           macOS this builds against the Cocoa widgetset).
+#   webgen  same, but for source/webgen.lpi (an LCL app - on
 #           macOS this builds against the Cocoa widgetset).
 #   clean   remove build/macos and the macOS-specific intermediate files
-#           left behind in the repo (kayte_arm64_emit.o, lib/*.dylib,
-#           projects/kayte, projects/vb6interpreter, projects/lib). Does
+#           left behind in the repo (source/kayte_arm64_emit.o, lib/*.dylib,
+#           bin/kayte, bin/vb6interpreter, bin/webgen, build/units). Does
 #           NOT touch build/debian or build/alpine.
 #   help    show this usage text.
 #
@@ -123,17 +125,17 @@ ensure_lazbuild() {
 compile_kayte() {
     mkdir -p "$OUT_DIR"
 
-    # source/kaytearm64.pas statically links '../kayte_arm64_emit.o' (i.e.
+    # source/kaytearm64.pas statically links 'kayte_arm64_emit.o' (i.e.
     # a plain object file at the repo root, not a .dylib) on Darwin/AArch64
     # - see the build note at the top of that unit.
     print_info "Compiling kayte_arm64_emit.o (native Mach-O backend)..."
-    clang -c -O2 -std=c11 "$REPO_ROOT/source/kayte_arm64_emit.c" -o "$REPO_ROOT/kayte_arm64_emit.o"
+    clang -c -O2 -std=c11 "$REPO_ROOT/source/kayte_arm64_emit.c" -o "$REPO_ROOT/source/kayte_arm64_emit.o"
 
-    print_info "Building projects/kayte.lpi with lazbuild..."
-    (cd "$REPO_ROOT/projects" && "$LAZBUILD" kayte.lpi)
+    print_info "Building source/kayte.lpi with lazbuild..."
+    (cd "$REPO_ROOT/source" && "$LAZBUILD" kayte.lpi)
 
-    if [ -f "$REPO_ROOT/projects/kayte" ]; then
-        cp -f "$REPO_ROOT/projects/kayte" "$OUT_DIR/kayte"
+    if [ -f "$REPO_ROOT/bin/kayte" ]; then
+        cp -f "$REPO_ROOT/bin/kayte" "$OUT_DIR/kayte"
         print_success "Built: $OUT_DIR/kayte"
     else
         print_error "Build finished but output binary was not found."
@@ -143,21 +145,40 @@ compile_kayte() {
 
 compile_vb6interpreter() {
     mkdir -p "$OUT_DIR"
-    print_info "Building projects/vb6interpreter.lpi with lazbuild..."
+    print_info "Building source/vb6interpreter.lpi with lazbuild..."
     # Xcode's newer linker chokes on the prebuilt Cocoa LCL units shipped
     # with the Lazarus cask ("malformed method list atom ... fixups found
     # beyond the number of method entries" in cocoawsextctrls.o and
     # similar). Force the classic linker to work around it.
-    (cd "$REPO_ROOT/projects" && "$LAZBUILD" --opt="-k-ld_classic" vb6interpreter.lpi)
+    (cd "$REPO_ROOT/source" && "$LAZBUILD" --opt="-k-ld_classic" vb6interpreter.lpi)
 
-    if [ -f "$REPO_ROOT/projects/vb6interpreter" ]; then
-        cp -f "$REPO_ROOT/projects/vb6interpreter" "$OUT_DIR/vb6interpreter-macos-$(uname -m)"
+    if [ -f "$REPO_ROOT/bin/vb6interpreter" ]; then
+        cp -f "$REPO_ROOT/bin/vb6interpreter" "$OUT_DIR/vb6interpreter-macos-$(uname -m)"
         print_success "Built: $OUT_DIR/vb6interpreter-macos-$(uname -m)"
     else
         print_error "Build finished but output binary was not found."
         exit 1
     fi
 }
+
+compile_webgen() {
+    mkdir -p "$OUT_DIR"
+    print_info "Building source/webgen.lpi with lazbuild..."
+    # Xcode's newer linker chokes on the prebuilt Cocoa LCL units shipped
+    # with the Lazarus cask ("malformed method list atom ... fixups found
+    # beyond the number of method entries" in cocoawsextctrls.o and
+    # similar). Force the classic linker to work around it.
+    (cd "$REPO_ROOT/source" && "$LAZBUILD" --opt="-k-ld_classic" webgen.lpi)
+
+    if [ -f "$REPO_ROOT/bin/webgen" ]; then
+        cp -f "$REPO_ROOT/bin/webgen" "$OUT_DIR/webgen-macos-$(uname -m)"
+        print_success "Built: $OUT_DIR/webgen-macos-$(uname -m)"
+    else
+        print_error "Build finished but output binary was not found."
+        exit 1
+    fi
+}
+
 
 clean_all() {
     # Deliberately scoped to macOS-only artifacts - NOT `make clean`, which
@@ -166,11 +187,11 @@ clean_all() {
     print_info "Removing $OUT_DIR..."
     rm -rf "$OUT_DIR"
     print_info "Removing kayte_arm64_emit.o and macOS dylibs..."
-    rm -f "$REPO_ROOT/kayte_arm64_emit.o"
+    rm -f "$REPO_ROOT/source/kayte_arm64_emit.o"
     rm -f "$REPO_ROOT/lib"/*.dylib
-    print_info "Removing lazbuild output binaries and units left in projects/..."
-    rm -f "$REPO_ROOT/projects/kayte" "$REPO_ROOT/projects/vb6interpreter"
-    rm -rf "$REPO_ROOT/projects/lib"
+    print_info "Removing lazbuild output binaries (bin/) and units (build/units/)..."
+    rm -f "$REPO_ROOT/bin/kayte" "$REPO_ROOT/bin/vb6interpreter" "$REPO_ROOT/bin/webgen"
+    rm -rf "$REPO_ROOT/build/units"
     print_success "Clean."
 }
 
@@ -187,6 +208,12 @@ case "$COMMAND" in
         ensure_lazbuild
         compile_vb6interpreter
         ;;
+    webgen)
+        require_host
+        ensure_fpc
+        ensure_lazbuild
+        compile_webgen
+        ;;
     clean)
         require_host
         clean_all
@@ -197,15 +224,17 @@ Usage: $(basename "$0") [command]
 
 Commands:
   build   (default) build the Mach-O native backend lib and compile
-          projects/kayte.lpi, copying the resulting binary out.
-  vb6     same, but for projects/vb6interpreter.lpi (an LCL app - on
+          source/kayte.lpi, copying the resulting binary out.
+  vb6     same, but for source/vb6interpreter.lpi (an LCL app - on
+          macOS this builds against the Cocoa widgetset).
+  webgen  same, but for source/webgen.lpi (an LCL app - on
           macOS this builds against the Cocoa widgetset).
   clean   remove build/macos and the intermediate object/unit files
           left behind in the repo.
 EOF
         ;;
     *)
-        print_error "Unknown command: $COMMAND (expected: build|vb6|clean|help)"
+        print_error "Unknown command: $COMMAND (expected: build|vb6|webgen|clean|help)"
         exit 1
         ;;
 esac

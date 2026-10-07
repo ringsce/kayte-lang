@@ -1,0 +1,32 @@
+' Qt6 forms from .kfm files - the login form in examples/form1.kfm,
+' loaded the way Qt loads a Designer .ui file. The .kfm file describes
+' the widgets and names the handler (onclick: handleLogin()); this script
+' only holds the logic.
+' Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then, from the
+' repository root (the .kfm path is relative to the current directory):
+'   kayte --compile examples/kfm_login.kayte -o kfm_login.bytecode
+'   kayte --run kfm_login.bytecode
+
+QT "init"
+QT "loadform", "examples/form1.kfm" TO win
+
+' Widgets are found by the id they have in the .kfm file.
+QT "find", win, "usernameInput" TO userBox
+QT "find", win, "passwordInput" TO passBox
+QT "find", win, "messageLabel" TO message
+
+QT "show", win
+QT "run"
+PRINT "Bye!"
+
+' Named in form1.kfm: onclick: handleLogin()
+SUB handleLogin()
+  QT "gettext", userBox TO user
+  QT "gettext", passBox TO pass
+  IF user = "" THEN QT "settext", message, "Please enter a username."
+  IF user = "" THEN RETURN
+  IF pass <> "kayte" THEN QT "settext", message, "Wrong password (hint: kayte)."
+  IF pass <> "kayte" THEN RETURN
+  QT "style", message, "color: green"
+  QT "settext", message, "Welcome, " & user & "!"
+END SUB

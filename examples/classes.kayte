@@ -1,0 +1,169 @@
+' Classes: fields, methods, constructors, properties, objects in arrays
+'   bin/kayte --native examples/classes.kayte -o classes && ./classes
+
+DIM acct AS NEW Account("Ada", 100)
+acct.Deposit 50
+acct.Withdraw 30
+PRINT acct.Owner, "has", acct.Balance, "after", acct.Transactions, "transactions"
+acct.Owner = "Ada Lovelace"          ' a field can be set directly
+PRINT "renamed:", acct.Describe()
+
+' Objects are references, and Nothing (0) until set
+DIM other AS Account
+PRINT "other is Nothing:", other Is Nothing
+SET other = acct
+other.Deposit 1
+PRINT "same object:", acct.Balance, other = acct
+
+' Properties look like fields but run code
+t = NEW Temperature
+t.Celsius = 25
+PRINT t.Celsius, "C is", t.Fahrenheit, "F"
+t.Fahrenheit = 212
+PRINT t.Fahrenheit, "F is", t.Celsius, "C"
+
+' Different classes with the same methods can be used the same way
+DIM shapes(2)
+shapes(0) = NEW Rect(3, 4)
+shapes(1) = NEW Square(5)
+shapes(2) = NEW Rect(1, 10)
+FOR EACH s IN shapes
+  PRINT s.Name(), "area", s.Area()
+NEXT
+PRINT "biggest:", Biggest(shapes).Name()
+
+' Objects holding objects: a linked list built with a class
+list = NEW LinkedList
+FOR i = 1 TO 4
+  list.Append i * i
+NEXT
+PRINT "list:", list.ToText(), "length", list.Count
+
+' Errors from methods can be caught
+TRY
+  acct.Withdraw 1000
+CATCH e
+  PRINT "refused:", e
+END TRY
+
+FUNCTION Biggest(items)
+  DIM best, it
+  best = items(0)
+  FOR EACH it IN items
+    IF it.Area() > best.Area() THEN best = it
+  NEXT
+  RETURN best
+END FUNCTION
+
+CLASS Account
+  PUBLIC Owner
+  PRIVATE balanceValue, history()
+
+  SUB New(name, opening)
+    Owner = name
+    balanceValue = opening
+  END SUB
+
+  SUB Deposit(amount)
+    balanceValue = balanceValue + amount
+    Record "+" & amount
+  END SUB
+
+  SUB Withdraw(amount)
+    IF amount > balanceValue THEN THROW Owner & " can't withdraw " & amount
+    balanceValue = balanceValue - amount
+    Record "-" & amount
+  END SUB
+
+  PRIVATE SUB Record(entry)
+    REDIM PRESERVE history(UBOUND(history) + 1)
+    history(UBOUND(history)) = entry
+  END SUB
+
+  PROPERTY GET Balance()
+    Balance = balanceValue
+  END PROPERTY
+
+  PROPERTY GET Transactions()
+    RETURN LEN(history)
+  END PROPERTY
+
+  FUNCTION Describe()
+    RETURN Owner & ": " & balanceValue & " " & Join(history, " ")
+  END FUNCTION
+END CLASS
+
+CLASS Temperature
+  PRIVATE c
+  PROPERTY GET Celsius()
+    RETURN c
+  END PROPERTY
+  PROPERTY LET Celsius(value)
+    c = value
+  END PROPERTY
+  PROPERTY GET Fahrenheit()
+    RETURN c * 9 / 5 + 32
+  END PROPERTY
+  PROPERTY LET Fahrenheit(value)
+    c = (value - 32) * 5 / 9
+  END PROPERTY
+END CLASS
+
+CLASS Rect
+  PUBLIC W, H
+  SUB New(width, height)
+    W = width
+    H = height
+  END SUB
+  FUNCTION Area()
+    RETURN W * H
+  END FUNCTION
+  FUNCTION Name()
+    RETURN "rect " & W & "x" & H
+  END FUNCTION
+END CLASS
+
+CLASS Square
+  PUBLIC Side
+  SUB New(s)
+    Side = s
+  END SUB
+  FUNCTION Area()
+    RETURN Side * Side
+  END FUNCTION
+  FUNCTION Name()
+    RETURN "square " & Side
+  END FUNCTION
+END CLASS
+
+CLASS ListNode
+  PUBLIC Value, NextNode
+END CLASS
+
+CLASS LinkedList
+  PRIVATE first, last
+  PUBLIC Count = 0
+
+  SUB Append(v)
+    DIM node AS NEW ListNode
+    node.Value = v
+    IF first Is Nothing THEN
+      first = node
+    ELSE
+      last.NextNode = node
+    END IF
+    last = node
+    Count = Count + 1
+  END SUB
+
+  FUNCTION ToText()
+    DIM n, s
+    s = ""
+    n = first
+    DO UNTIL n Is Nothing
+      s = s & n.Value & " "
+      n = n.NextNode
+    LOOP
+    RETURN Trim(s)
+  END FUNCTION
+END CLASS

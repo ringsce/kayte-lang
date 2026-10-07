@@ -1,0 +1,111 @@
+' FUNCTIONs with return values, local variables (DIM inside a SUB or
+' FUNCTION) and recursion in BASIC-style Kayte.
+'   kayte --compile examples/functions.kayte -o functions.bytecode
+'   kayte --run functions.bytecode
+
+PRINT "fib(20) =", Fib(20)
+PRINT "fact(10) =", Fact(10)
+PRINT "isEven(10), isOdd(7):", IsEven(10), IsOdd(7)
+PRINT "nested calls:", Add(Add(1, 2), Add(3, Twice(4)))
+PRINT "in conditions:", Max(3, 9) > 5 AND Twice(2) = 4
+
+' DIM inside a FUNCTION / SUB is local: the global n is untouched
+n = 100
+total = 0
+PRINT "sum 1..10 =", SumTo(10), " global n still", n
+
+' undeclared names are globals: a SUB can update them (event handlers rely on this)
+CALL Bump
+Bump()
+PRINT "total after two bumps:", total
+
+' recursion with a FOR loop inside (its hidden end/step values are local too)
+PRINT "permutation count of 4:", Perms(4)
+
+' RETURN / EXIT FUNCTION / function name assignment
+PRINT "grade 95, 72, 10:", Grade(95), Grade(72), Grade(10)
+PRINT "sign:", Sign(-4), Sign(0), Sign(8)
+PRINT "string function:", Greet("Ada")
+
+FUNCTION Fib(n)
+  IF n < 2 THEN RETURN n
+  RETURN Fib(n - 1) + Fib(n - 2)
+END FUNCTION
+
+FUNCTION Fact(n AS Integer) AS Integer
+  IF n <= 1 THEN
+    Fact = 1
+  ELSE
+    Fact = n * Fact(n - 1)
+  END IF
+END FUNCTION
+
+FUNCTION IsEven(n)
+  IF n = 0 THEN RETURN 1
+  RETURN IsOdd(n - 1)
+END FUNCTION
+
+FUNCTION IsOdd(n)
+  IF n = 0 THEN RETURN 0
+  RETURN IsEven(n - 1)
+END FUNCTION
+
+FUNCTION Add(a, b)
+  Add = a + b
+END FUNCTION
+
+FUNCTION Twice(ByVal x)
+  RETURN x * 2
+END FUNCTION
+
+FUNCTION Max(a, b)
+  IF a > b THEN RETURN a ELSE RETURN b
+END FUNCTION
+
+FUNCTION SumTo(limit)
+  DIM n, acc
+  acc = 0
+  FOR n = 1 TO limit
+    acc = acc + n
+  NEXT
+  SumTo = acc
+END FUNCTION
+
+SUB Bump()
+  total = total + 5
+END SUB
+
+' Counts the orderings of k items the slow way: k * Perms(k - 1), via a loop
+FUNCTION Perms(k)
+  DIM i, count
+  IF k <= 1 THEN RETURN 1
+  count = 0
+  FOR i = 1 TO k
+    count = count + Perms(k - 1)
+  NEXT i
+  RETURN count
+END FUNCTION
+
+FUNCTION Grade(score)
+  SELECT CASE score
+    CASE IS >= 90
+      Grade = "A"
+      EXIT FUNCTION
+    CASE 70 TO 89
+      Grade = "B"
+      EXIT FUNCTION
+  END SELECT
+  Grade = "F"
+END FUNCTION
+
+FUNCTION Sign(v)
+  IF v < 0 THEN
+    Sign = -1
+  ELSEIF v > 0 THEN
+    Sign = 1
+  END IF
+END FUNCTION
+
+FUNCTION Greet(who)
+  Greet = "Hello, " & who & "!"
+END FUNCTION

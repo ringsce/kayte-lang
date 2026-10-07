@@ -47,7 +47,9 @@ type
     tkParenthesisClose, // )
     tkComma,            // ,
     tkDot,              // .
-    tkColon             // :
+    tkColon,            // :
+    tkSemicolon,        // ;
+    tkFloatLiteral      // 3.14, .5, 1E-3
   );
 
   // Represents a single token found by the lexer
@@ -87,7 +89,9 @@ const
     'PARENTHESIS_CLOSE',
     'COMMA',
     'DOT',
-    'COLON'
+    'COLON',
+    'SEMICOLON',
+    'FLOAT_LITERAL'
   );
 
 implementation

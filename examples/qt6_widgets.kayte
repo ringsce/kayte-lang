@@ -1,0 +1,93 @@
+' Qt6 widget tour - a small order form.
+' Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then:
+'   kayte --compile examples/qt6_widgets.kayte -o qt6_widgets.bytecode
+'   kayte --run qt6_widgets.bytecode
+
+QT "init"
+QT "window", "Kayte + Qt6 - Orders", 380, 560 TO win
+
+' Built with layouts instead of pixel positions, so it fits any window -
+' a resized desktop window or a phone screen (scripts/build-kayte-ios.sh).
+QT "vbox", win TO main
+QT "margins", main, 12
+QT "spacing", main, 8
+
+' The order: "label: field" rows.
+QT "form" TO fields
+QT "edit", win, "" TO customer
+QT "addrow", fields, "Customer:", customer
+
+QT "combo", win TO size
+QT "additem", size, "Small"
+QT "additem", size, "Medium"
+QT "additem", size, "Large"
+QT "setvalue", size, 1
+QT "addrow", fields, "Size:", size
+
+QT "spin", win, 1, 99 TO qty
+QT "addrow", fields, "Quantity:", qty
+
+QT "checkbox", win, "Gift wrap" TO gift
+QT "addrow", fields, "", gift
+
+QT "textedit", win TO notes
+QT "disable", notes
+QT "addrow", fields, "Gift note:", notes
+QT "add", main, fields
+
+' Buttons, pushed to the right edge.
+QT "hbox" TO buttons
+QT "stretch", buttons
+QT "button", win, "Clear all" TO clearBtn
+QT "button", win, "Add order" TO addBtn
+QT "add", buttons, clearBtn
+QT "add", buttons, addBtn
+QT "add", main, buttons
+
+' The list takes whatever height is left (stretch 1).
+QT "label", win, "Orders:" TO l5
+QT "add", main, l5
+QT "list", win TO orders
+QT "add", main, orders, 1
+QT "label", win, "Select an order" TO status
+QT "add", main, status
+
+QT "progress", win TO busy
+QT "add", main, busy
+QT "style", busy, "QProgressBar::chunk { background: #3a7; }"
+QT "timer", 50 TO tick
+pct = 0
+
+QT "show", win
+
+QT "wait" TO ev
+WHILE ev <> 0
+  ' Animate the progress bar - the timer's id arrives like any other event.
+  IF ev = tick THEN pct = pct + 2
+  IF pct > 100 THEN pct = 0
+  IF ev = tick THEN QT "setvalue", busy, pct
+
+  IF ev = addBtn THEN QT "gettext", customer TO who
+  IF ev = addBtn THEN QT "gettext", size TO sz
+  IF ev = addBtn THEN QT "getvalue", qty TO n
+  IF ev = addBtn THEN QT "getvalue", gift TO wrap
+  IF ev = addBtn THEN line = who & " - " & n & " x " & sz
+  IF ev = addBtn THEN IF wrap = 1 THEN line = line & " (gift)"
+  IF ev = addBtn THEN IF who = "" THEN QT "message", "Missing name", "Please enter a customer name."
+  IF ev = addBtn THEN IF who <> "" THEN QT "additem", orders, line
+
+  IF ev = orders THEN QT "gettext", orders TO picked
+  IF ev = orders THEN QT "settext", status, "Selected: " & picked
+
+  IF ev = clearBtn THEN QT "confirm", "Clear", "Remove all orders?" TO yes
+  IF ev = clearBtn THEN IF yes = 1 THEN QT "clear", orders
+
+  ' Gift notes only make sense for gifts.
+  IF ev = gift THEN QT "getvalue", gift TO wrap
+  IF ev = gift THEN IF wrap = 1 THEN QT "enable", notes
+  IF ev = gift THEN IF wrap = 0 THEN QT "disable", notes
+
+  QT "wait" TO ev
+END WHILE
+
+PRINT "Bye!"

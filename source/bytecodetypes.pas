@@ -7,6 +7,42 @@ interface
 uses
   SysUtils, Classes, fgl;
 
+const
+  // Built-in functions (BC_BUILTIN's Operand1). The numbers are shared with
+  // the native runtime (source/native/kayte_native_rt.c) - keep them in sync.
+  BI_LEN = 1; BI_LEFT = 2; BI_RIGHT = 3; BI_MID = 4; BI_UCASE = 5; BI_LCASE = 6;
+  BI_TRIM = 7; BI_LTRIM = 8; BI_RTRIM = 9; BI_INSTR = 10; BI_REPLACE = 11; BI_STR = 12;
+  BI_VAL = 13; BI_CHR = 14; BI_ASC = 15; BI_SPACE = 16; BI_ABS = 17; BI_SGN = 18;
+  BI_MIN = 19; BI_MAX = 20; BI_UBOUND = 21; BI_LBOUND = 22; BI_ARRAY = 23; BI_JOIN = 24;
+  BI_SPLIT = 25; BI_TYPENAME = 26; BI_ISARRAY = 27; BI_NEWARRAY = 28; BI_RESIZE = 29;
+  BI_NEWOBJECT = 30; BI_ISNUMERIC = 31; BI_CINT = 32; BI_RND = 33;
+  BI_POW = 34; BI_SQR = 35; BI_STRING = 36; BI_TIMER = 37; BI_DATE = 38; BI_TIME = 39;
+  BI_HEX = 40; BI_OCT = 41; BI_SLEEP = 42; BI_INKEY = 43; BI_QBSTR = 44;
+  BI_INT = 45; BI_FIX = 46; BI_CDBL = 47; BI_ROUND = 48; BI_SIN = 49; BI_COS = 50; BI_TAN = 51;
+  BI_ATN = 52; BI_EXP = 53; BI_LOG = 54;
+  BI_USING = 55; BI_FOPEN = 56; BI_FCLOSE = 57; BI_FPRINT = 58; BI_FREADLINE = 59; BI_FREADFIELD = 60;
+  BI_EOF = 61; BI_FREEFILE = 62; BI_LOF = 63; BI_KILL = 64; BI_NAME = 65;
+  BI_FGET = 66; BI_FPUT = 67; BI_FSEEK = 68; BI_FSEEKPOS = 69; BI_FLOC = 70; BI_FINPUTS = 71;
+  BI_MKI = 72; BI_MKL = 73; BI_MKS = 74; BI_MKD = 75; BI_CVI = 76; BI_CVL = 77; BI_CVS = 78; BI_CVD = 79;
+  // QuickBASIC: bitwise AND / OR / XOR / NOT, error numbers (ERR) and
+  // messages (ERROR n), MID$ = , LSET / RSET
+  BI_BAND = 80; BI_BOR = 81; BI_BXOR = 82; BI_BNOT = 83; BI_ERRCODE = 84; BI_ERRMSG = 85;
+  BI_MIDSET = 86; BI_LSET = 87; BI_RSET = 88;
+
+  // BC_QPRINT's Operand1: QuickBASIC-style PRINT pieces (no newline unless
+  // QP_NEWLINE). The runtime tracks the output column for QP_COMMA / QP_TAB.
+  QP_VALUE = 0;   // pops a value: numbers as " 5 " / "-5 ", strings as they are
+  QP_COMMA = 1;   // to the next 14-column print zone
+  QP_NEWLINE = 2;
+  QP_TAB = 3;     // pops n: to column n (1-based), on a new line if past it
+  QP_SPC = 4;     // pops n: n spaces
+  QP_TEXT = 5;    // pops a value: its text, as it is
+
+  // BC_QT's Operand3: which statement emitted it. QML statements share the
+  // QT machinery but have their own command names (see kayte_qt6.cpp).
+  QT_STATEMENT_QT = 0;
+  QT_STATEMENT_QML = 1;
+
 type
   // Bytecode operation codes
   TByteCodeOp = (
@@ -25,7 +61,7 @@ type
     BC_INPUT,         // Read input
     BC_JUMP,          // Unconditional jump
     BC_JUMP_IF_FALSE, // Conditional jump
-    BC_CALL,          // Call subroutine
+    BC_CALL,          // Call SUB: Operand1 = entry address, Operand2 = argument count
     BC_RETURN,        // Return from subroutine
     BC_CONCAT,        // String concatenation (&)
     BC_NEG,           // Unary negation
@@ -37,7 +73,26 @@ type
     BC_CMP_LE,        // <=
     BC_CMP_GE,        // >=
     BC_POP,           // Discard the top of the evaluation stack
-    BC_PROCESS        // Spawn an OS process (PROCESS statement)
+    BC_PROCESS,       // Spawn an OS process (PROCESS statement)
+    BC_QT,            // Qt6 GUI command (QT or QML statement, see kayte_qt6.pas);
+                      // Operand3 = QT_STATEMENT_QT / QT_STATEMENT_QML
+    BC_ENTER,         // First instruction of a SUB: Operand1 = its parameter count
+    // Arrays (and class objects, which are arrays tagged with their class):
+    BC_INDEX_GET,     // pops index, array; pushes array(index)
+    BC_INDEX_SET,     // pops value, index, array; array(index) := value
+    // Built-in functions: Operand1 = BI_* id, Operand2 = argument count;
+    // pops the arguments, pushes the result.
+    BC_BUILTIN,
+    // TRY / CATCH: BC_TRY's Operand1 is the CATCH address. A runtime error
+    // (or THROW) inside restores the stack and call depth to the TRY's,
+    // pushes the error message and jumps there.
+    BC_TRY,
+    BC_TRY_END,       // the TRY block finished normally
+    BC_THROW,         // pops a message and raises it as a runtime error
+    BC_QPRINT,        // a piece of a QuickBASIC PRINT: Operand1 = QP_* (BC_INPUT pushes a line read from stdin)
+    BC_LOAD_FLOAT,    // a double: Operand1 = low 32 bits, Operand2 = high 32 bits of its IEEE 754 form
+    BC_IDIV,          // \ : whole-number division (operands rounded, result truncated)
+    BC_MOD            // MOD: the remainder, with the sign of the left side
   );
 
   // Bytecode instruction structure
@@ -172,6 +227,9 @@ begin
   FVariables := TStringList.Create;
   FStringConstants := TStringList.Create;
   FStringLiterals := TStringList.Create;
+  // "Hello" and "hello" are different strings.
+  FStringConstants.CaseSensitive := True;
+  FStringLiterals.CaseSensitive := True;
   FVariableMap := TStringIntMap.Create;
   FStringMap := TStringIntMap.Create;
   FSubroutineMap := TStringIntMap.Create;

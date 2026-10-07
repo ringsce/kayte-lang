@@ -91,7 +91,7 @@ uses
 {$IFDEF DARWIN}
   {$IFDEF CPUAARCH64}
     // Link the object file from parent directory
-    {$L ../kayte_arm64_emit.o}
+    {$L kayte_arm64_emit.o}
 
     // External C function - let the linker find it automatically
     function kayte_compile_to_macho(

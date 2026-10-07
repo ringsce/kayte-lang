@@ -4,471 +4,1293 @@ Program kayte;
 * usage, with this tool you can make custom scripts
 * to run on our own games, delivered by ringsce store
 *)
+
+{$mode objfpc}{$H+}
+{$NOTE 6058 OFF}  // Disable inline notes
+{$WARN 4046 OFF}
+{$HINTS OFF}
+
 uses
-  SysUtils, Classes, Zipper, fphttpclient, fpjson, jsonparser, Process, CLI,
-  Bytecode, TestBytecode, VirtualMachine, XMLParser, SimpleHTTPServer, sdk;
-  (*KayteToSNES*)
-
+  SysUtils, Classes,
+  // Core compiler units
+  Lexer in 'Lexer.pas',
+  Parser in 'Parser.pas',
+  TokenDefs in 'TokenDefs.pas',
+  AST in 'AST.pas',
+  Compiler in 'compiler.pas',
+  Assembler in 'Assembler.pas',
+  BytecodeTypes in 'BytecodeTypes.pas',
+  // VM and runtime
+  VirtualMachine in 'VirtualMachine.pas',
+  // Other units (cli.pas removed and integrated below)
+  Bytecode in 'bytecode.pas',
+  TestBytecode in 'TestBytecode.pas',
+  XMLParser in 'XMLParser.pas',
+  {$IFDEF KAYTE_HTTP}
+  // Optional: pulls in fcl-web/fcl-net (fphttpserver, fpWeb, netdb...).
+  // Build with -dKAYTE_HTTP to enable `kayte --http`. Left out of the
+  // default build so the core language has no third-party dependencies
+  // beyond the standard FPC RTL.
+  SimpleHTTPServer in 'simplehttpserver.pas',
+  {$ENDIF}
+  sdk in 'sdk.pas',
+  c99 in 'c99.pas',
+  kayte2pce in 'kayte2pce.pas',
+  KayteLibLoader in 'KayteLibLoader.pas',
+  c_backend in 'c_backend.pas',
+  kayte_compiler in 'kayte_compiler.pas',
+  kayte_runtime in 'kayte_runtime.pas',
+  kayte_loader in 'kayte_loader.pas',
+  kayte_vm in 'kayte_vm.pas',
+  mathlib in 'mathlib.pas',
+  kayte_sdl3 in 'kayte_sdl3.pas',
+  kayte_sdl2 in 'kayte_sdl2.pas',
+  kayte_qt6 in 'kayte_qt6.pas',
+  kayte_native in 'kayte_native.pas',
+  kayte_llvm in 'kayte_llvm.pas',
+  jsfrontend in 'jsfrontend.pas'
+  {$IFDEF DARWIN}
+  ,KayteArm64 in 'KayteArm64.pas'
+  {$ENDIF}
+  {$IFDEF LINUX}
+  ,KayteArm64ELF in 'kaytearm64elf.pas'
+  {$ENDIF}
+  {$IFDEF WINDOWS}
+  ,KayteArm64PE in 'kaytearm64pe.pas'
+  {$ENDIF}
+  ;
 type
-  //TInstruction = (NOP, LOAD, ADD, SUB, HALT);
-  TInstruction = (NOP, LOAD, ADD, SUB, HALT, IRC_HELP, IRC_WHOIS, IRC_SERVER, IRC_CONNECT, IF_COND, ELSE_COND, ENDIF, CASE_COND, ENDCASE);
-
-
-
-TVirtualMachine = class
-  private
-    FMemory: array of Byte;
-    FRegisters: array of Integer;
-    FPC: Integer; // Program Counter
-    FRunning: Boolean;
-    procedure InitializeMemory(Size: Integer);
-    procedure InitializeRegisters(Count: Integer);
-    procedure ExecuteInstruction(Instruction: TInstruction);
+  { TBytecodeGenerator - Handles loading and saving bytecode files }
+  TBytecodeGenerator = class(TObject)
   public
-    procedure Init(MemorySize: Integer; RegisterCount: Integer);
-    procedure Run;
+    procedure SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: string);
+    function LoadProgramFromFile(const InputFilePath: string): TByteCodeProgram;
   end;
 
-  (* Download Repo *)
-  procedure DownloadMapsFromGitHubRepo(const RepoURL: string);
+  { TCLIOptions - Command line options structure }
+  TCLIOptions = record
+    ShowHelp: Boolean;
+    ShowVersion: Boolean;
+    Verbose: Boolean;
+    CompileKayte: Boolean;
+    RunBytecode: Boolean;
+    CompileNative: Boolean;
+    NativeArm64: Boolean;  // --native-arm64: the direct Mach-O emitter
+    KeepC: Boolean;        // --keep-c: keep --native's generated C (or --llvm's IR)
+    UseLLVM: Boolean;      // --llvm: the LLVM backend (source/kayte_llvm.pas)
+    Target: string;        // --target <triple> for --llvm; '' = this machine
+    InputFile: string;
+    OutputFile: string;
+    StartHttpServer: Boolean;
+    StartRepl: Boolean;
+    QuickBasic: Boolean;   // --qbs: QuickBASIC compatibility (source/parser.pas)
+
+  end;
+
 var
-  Process: TProcess;
-begin
-  Process := TProcess.Create(nil);
-  try
-    Process.Executable := '/usr/bin/curl'; // Path to the curl executable
-    Process.Parameters.Add('-LOk'); // -LOk flags to download files and follow redirects
-    Process.Parameters.Add(RepoURL); // GitHub repository URL
-    Process.Options := Process.Options + [poWaitOnExit];
-    Process.Execute;
-    Writeln('Maps downloaded successfully from GitHub repository.');
-  finally
-    Process.Free;
-  end;
-end;
+  Options: TCLIOptions;
 
-(* Check for Updates *)
-procedure CheckForUpdates(const URL: string);
+{ TBytecodeGenerator Implementation }
+
+function TBytecodeGenerator.LoadProgramFromFile(const InputFilePath: string): TByteCodeProgram;
 var
-  Process: TProcess;
-  Response: TStringList;
+  FileStream: TFileStream;
+  Len: LongInt;
+  I, KeyLength: Integer;
+  Key: AnsiString;
+  Value: LongInt;
+  ProgramTitleBuffer: string;
+  TempInstructions: TBCInstructionArray;
+  TempIntLiterals: TIntegerLiteralArray;
+
+  // Reads a length/count field and checks that that many items of
+  // ItemSize bytes can still follow. The format has no header to check,
+  // so this is what rejects a file that isn't Kayte bytecode, instead of
+  // reading garbage lengths and allocating/looping without end.
+  function ReadCount(ItemSize: Integer): LongInt;
+  begin
+    Result := -1;
+    if (FileStream.Read(Result, SizeOf(Result)) <> SizeOf(Result)) or (Result < 0)
+      or (Int64(Result) * ItemSize > FileStream.Size - FileStream.Position) then
+      raise Exception.Create(InputFilePath + ' is not a Kayte bytecode file (make one with kayte --compile)');
+  end;
+
 begin
-  Process := TProcess.Create(nil);
-  Response := TStringList.Create;
+  Result := TByteCodeProgram.Create;
+
+  FileStream := TFileStream.Create(InputFilePath, fmOpenRead or fmShareDenyWrite);
   try
-    Process.Executable := '/usr/bin/curl'; // Path to the curl executable
-    Process.Parameters.Add('-sI'); // -s silent mode to suppress progress meter and error messages, -I fetches headers only
-    Process.Parameters.Add(URL); // Resource URL
-    Process.Options := Process.Options + [poUsePipes, poWaitOnExit];
-    Process.Execute;
-    Response.LoadFromStream(Process.Output);
-    Writeln('Last-Modified:', Response.Values['Last-Modified']);
-  finally
-    Process.Free;
-    Response.Free;
-  end;
-end;
+    // 1. Read ProgramTitle
+    Len := 0;
+    Len := ReadCount(1);
+    ProgramTitleBuffer := '';
+    SetLength(ProgramTitleBuffer, Len);
+    if Len > 0 then
+      FileStream.Read(ProgramTitleBuffer[1], Len);
+    Result.ProgramTitle := ProgramTitleBuffer;
 
-  (* VM init *)
+    // 2. Read Instructions
+    Len := ReadCount(SizeOf(TBCInstruction));
+    TempInstructions := nil;
+    SetLength(TempInstructions, Len);
+    if Len > 0 then
+      FileStream.Read(TempInstructions[0], Len * SizeOf(TBCInstruction));
+    Result.Instructions := TempInstructions;
 
-procedure TVirtualMachine.InitializeMemory(Size: Integer);
-begin
-  if Size > 0 then
-  begin
-    SetLength(FMemory, Size);
-    FillChar(FMemory[0], Size, 0);
-    Writeln('Memory initialized to ', Size, ' bytes.');
-  end
-  else
-  begin
-    Writeln('Error: Memory size must be greater than 0.');
-  end;
-end;
-
-procedure TVirtualMachine.InitializeRegisters(Count: Integer);
-begin
-  if Count > 0 then
-  begin
-    SetLength(FRegisters, Count);
-    FillChar(FRegisters[0], Count * SizeOf(Integer), 0);
-    Writeln('Registers initialized to ', Count, '.');
-  end
-  else
-  begin
-    Writeln('Error: Register count must be greater than 0.');
-  end;
-end;
-
-procedure TVirtualMachine.ExecuteInstruction(Instruction: TInstruction);
-begin
-  case Instruction of
-    NOP: Writeln('Executing NOP (No Operation)');
-    LOAD: Writeln('Executing LOAD');
-    ADD: Writeln('Executing ADD');
-    SUB: Writeln('Executing SUB');
-    HALT:
+    // 3. Read StringLiterals
+    Len := ReadCount(SizeOf(LongInt));
+    for I := 0 to Len - 1 do
     begin
-      Writeln('Executing HALT');
-      FRunning := False;
+      KeyLength := 0;
+      KeyLength := ReadCount(1);
+      Key := '';
+      SetLength(Key, KeyLength);
+      if KeyLength > 0 then
+        FileStream.Read(Key[1], KeyLength);
+      Result.StringLiterals.Add(Key);
     end;
-  else
-    Writeln('Unknown instruction');
+
+    // 4. Read IntegerLiterals
+    Len := ReadCount(SizeOf(Int64));
+    TempIntLiterals := nil;
+    SetLength(TempIntLiterals, Len);
+    if Len > 0 then
+      FileStream.Read(TempIntLiterals[0], Len * SizeOf(Int64));
+    Result.IntegerLiterals := TempIntLiterals;
+
+    // 5. Read VariableMap
+    Len := ReadCount(2 * SizeOf(LongInt));
+    for I := 0 to Len - 1 do
+    begin
+      KeyLength := 0;
+      KeyLength := ReadCount(1);
+      Key := '';
+      SetLength(Key, KeyLength);
+      if KeyLength > 0 then
+        FileStream.Read(Key[1], KeyLength);
+      Value := 0;
+      FileStream.Read(Value, SizeOf(Value));
+      Result.VariableMap.Add(Key, Value);
+    end;
+
+    // 6. Read SubroutineMap
+    Len := ReadCount(2 * SizeOf(LongInt));
+    for I := 0 to Len - 1 do
+    begin
+      KeyLength := 0;
+      KeyLength := ReadCount(1);
+      Key := '';
+      SetLength(Key, KeyLength);
+      if KeyLength > 0 then
+        FileStream.Read(Key[1], KeyLength);
+      Value := 0;
+      FileStream.Read(Value, SizeOf(Value));
+      Result.SubroutineMap.Add(Key, Value);
+    end;
+
+    // 7. Read FormMap
+    Len := ReadCount(2 * SizeOf(LongInt));
+    for I := 0 to Len - 1 do
+    begin
+      KeyLength := 0;
+      KeyLength := ReadCount(1);
+      Key := '';
+      SetLength(Key, KeyLength);
+      if KeyLength > 0 then
+        FileStream.Read(Key[1], KeyLength);
+      Value := 0;
+      FileStream.Read(Value, SizeOf(Value));
+      Result.FormMap.Add(Key, Value);
+    end;
+
+  except
+    Result.Free;
+    FileStream.Free;
+    raise;
   end;
+  FileStream.Free;
 end;
 
-(* Procedure to save .kayte files *)
-procedure SaveKayteFileToBytecode(const SourceFile, OutputFile: string);
+procedure TBytecodeGenerator.SaveProgramToFile(AProgram: TByteCodeProgram; const OutputFilePath: string);
 var
-  BytecodeGen: TBytecodeGenerator;
+  FileStream: TFileStream;
+  Len: LongInt;
+  I, KeyLength: Integer;
+  Key: AnsiString;
+  Value: LongInt;
+  TempInstructions: TBCInstructionArray;
+  TempIntLiterals: TIntegerLiteralArray;
 begin
-  BytecodeGen := TBytecodeGenerator.Create;
+  FileStream := TFileStream.Create(OutputFilePath, fmCreate);
   try
-    Writeln('Converting ', SourceFile, ' to bytecode...');
-    BytecodeGen.GenerateBytecode(SourceFile, OutputFile);
-    Writeln('Bytecode saved to ', OutputFile);
+    // 1. Write ProgramTitle
+    Len := Length(AProgram.ProgramTitle);
+    FileStream.Write(Len, SizeOf(Len));
+    if Len > 0 then
+      FileStream.Write(AProgram.ProgramTitle[1], Len);
+
+    // 2. Write Instructions
+    TempInstructions := AProgram.Instructions;
+    Len := Length(TempInstructions);
+    FileStream.Write(Len, SizeOf(Len));
+    if Len > 0 then
+      FileStream.Write(TempInstructions[0], Len * SizeOf(TBCInstruction));
+
+    // 3. Write StringLiterals
+    Len := AProgram.StringLiterals.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to AProgram.StringLiterals.Count - 1 do
+    begin
+      Key := AProgram.StringLiterals[I];
+      KeyLength := Length(Key);
+      FileStream.Write(KeyLength, SizeOf(KeyLength));
+      if KeyLength > 0 then
+        FileStream.Write(Key[1], KeyLength);
+    end;
+
+    // 4. Write IntegerLiterals
+    TempIntLiterals := AProgram.IntegerLiterals;
+    Len := Length(TempIntLiterals);
+    FileStream.Write(Len, SizeOf(Len));
+    if Len > 0 then
+      FileStream.Write(TempIntLiterals[0], Len * SizeOf(Int64));
+
+    // 5. Write VariableMap
+    Len := AProgram.VariableMap.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to AProgram.VariableMap.Count - 1 do
+    begin
+      Key := AProgram.VariableMap.Keys[I];
+      KeyLength := Length(Key);
+      FileStream.Write(KeyLength, SizeOf(KeyLength));
+      if KeyLength > 0 then
+        FileStream.Write(Key[1], KeyLength);
+
+      Value := AProgram.VariableMap.Data[I];
+      FileStream.Write(Value, SizeOf(Value));
+    end;
+
+    // 6. Write SubroutineMap
+    Len := AProgram.SubroutineMap.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to AProgram.SubroutineMap.Count - 1 do
+    begin
+      Key := AProgram.SubroutineMap.Keys[I];
+      KeyLength := Length(Key);
+      FileStream.Write(KeyLength, SizeOf(KeyLength));
+      if KeyLength > 0 then
+        FileStream.Write(Key[1], KeyLength);
+
+      Value := AProgram.SubroutineMap.Data[I];
+      FileStream.Write(Value, SizeOf(Value));
+    end;
+
+    // 7. Write FormMap
+    Len := AProgram.FormMap.Count;
+    FileStream.Write(Len, SizeOf(Len));
+    for I := 0 to AProgram.FormMap.Count - 1 do
+    begin
+      Key := AProgram.FormMap.Keys[I];
+      KeyLength := Length(Key);
+      FileStream.Write(KeyLength, SizeOf(KeyLength));
+      if KeyLength > 0 then
+        FileStream.Write(Key[1], KeyLength);
+
+      Value := AProgram.FormMap.Data[I];
+      FileStream.Write(Value, SizeOf(Value));
+    end;
   finally
-    BytecodeGen.Free;
+    FileStream.Free;
   end;
 end;
 
+{ CLI Procedures }
 
-procedure TVirtualMachine.Init(MemorySize: Integer; RegisterCount: Integer);
+procedure ShowHelp;
 begin
-  if (MemorySize > 0) and (RegisterCount > 0) then
-  begin
-    InitializeMemory(MemorySize);
-    InitializeRegisters(RegisterCount);
-    FPC := 0;
-    FRunning := True;
-    Writeln('Virtual machine initialized with ', MemorySize, ' bytes of memory and ', RegisterCount, ' registers.');
-  end
-  else
-  begin
-    Writeln('Error: Both memory size and register count must be greater than 0.');
-  end;
+  Writeln('Kayte Language Compiler and Runtime');
+  Writeln('Usage: kayte [OPTIONS] [FILE]');
+  Writeln;
+  Writeln('Options:');
+  Writeln('  --help           Show this help message and exit');
+  Writeln('  -v, --version    Show the version information and exit');
+  Writeln('  --verbose        Run in verbose mode');
+  Writeln('  --compile <file> Compile a .kayte source file to bytecode');
+  Writeln('  --run <file>     Run a bytecode (.bytecode) file');
+  Writeln('  --native <file>  Compile a .kayte source file to a native executable (via C; needs cc)');
+  Writeln('  --qbs            Compile QuickBASIC programs (line numbers, PRINT ;, DATA / READ, TYPE ...)');
+  Writeln('  --keep-c         With --native, keep the generated C next to the output');
+  Writeln('                   (-o <name>.c writes only the C, e.g. for an iOS app build)');
+  Writeln('  --llvm <file>    Compile a .kayte source file to a native executable via LLVM IR (needs clang)');
+  Writeln('  --target <triple>  With --llvm, the platform to build for, e.g. x86_64-linux-gnu,');
+  Writeln('                   x86_64-w64-mingw32, arm64-apple-ios17.0, wasm32-wasi (default: this machine)');
+  Writeln('                   (-o <name>.ll writes only the IR; --keep-c keeps it next to the output)');
+  Writeln('  --native-arm64 <file>  Experimental direct ARM64 Mach-O emitter (macOS)');
+  Writeln('  -o <file>        Specify the output file when compiling');
+  Writeln('  --http           Starts a simple HTTP server');
+  Writeln('  --repl           Start interactive REPL (Read-Eval-Print Loop)');  // Add this line
+  Writeln;
+  Writeln('Examples:');
+  Writeln('  kayte --compile hello.kayte');
+  Writeln('  kayte --native hello.kayte -o hello');
+  Writeln('  kayte hello.kayte --native -o hello');
+  Writeln('  kayte --run hello.bytecode');
+  Writeln('  kayte --repl');
+  Writeln;
 end;
 
-procedure TVirtualMachine.Run;
+procedure ShowVersion;
 begin
-  if (FPC >= 0) and (FPC < Length(FMemory)) then
+  Writeln('Kayte Language v0.9.10'); // Changing version, upgrade, 0.9.10
+  Writeln('Copyright (c) Pedro Dias Vicente 2024-2026');
+  {$IFDEF CPUAARCH64}
+    {$IFDEF DARWIN}
+    Writeln('Platform: macOS ARM64 (Apple Silicon) - Native compilation available');
+    {$ENDIF}
+    {$IFDEF LINUX}
+    Writeln('Platform: Linux ARM64 (AArch64) - Native compilation available');
+    {$ENDIF}
+    {$IFDEF WINDOWS}
+    Writeln('Platform: Windows ARM64 - Native compilation available');
+    {$ENDIF}
+  {$ELSE}
+    Writeln('Platform: ', {$I %FPCTARGETOS%}, '/', {$I %FPCTARGETCPU%});
+    Writeln('Native compilation not available on this architecture');
+  {$ENDIF}
+end;
+
+procedure StartHTTPServer;
+{$IFDEF KAYTE_HTTP}
+var
+  Port: Integer;
+  Server: TSimpleHTTPServer;
+  StopSignal: Boolean;
+begin
+  Port := 9090; // Default port
+  StopSignal := False;
+
+  Writeln('Starting Kayte HTTP server on port ', Port, '...');
+
+  Server := nil;
+  try
+    Server := TSimpleHTTPServer.Create(Port);
+    try
+      Server.StartServer;
+      Writeln('Server is running. Press [Ctrl+C] to stop...');
+
+      // Keep the main thread alive
+      while not StopSignal do
+        Sleep(1000);
+    except
+      on E: Exception do
+        Writeln('An error occurred while starting the server: ', E.Message);
+    end;
+  finally
+    if Assigned(Server) then
+    begin
+      Server.StopServer;
+      FreeAndNil(Server);
+    end;
+    Writeln('Server stopped.');
+  end;
+end;
+{$ELSE}
+begin
+  Writeln('This build of Kayte was compiled without HTTP server support.');
+  Writeln('Rebuild with -dKAYTE_HTTP to enable the --http option.');
+end;
+{$ENDIF}
+
+procedure StartREPL;
+var
+  Input: string;
+  SourceCode: TStringList;
+  LexerInstance: TLexer;
+  ParserInstance: TParser;
+  BytecodeProgram: TByteCodeProgram;
+  VM: TVirtualMachine;
+  LineNumber: Integer;
+begin
+  Writeln('Kayte REPL v0.9.0');
+  Writeln('Type "exit" or "quit" to leave, "help" for help');
+  Writeln('===============================================');
+  Writeln;
+
+  LineNumber := 1;
+
+  while True do
   begin
-    // Main execution loop using repeat-until (do-while equivalent)
-    repeat
-      // Simulating fetching an instruction and executing it
-      // Here we just cycle through some sample instructions for demonstration
-      case FPC of
-        0: ExecuteInstruction(NOP);
-        1: ExecuteInstruction(LOAD);
-        2: ExecuteInstruction(ADD);
-        3: ExecuteInstruction(SUB);
-        4: ExecuteInstruction(HALT);
-      else
-        ExecuteInstruction(HALT); // Default to HALT if out of range
+    Write('kayte[', LineNumber, ']> ');
+    ReadLn(Input);
+
+    // Trim whitespace
+    Input := Trim(Input);
+
+    // Check for exit commands
+    if (Input = 'exit') or (Input = 'quit') then
+    begin
+      Writeln('Goodbye!');
+      Break;
+    end;
+
+    // Check for help
+    if Input = 'help' then
+    begin
+      Writeln('REPL Commands:');
+      Writeln('  exit, quit - Exit the REPL');
+      Writeln('  help       - Show this help message');
+      Writeln('  clear      - Clear the screen');
+      Writeln;
+      Writeln('Enter Kayte code to execute it immediately.');
+      Continue;
+    end;
+
+    // Check for clear command
+    if Input = 'clear' then
+    begin
+      {$IFDEF WINDOWS}
+      Writeln; // Simple approach for Windows
+      {$ELSE}
+      // For Unix-like systems
+      Write(#27'[2J'#27'[H');
+      {$ENDIF}
+      Continue;
+    end;
+
+    // Skip empty lines
+    if Input = '' then
+    begin
+      Inc(LineNumber);
+      Continue;
+    end;
+
+    // Try to compile and execute the input
+    SourceCode := TStringList.Create;
+    try
+      SourceCode.Add(Input);
+
+      try
+        // Create lexer and parser
+        LexerInstance := TLexer.Create(SourceCode);
+        try
+          ParserInstance := TParser.Create(LexerInstance);
+          try
+            // Parse the input
+            BytecodeProgram := ParserInstance.Parse;
+            try
+              // Execute the bytecode
+              VM := TVirtualMachine.Create(BytecodeProgram);
+              try
+                VM.Run;
+              finally
+                VM.Free;
+              end;
+            finally
+              BytecodeProgram.Free;
+            end;
+          finally
+            ParserInstance.Free;
+          end;
+        finally
+          LexerInstance.Free;
+        end;
+
+      except
+        on E: Exception do
+        begin
+          Writeln('Error: ', E.Message);
+        end;
       end;
 
-      Inc(FPC);
-    until not FRunning;
+    finally
+      SourceCode.Free;
+    end;
+
+    Inc(LineNumber);
+  end;
+end;
+
+
+(*procedure CompileToBytecode(const InputFile, OutputFile: string);
+var
+  SourceCode: TStringList;
+  Lexer: TLexer;
+  Parser: TParser;
+  BytecodeProgram: TByteCodeProgram;
+begin
+  WriteLn('Compiling ', InputFile, '...');
+
+  // Check if input file exists
+  if not FileExists(InputFile) then
+  begin
+    ExitCode := 1;
+    WriteLn('ERROR: Input file not found: ', InputFile);
+    Exit;
+  end;
+
+  // Create and load source code
+  SourceCode := TStringList.Create;
+  try
+    WriteLn('Loading source file...');
+    SourceCode.LoadFromFile(InputFile);
+
+    if SourceCode.Count = 0 then
+    begin
+      WriteLn('WARNING: Source file is empty');
+    end
+    else
+      WriteLn('Loaded ', SourceCode.Count, ' lines');
+
+    // Create lexer
+    WriteLn('Creating lexer...');
+    Lexer := TLexer.Create(SourceCode);
+    try
+      // Create parser
+      WriteLn('Creating parser...');
+      Parser := TParser.Create(Lexer);
+      try
+        // Parse the source code
+        WriteLn('Parsing...');
+        BytecodeProgram := Parser.Parse;
+
+        // Save the bytecode
+        WriteLn('Saving bytecode to ', OutputFile, '...');
+        BytecodeProgram.SaveToFile(OutputFile);
+
+        WriteLn('Compilation successful!');
+
+      finally
+        Parser.Free;
+      end;
+    finally
+      Lexer.Free;
+    end;
+  finally
+    SourceCode.Free;
+  end;
+end;
+*)
+
+// Compiles source with the front end its file name picks: the
+// JavaScript-like one (source/jsfrontend.pas) for .kjs / .js, else the
+// BASIC one. Both produce the same bytecode. After printing the errors,
+// raises EKayteParseError if there were any.
+function ParseSource(SourceCode: TStringList; const FileName: string): TByteCodeProgram;
+var
+  Lexer: TLexer;
+  Parser: TParser;
+begin
+  if IsJSSourceFile(FileName) then
+    Exit(CompileJS(SourceCode.Text, FileName));
+  Lexer := TLexer.Create(SourceCode);
+  try
+    Lexer.QBMode := Options.QuickBasic;
+    Parser := TParser.Create(Lexer);
+    try
+      Parser.QBMode := Options.QuickBasic;
+      Result := Parser.Parse;
+    finally
+      Parser.Free;
+    end;
+  finally
+    Lexer.Free;
+  end;
+end;
+
+procedure CompileKayteFile(const InputFile, OutputFile: string);
+var
+  SourceCode: TStringList;
+  LexerInstance: TLexer;
+  ParserInstance: TParser;
+  Generator: TBytecodeGenerator;
+  BytecodeProgram: TByteCodeProgram;
+  OutputFilePath: string;
+begin
+  if not FileExists(InputFile) then
+  begin
+    ExitCode := 1;
+    Writeln('Error: Input file not found: ', InputFile);
+    Exit;
+  end;
+
+  if Options.Verbose then
+    Writeln('Compiling ', InputFile, '...');
+
+  SourceCode := TStringList.Create;
+  try
+    SourceCode.LoadFromFile(InputFile);
+
+    if Options.Verbose then
+      Writeln('Parsing source code...');
+
+    // Parse and generate the bytecode program
+    BytecodeProgram := ParseSource(SourceCode, InputFile);
+    try
+        // Determine output file path
+        if OutputFile = '' then
+          OutputFilePath := ChangeFileExt(InputFile, '.bytecode')
+        else
+          OutputFilePath := OutputFile;
+
+        if Options.Verbose then
+          Writeln('Saving bytecode to ', OutputFilePath, '...');
+
+        // Generate and save the bytecode
+        Generator := TBytecodeGenerator.Create;
+        try
+          Generator.SaveProgramToFile(BytecodeProgram, OutputFilePath);
+          Writeln('Compilation successful! Bytecode saved to ', OutputFilePath);
+        finally
+          Generator.Free;
+        end;
+    finally
+      BytecodeProgram.Free;
+    end;
+  finally
+    SourceCode.Free;
+  end;
+end;
+
+// --native: compiles through C (see source/kayte_native.pas) into a
+// standalone executable that behaves like `kayte --run`, QT included.
+procedure CompileNativeFile(const InputFile, OutputFile: string);
+var
+  SourceCode: TStringList;
+  LexerInstance: TLexer;
+  ParserInstance: TParser;
+  BytecodeProgram: TByteCodeProgram;
+  OutputFilePath, ErrorMsg: string;
+  Success: Boolean;
+begin
+  if not FileExists(InputFile) then
+  begin
+    ExitCode := 1;
+    Writeln('Error: Input file not found: ', InputFile);
+    Exit;
+  end;
+
+  if OutputFile <> '' then
+    OutputFilePath := OutputFile
+  else if Options.UseLLVM and (Options.Target <> '') then
+  begin
+    // Name the output for the target platform, not this machine.
+    if (Pos('windows', LowerCase(Options.Target)) > 0) or (Pos('mingw', LowerCase(Options.Target)) > 0) then
+      OutputFilePath := ChangeFileExt(InputFile, '.exe')
+    else if Pos('wasm', LowerCase(Options.Target)) > 0 then
+      OutputFilePath := ChangeFileExt(InputFile, '.wasm')
+    else
+      OutputFilePath := ChangeFileExt(InputFile, '');
   end
   else
+  {$IFDEF WINDOWS}
+    OutputFilePath := ChangeFileExt(InputFile, '.exe');
+  {$ELSE}
+    OutputFilePath := ChangeFileExt(InputFile, '');
+  {$ENDIF}
+
+  if Options.UseLLVM then
   begin
-    Writeln('Error: Program counter out of range.');
-  end;
-end;
+    if Options.Target <> '' then
+      Writeln('Compiling ', InputFile, ' with LLVM for ', Options.Target, '...')
+    else
+      Writeln('Compiling ', InputFile, ' with LLVM...');
+  end
+  else
+    Writeln('Compiling ', InputFile, ' to a native executable...');
 
-procedure CreatePK3File(SourceFile, TargetFile: string);
-var
-  Z: TZipper;
-begin
-  Z := TZipper.Create;
+  BytecodeProgram := nil;
+  SourceCode := TStringList.Create;
   try
-    Z.FileName := TargetFile;
-    Z.Entries.AddFileEntry(SourceFile);
-    Z.ZipAllFiles;
-    Writeln('Created PK3 file: ', TargetFile);
+    SourceCode.LoadFromFile(InputFile);
+    BytecodeProgram := ParseSource(SourceCode, InputFile);
+
+    if Options.UseLLVM then
+      Success := CompileWithLLVM(BytecodeProgram, OutputFilePath, Options.Target, Options.KeepC,
+        Options.Verbose, ErrorMsg)
+    else
+      Success := CompileToNative(BytecodeProgram, OutputFilePath, Options.KeepC, Options.Verbose, ErrorMsg);
+    if not Success then
+    begin
+      Writeln('Error: ', ErrorMsg);
+      ExitCode := 1;
+      Exit;
+    end;
+
+    Writeln('Native compilation successful: ', OutputFilePath);
   finally
-    Z.Free;
+    BytecodeProgram.Free;
+    SourceCode.Free;
   end;
 end;
 
+// --native-arm64: the experimental direct Mach-O emitter
+// (source/kayte_arm64_emit.c), kept for development of that backend.
+procedure CompileNativeArm64File(const InputFile, OutputFile: string);
+var
+  SourceCode: TStringList;
+  LexerInstance: TLexer;
+  ParserInstance: TParser;
+  BytecodeProgram: TByteCodeProgram;
+  OutputFilePath: string;
+  NativeInstructions: array of TKayteInsn;
+  I: Integer;
+  Insn: TBCInstruction;
+  CompileResult: Integer;
+  PlatformName: string;
+begin
+  {$IFDEF CPUAARCH64}
+
+  // Determine platform
+  {$IFDEF DARWIN}
+  PlatformName := 'macOS ARM64';
+  {$ENDIF}
+  {$IFDEF LINUX}
+  PlatformName := 'Linux ARM64';
+  {$ENDIF}
+  {$IFDEF WINDOWS}
+  PlatformName := 'Windows ARM64';
+  {$ENDIF}
+
+  if not FileExists(InputFile) then
+  begin
+    ExitCode := 1;
+    Writeln('Error: Input file not found: ', InputFile);
+    Exit;
+  end;
+
+  Writeln('Compiling ', InputFile, ' to native ARM64 executable (', PlatformName, ')...');
+
+  SourceCode := TStringList.Create;
+  try
+    try
+      if Options.Verbose then
+        Writeln('Loading source file...');
+
+      SourceCode.LoadFromFile(InputFile);
+
+      if Options.Verbose then
+        Writeln('  Source loaded: ', SourceCode.Count, ' lines');
+
+      if Options.Verbose then
+        Writeln('Step 1/3: Parsing source code...');
+
+      if Options.Verbose then
+        Writeln('  Creating lexer...');
+
+      LexerInstance := TLexer.Create(SourceCode);
+
+      if Options.Verbose then
+        Writeln('  Lexer created successfully');
+
+      try
+        if Options.Verbose then
+          Writeln('  Creating parser...');
+
+        ParserInstance := TParser.Create(LexerInstance);
+
+        if Options.Verbose then
+          Writeln('  Parser created successfully');
+
+        try
+          if Options.Verbose then
+            Writeln('  Calling Parse()...');
+
+          BytecodeProgram := ParserInstance.Parse;
+
+          if Options.Verbose then
+            Writeln('  Parse() completed');
+
+          if BytecodeProgram = nil then
+          begin
+            ExitCode := 1;
+            Writeln('Error: Parser returned nil bytecode program');
+            Exit;
+          end;
+
+          try
+            if Options.Verbose then
+            begin
+              Writeln('Step 2/3: Converting bytecode to native instructions...');
+              Writeln('  Instruction count: ', Length(BytecodeProgram.Instructions));
+            end;
+
+            // Convert bytecode to native instructions
+            NativeInstructions := nil;
+            SetLength(NativeInstructions, Length(BytecodeProgram.Instructions));
+
+            for I := 0 to High(BytecodeProgram.Instructions) do
+            begin
+              Insn := BytecodeProgram.Instructions[I];
+
+              if Options.Verbose then
+                Writeln('  Converting instruction ', I, ': OpCode=', Ord(Insn.OpCode),
+                        ', Operand1=', Insn.Operand1);
+
+              NativeInstructions[I] := MakeInsn(TKayteOpcode(Ord(Insn.OpCode)), Insn.Operand1);
+            end;
+
+            // Determine output file path
+            if OutputFile = '' then
+            begin
+              {$IFDEF WINDOWS}
+              OutputFilePath := ChangeFileExt(InputFile, '.exe');
+              {$ELSE}
+              OutputFilePath := ChangeFileExt(InputFile, '');
+              {$ENDIF}
+            end
+            else
+              OutputFilePath := OutputFile;
+
+            if Options.Verbose then
+            begin
+              Writeln('Step 3/3: Generating native executable...');
+              Writeln('  Platform: ', PlatformName);
+              Writeln('  Output: ', OutputFilePath);
+              Writeln('  Instructions: ', Length(NativeInstructions));
+            end;
+
+            // Compile to native format based on platform
+            {$IFDEF DARWIN}
+            // macOS - Mach-O format
+            CompileResult := CompileToMachO(NativeInstructions, OutputFilePath);
+            {$ENDIF}
+
+            {$IFDEF LINUX}
+            // Linux - ELF format
+            CompileResult := CompileToELF(NativeInstructions, OutputFilePath);
+            {$ENDIF}
+
+            {$IFDEF WINDOWS}
+            // Windows - PE format
+            CompileResult := CompileToPE(NativeInstructions, OutputFilePath);
+            {$ENDIF}
+
+            if CompileResult = 0 then
+            begin
+              Writeln;
+              Writeln('✓ Native compilation successful!');
+              Writeln('Platform: ', PlatformName);
+              Writeln('Executable created: ', OutputFilePath);
+              Writeln;
+              {$IFDEF WINDOWS}
+              Writeln('Run with: ', ExtractFileName(OutputFilePath));
+              {$ELSE}
+              Writeln('Run with: ./', ExtractFileName(OutputFilePath));
+              {$ENDIF}
+            end
+            else
+            begin
+              Writeln;
+              ExitCode := 1;
+              Writeln('Error: Native compilation failed with code: ', CompileResult);
+              Writeln('The native compiler for ', PlatformName, ' may not be fully implemented yet.');
+              {$IFDEF DARWIN}
+              Writeln('Please check kayte_arm64_emit.c for implementation details.');
+              {$ENDIF}
+              {$IFDEF LINUX}
+              Writeln('Please check kayte_arm64_elf.c for implementation details.');
+              {$ENDIF}
+              {$IFDEF WINDOWS}
+              Writeln('Please check kayte_arm64_pe.c for implementation details.');
+              {$ENDIF}
+            end;
+
+          finally
+            if Options.Verbose then
+              Writeln('  Freeing BytecodeProgram...');
+            BytecodeProgram.Free;
+          end;
+
+        finally
+          if Options.Verbose then
+            Writeln('  Freeing Parser...');
+          ParserInstance.Free;
+        end;
+      finally
+        if Options.Verbose then
+          Writeln('  Freeing Lexer...');
+        LexerInstance.Free;
+      end;
+
+    except
+      on E: Exception do
+      begin
+        ExitCode := 1;
+        Writeln('Error during compilation: ', E.ClassName, ': ', E.Message);
+        Writeln('This error occurred while processing: ', InputFile);
+        Exit;
+      end;
+    end;
+  finally
+    if Options.Verbose then
+      Writeln('  Freeing SourceCode...');
+    SourceCode.Free;
+  end;
+
+  {$ELSE}
+  // Not ARM64 architecture
+  ExitCode := 1;
+  Writeln('Error: Native compilation is only supported on ARM64 architecture.');
+  Writeln('Current architecture: ', {$I %FPCTARGETCPU%});
+  Writeln('Please use --compile to generate bytecode instead.');
+  {$ENDIF}
+end;
+
+// True for a Mach-O or ELF file - what --native produces.
+function IsNativeExecutable(const FileName: string): Boolean;
+var
+  F: TFileStream;
+  Magic: LongWord;
+begin
+  Result := False;
+  Magic := 0;
+  try
+    F := TFileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
+    try
+      if F.Read(Magic, SizeOf(Magic)) <> SizeOf(Magic) then
+        Exit;
+    finally
+      F.Free;
+    end;
+  except
+    Exit;
+  end;
+  Result := (Magic = $FEEDFACF) or (Magic = $CFFAEDFE)   // Mach-O 64-bit
+         or (Magic = $CAFEBABE) or (Magic = $BEBAFECA)   // universal (fat) Mach-O
+         or (Magic = $464C457F);                          // ELF: 7F 'E' 'L' 'F'
+end;
+
+procedure RunBytecodeFile(const BytecodeFile: string);
 var
   VM: TVirtualMachine;
-
-{$R *.res}
-
-var
-  CLIHandler: TCLIHandler;
-  BytecodeGen: TBytecodeGenerator;
-  DTDParser: TDTDParser;
-  Server: TSimpleHTTPServer;
-  Port: Integer;
-
-
-
-
+  Generator: TBytecodeGenerator;
+  BytecodeProgram: TByteCodeProgram;
 begin
-  // Initialize CLI handler for arguments
-  CLIHandler := TCLIHandler.Create('kc', '1.0.0');
-  try
-    CLIHandler.ParseArgs;
-    CLIHandler.Execute;
-  finally
-    CLIHandler.Free;
+  if not FileExists(BytecodeFile) then
+  begin
+    ExitCode := 1;
+    Writeln('Error: Bytecode file not found: ', BytecodeFile);
+    Exit;
   end;
 
-  DTDParser := TDTDParser.Create('assets/ui/ui.dtd');
-  try
-    DTDParser.ParseDTD;
-  finally
-    DTDParser.Free;
+  if IsNativeExecutable(BytecodeFile) then
+  begin
+    ExitCode := 1;
+    if ExtractFilePath(BytecodeFile) = '' then
+      Writeln('Error: ', BytecodeFile, ' is a native executable (from --native), not bytecode - run it directly: ./', BytecodeFile)
+    else
+      Writeln('Error: ', BytecodeFile, ' is a native executable (from --native), not bytecode - run it directly: ', BytecodeFile);
+    Exit;
   end;
 
-  // Save Kayte source file to bytecode
-  //SourceFile := 'example.kyte';   // This can be passed via CLI or hardcoded for now
-  //OutputFile := 'example.bytecode'; // The generated bytecode file
-  //SaveKayteFileToBytecode(SourceFile, OutputFile);
-
-
+  Writeln('Running ', BytecodeFile, '...');
   try
-    // Define the port number on which the server will run
-    Port := 8080;  // You can change this port number if needed
-
-    // Create the HTTP server
-    Server := TSimpleHTTPServer.Create(Port);
-
-    // Start the server
-    Writeln('Starting Kings server on port ', Port);
-    Server.StartServer;
-
-    // Keep the server running until manually stopped
-    Writeln('Server is running. Press [Ctrl+C] to stop...');
-    while True do
-      Sleep(1000);  // Keep the main thread alive
-
+    // Load the bytecode program from file
+    Generator := TBytecodeGenerator.Create;
+    try
+      BytecodeProgram := Generator.LoadProgramFromFile(BytecodeFile);
+      try
+        // Create VM with the loaded program and execute
+        VM := TVirtualMachine.Create(BytecodeProgram);
+        try
+          VM.Run;
+          Writeln('Execution finished.');
+        finally
+          VM.Free;
+        end;
+      finally
+        BytecodeProgram.Free;
+      end;
+    finally
+      Generator.Free;
+    end;
   except
     on E: Exception do
     begin
-      Writeln('An error occurred: ', E.Message);
-      Server.StopServer;
-      //Halt(1);  // Exit with error code
+      Writeln('Error during execution: ', E.Message);
+      ExitCode := 1;
     end;
   end;
+end;
 
-  // Initialize the virtual machine
-  VM := TVirtualMachine.Create;
+procedure ParseArgs;
+var
+  I: Integer;
+  Param: string;
+begin
+  Options.OutputFile := '';
+  Options.StartHttpServer := False;
+
+  I := 1;
+  while I <= ParamCount do
+  begin
+    Param := ParamStr(I);
+
+    if (Param = '--help') then
+    begin
+      Options.ShowHelp := True;
+      Inc(I);
+    end
+    else if (Param = '-v') or (Param = '--version') then
+    begin
+      Options.ShowVersion := True;
+      Inc(I);
+    end
+    else if (Param = '--verbose') then
+    begin
+      Options.Verbose := True;
+      Inc(I);
+    end
+    else if (Param = '--compile') then
+    begin
+      Options.CompileKayte := True;
+      Inc(I);
+      if I <= ParamCount then
+      begin
+        Options.InputFile := ParamStr(I);
+        Inc(I);
+      end
+      else
+      begin
+        Writeln('Error: Missing file path for --compile option');
+        ExitCode := 1;
+      end;
+    end
+    else if (Param = '--native') or (Param = '--native-arm64') or (Param = '--llvm') then
+    begin
+      Options.CompileNative := True;
+      Options.NativeArm64 := Param = '--native-arm64';
+      Options.UseLLVM := Param = '--llvm';
+      Inc(I);
+      if I <= ParamCount then
+      begin
+        Options.InputFile := ParamStr(I);
+        Inc(I);
+      end
+      else
+      begin
+        Writeln('Error: Missing file path for --native option');
+        ExitCode := 1;
+      end;
+    end
+    else if (Param = '--run') then
+    begin
+      Options.RunBytecode := True;
+      Inc(I);
+      if I <= ParamCount then
+      begin
+        Options.InputFile := ParamStr(I);
+        Inc(I);
+      end
+      else
+      begin
+        Writeln('Error: Missing file path for --run option');
+        ExitCode := 1;
+      end;
+    end
+    else if (Param = '--qbs') then
+    begin
+      Options.QuickBasic := True;
+      Inc(I);
+    end
+    else if (Param = '--keep-c') then
+    begin
+      Options.KeepC := True;
+      Inc(I);
+    end
+    else if (Param = '--target') then
+    begin
+      Inc(I);
+      if I <= ParamCount then
+      begin
+        Options.Target := ParamStr(I);
+        Inc(I);
+      end
+      else
+      begin
+        Writeln('Error: Missing triple for --target option (e.g. x86_64-linux-gnu)');
+        ExitCode := 1;
+      end;
+    end
+    else if (Param = '--http') then
+    begin
+      Options.StartHttpServer := True;
+      Inc(I);
+    end
+    else if (Param = '--repl') then
+    begin
+      Options.StartRepl := True;
+      Inc(I);
+    end
+    else if (Param = '-o') then
+    begin
+      Inc(I);
+      if I <= ParamCount then
+      begin
+        Options.OutputFile := ParamStr(I);
+        Inc(I);
+      end
+      else
+      begin
+        Writeln('Error: Missing file path for -o option');
+        ExitCode := 1;
+      end;
+    end
+    else if (Param[1] <> '-') then
+    begin
+      // Positional argument - could be input file
+      if Options.InputFile = '' then
+        Options.InputFile := Param;
+      Inc(I);
+    end
+    else
+    begin
+      Writeln('Unknown option: ', Param);
+      Inc(I);
+    end;
+  end;  // This closes the while loop
+
+  // If an input file was given and no action specified, default to compile
+  if (Options.InputFile <> '') and
+     (not Options.CompileKayte) and
+     (not Options.RunBytecode) and
+     (not Options.StartHttpServer) and
+     (not Options.StartRepl) and
+     (not Options.CompileNative) then
+  begin
+    Options.CompileKayte := True;
+    if Options.Verbose then
+      Writeln('Info: No action specified, defaulting to --compile for input file: ', Options.InputFile);
+  end;
+end;
+
+{ Main Program }
+
+{$R *.res}
+
+begin
+  // Initialize options
+  Options.ShowHelp := False;
+  Options.ShowVersion := False;
+  Options.Verbose := False;
+  Options.CompileKayte := False;
+  Options.RunBytecode := False;
+  Options.CompileNative := False;
+  Options.NativeArm64 := False;
+  Options.KeepC := False;
+  Options.UseLLVM := False;
+  Options.Target := '';
+  Options.InputFile := '';
+  Options.OutputFile := '';
+  Options.StartHttpServer := False;
+  Options.StartRepl := False;
+  Options.QuickBasic := False;
+
+
+  // Display banner
+  Writeln('Kayte Language Runtime Environment');
+  Writeln('===================================');
+  Writeln;
+
+  // Parse command line arguments
+  if ParamCount = 0 then
+  begin
+    ShowHelp;
+    Exit;
+  end;
+
   try
-    (* Download Maps *)
-    DownloadMapsFromGitHubRepo('https://github.com/yourusername/your-repo/maps.zip');
+    ParseArgs;
 
-    (* Check for Updates *)
-    CheckForUpdates('https://example.com/version.txt');
+    // Debug: Show what was parsed
+    if Options.Verbose then
+    begin
+      Writeln('Parsed arguments:');
+      Writeln('  Input file: ', Options.InputFile);
+      Writeln('  Output file: ', Options.OutputFile);
+      Writeln('  Compile native: ', Options.CompileNative);
+      Writeln('  Compile bytecode: ', Options.CompileKayte);
+      Writeln('  Run bytecode: ', Options.RunBytecode);
+      Writeln;
+    end;
 
-    // Initialize the virtual machine with 1024 bytes of memory and 16 registers
-    VM.Init(1024, 16);
-    VM.Run;
+    // Execute based on parsed options
+    if Options.ShowHelp then
+    begin
+      ShowHelp;
+      Exit;
+    end;
 
-    // Create a PK3 file from the VM source code
-    CreatePK3File('kings.lpr', 'vm.pk3');
-  finally
-    VM.Free;
+    if Options.ShowVersion then
+    begin
+      ShowVersion;
+      Exit;
+    end;
+
+    if Options.CompileNative then
+    begin
+      if Options.NativeArm64 then
+        CompileNativeArm64File(Options.InputFile, Options.OutputFile)
+      else
+        CompileNativeFile(Options.InputFile, Options.OutputFile);
+      Exit;
+    end;
+
+    if Options.CompileKayte then
+    begin
+      CompileKayteFile(Options.InputFile, Options.OutputFile);
+      Exit;
+    end;
+
+    if Options.RunBytecode then
+    begin
+      RunBytecodeFile(Options.InputFile);
+      Exit;
+    end;
+
+    if Options.StartHttpServer then
+    begin
+      StartHTTPServer;
+      Exit;
+    end;
+
+    if Options.StartRepl then  // Add this block
+    begin
+      StartREPL;
+      Exit;
+    end;
+
+    // If no specific action, show help
+    if (Options.InputFile = '') then
+    begin
+      ShowHelp;
+    end;
+
+  except
+    on E: EAccessViolation do
+    begin
+      Writeln('FATAL: Access violation detected');
+      Writeln('This usually indicates:');
+      Writeln('  1. Nil pointer dereference');
+      Writeln('  2. Invalid memory access');
+      Writeln('  3. Array bounds violation');
+      Writeln;
+      Writeln('Error: ', E.Message);
+      Halt(2);
+    end;
+    on E: EKayteParseError do
+    begin
+      // The errors themselves were printed as they were found.
+      Writeln('Error: ', E.Message);
+      Halt(1);
+    end;
+    on E: Exception do
+    begin
+      Writeln('Error: ', E.ClassName, ': ', E.Message);
+      Halt(1);
+    end;
   end;
+
+  Writeln;
+  Writeln('Program execution completed.');
 end.
-
-
-procedure TVirtualMachine.InitializeMemory(Size: Integer);
-  begin
-    if Size > 0 then
-    begin
-      SetLength(FMemory, Size);
-      FillChar(FMemory[0], Size, 0);
-      Writeln('Memory initialized to ', Size, ' bytes.');
-    end
-    else
-    begin
-      Writeln('Error: Memory size must be greater than 0.');
-    end;
-  end;
-
-procedure TVirtualMachine.InitializeRegisters(Count: Integer);
-  begin
-    if Count > 0 then
-    begin
-      SetLength(FRegisters, Count);
-      FillChar(FRegisters[0], Count * SizeOf(Integer), 0);
-      Writeln('Registers initialized to ', Count, '.');
-    end
-    else
-    begin
-      Writeln('Error: Register count must be greater than 0.');
-    end;
-  end;
-
-procedure TVirtualMachine.Init(MemorySize: Integer; RegisterCount: Integer);
-  begin
-    if (MemorySize > 0) and (RegisterCount > 0) then
-    begin
-      InitializeMemory(MemorySize);
-      InitializeRegisters(RegisterCount);
-      FPC := 0;
-      Writeln('Virtual machine initialized with ', MemorySize, ' bytes of memory and ', RegisterCount, ' registers.');
-    end
-    else
-    begin
-      Writeln('Error: Both memory size and register count must be greater than 0.');
-    end;
-  end;
-
-procedure TVirtualMachine.Run;
-  begin
-    if (FPC >= 0) and (FPC < Length(FMemory)) then
-    begin
-      // Placeholder for the main execution loop
-      Writeln('Running the virtual machine from PC = ', FPC, '...');
-      // Add your execution logic here
-    end
-    else
-    begin
-      Writeln('Error: Program counter out of range.');
-    end;
-  end;
-
-  var
-    VM: TVirtualMachine;
-
-begin
-    VM := TVirtualMachine.Create;
-    try
-      VM.Init(1024, 16); // Initialize with 1024 bytes of memory and 16 registers
-      VM.Run;
-    finally
-      VM.Free;
-    end;
-end.
-
-// Function for addition
-function Add(a, b: Integer): Integer;
-begin
-  Add := a + b;
-end;
-
-// Function for subtraction
-function Sub(a, b: Integer): Integer;
-begin
-  Sub := a - b;
-end;
-
-// Function for multiplication
-function Mult(a, b: Integer): Integer;
-begin
-  Mult := a * b;
-end;
-
-// Function for integer division
-function Divi(a, b: Integer): Integer;
-begin
-  if b = 0 then
-    raise Exception.Create('Division by zero');
-  Divi := a div b;
-end;
-
-(* Function for modulus *)
-function Modu(a, b: Integer): Integer;
-begin
-  if b = 0 then
-    raise Exception.Create('Modulus by zero');
-  Modu := a mod b;
-end;
-
-(* Procedure to implement while loop
-//procedure PascalWhile(Condition: Boolean; Body: TProc);
-//begin
-//  while Condition do
-//    Body();
-//end;
- to be fixed
-
-// Procedure to implement if-else statement
-//procedure PascalIf(Condition: Boolean; ThenBlock, ElseBlock: TProc);
-//begin
-//  if Condition then
-//    ThenBlock()
-//  else if Assigned(ElseBlock) then
-//    ElseBlock();
-//end;      *)
-
-
-(* Commands on the fly *)
-
-(* if else procedure*)
-procedure TVirtualMachine.ExecuteInstruction(Instruction: TInstruction);
-var
-  Condition: Boolean;
-begin
-  case Instruction of
-    NOP: Writeln('Executing NOP (No Operation)');
-    LOAD: Writeln('Executing LOAD');
-    ADD: Writeln('Executing ADD');
-    SUB: Writeln('Executing SUB');
-    HALT:
-    begin
-      Writeln('Executing HALT');
-      FRunning := False;
-    end;
-    IF_COND:
-    begin
-      // Example: Check if Register 0 > 0 (This is just a placeholder condition)
-      Condition := FRegisters[0] > 0;
-      if not Condition then
-      begin
-        // Skip to the next ELSE or ENDIF
-        repeat
-          Inc(FPC);
-        until (FMemory[FPC] = Ord(ELSE_COND)) or (FMemory[FPC] = Ord(ENDIF));
-      end;
-    end;
-    ELSE_COND:
-    begin
-      // Skip to the ENDIF
-      repeat
-        Inc(FPC);
-      until FMemory[FPC] = Ord(ENDIF);
-    end;
-    ENDIF:
-      ; // No operation, just a marker for end of IF
-  else
-    Writeln('Unknown instruction');
-  end;
-end;
-
-(* while function procedure *)
-procedure TVirtualMachine.ExecuteInstruction(Instruction: TInstruction);
-var
-  CaseValue: Integer;
-  Matched: Boolean;
-begin
-  case Instruction of
-    // Existing cases...
-    CASE_COND:
-    begin
-      // Example: The case is based on the value in Register 1
-      CaseValue := FRegisters[1];
-      Matched := False;
-
-      // This is where you would check against the actual case values.
-      // Here, we'll just simulate skipping until the match is found or ENDCASE
-      if CaseValue = 0 then
-        Matched := True; // Assume some condition
-
-      if not Matched then
-      begin
-        repeat
-          Inc(FPC);
-        until (FMemory[FPC] = Ord(ENDCASE));
-      end;
-    end;
-    ENDCASE:
-      ; // No operation, just a marker for the end of CASE
-  else
-    Writeln('Unknown instruction');
-  end;
-end;
-

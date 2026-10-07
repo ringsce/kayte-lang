@@ -1,0 +1,60 @@
+' Qt6 QML - a to-do list whose UI is a .qml file and whose logic is Kayte.
+' examples/qml/todo.qml declares the window; this script finds its parts
+' by objectName, reacts to their signals with SUBs, and drives the QML
+' through properties and functions - all with the QML statement.
+' Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then, from the
+' repository root (the .qml path is relative to the current directory):
+'   kayte --compile examples/qml_todo.kayte -o qml_todo.bytecode
+'   kayte --run qml_todo.bytecode
+
+QML "load", "examples/qml/todo.qml" TO win
+
+' Handles to the QML objects the script needs.
+QML "find", win, "entry" TO entry
+QML "find", win, "addButton" TO addBtn
+QML "find", win, "clearButton" TO clearBtn
+
+' Each "connect" turns one signal into a handle for QML "on".
+QML "connect", addBtn, "clicked" TO addClicked
+QML "connect", entry, "accepted" TO entryEnter
+QML "connect", clearBtn, "clicked" TO clearClicked
+QML "connect", win, "removeRequested" TO removeReq
+
+QML "on", addClicked, "AddTask"
+QML "on", entryEnter, "AddTask"
+QML "on", clearClicked, "ClearAll"
+QML "on", removeReq, "RemoveTask"
+
+QML "show", win
+QML "run"
+PRINT "Bye!"
+
+SUB AddTask()
+  QML "get", entry, "text" TO title
+  IF title = "" THEN RETURN
+  QML "call", win, "addTask", title TO count
+  QML "set", entry, "text", ""
+  CALL ShowCount
+END SUB
+
+SUB RemoveTask()
+  ' removeRequested(int index) - argument 0 is the row.
+  QML "arg", removeReq, 0 TO row
+  QML "call", win, "removeTask", row TO count
+  CALL ShowCount
+END SUB
+
+SUB ClearAll()
+  IF count = 0 THEN RETURN
+  QML "confirm", "Clear all", "Remove all " & count & " tasks?" TO yes
+  IF yes = 0 THEN RETURN
+  QML "call", win, "clearTasks"
+  count = 0
+  CALL ShowCount
+END SUB
+
+SUB ShowCount()
+  IF count = 0 THEN QML "set", win, "status", "No tasks yet"
+  IF count = 1 THEN QML "set", win, "status", "1 task"
+  IF count > 1 THEN QML "set", win, "status", count & " tasks"
+END SUB

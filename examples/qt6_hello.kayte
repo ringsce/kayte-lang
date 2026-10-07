@@ -1,0 +1,26 @@
+' Qt6 greeter - a native window driven from Kayte.
+' Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then:
+'   kayte --compile examples/qt6_hello.kayte -o qt6_hello.bytecode
+'   kayte --run qt6_hello.bytecode
+
+QT "init"
+QT "window", "Kayte + Qt6", 360, 150 TO win
+QT "label", win, "What is your name?", 20, 20 TO greeting
+QT "edit", win, "", 20, 50, 220 TO nameBox
+QT "button", win, "Greet", 250, 46 TO greetBtn
+QT "button", win, "Quit", 250, 96 TO quitBtn
+QT "show", win
+
+' "wait" blocks until a button is clicked or Enter is pressed in an edit,
+' and returns that widget's handle - or 0 once the window is closed.
+QT "wait" TO ev
+WHILE ev <> 0
+  name = ""
+  IF ev = greetBtn THEN QT "gettext", nameBox TO name
+  IF ev = nameBox THEN QT "gettext", nameBox TO name
+  IF name <> "" THEN QT "settext", greeting, "Hello, " & name & "!"
+  IF ev = quitBtn THEN QT "close", win
+  QT "wait" TO ev
+END WHILE
+
+PRINT "Bye!" 

@@ -4,7 +4,7 @@
     <input-dir value="source"/>
     <input-dir value="components"/> <!-- Added components directory as input -->
   </input-dirs>
-  <output-dir value="docs/html"/>
+  <output-dir value="build/docs/html"/>
   <output-format value="html"/>
   <package-name value="KayteLang"/>
   <template value="docs/templates/my_html.xml"/>

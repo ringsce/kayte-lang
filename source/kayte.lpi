@@ -5,13 +5,18 @@
     <General>
       <Flags>
         <MainUnitHasCreateFormStatements Value="False"/>
+        <MainUnitHasTitleStatement Value="False"/>
         <MainUnitHasScaledStatement Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <Title Value="My Application"/>
+      <Title Value="kayte"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
+      <Icon Value="0"/>
     </General>
+    <VersionInfo>
+      <UseVersionInfo Value="True"/>
+    </VersionInfo>
     <BuildModes>
       <Item Name="Default" Default="True"/>
     </BuildModes>
@@ -27,17 +32,148 @@
         <Filename Value="kayte.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit>
+      <Unit>
+        <Filename Value="simplehttpserver.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SimpleHTTPServer"/>
+      </Unit>
+      <Unit>
+        <Filename Value="bytecode.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="testbytecode.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="virtualmachine.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="VirtualMachine"/>
+      </Unit>
+      <Unit>
+        <Filename Value="xmlparser.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="sdk.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="c99.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kayte2pce.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kaytelibloader.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="c_backend.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kayte_compiler.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kayte_runtime.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kayte_loader.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kayte_vm.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="../jvm/jvm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="JVM"/>
+      </Unit>
+      <Unit>
+        <Filename Value="ast.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="AST"/>
+      </Unit>
+      <Unit>
+        <Filename Value="compiler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Compiler"/>
+      </Unit>
+      <Unit>
+        <Filename Value="assembler.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Assembler"/>
+      </Unit>
+      <Unit>
+        <Filename Value="bytecodetypes.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="BytecodeTypes"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kaytearm64.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KayteArm64"/>
+      </Unit>
+      <Unit>
+        <Filename Value="parser.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Parser"/>
+      </Unit>
+      <Unit>
+        <Filename Value="tokendefs.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="TokenDefs"/>
+      </Unit>
+      <Unit>
+        <Filename Value="lexer.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Lexer"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kaytearm64elf.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KayteArm64ELF"/>
+      </Unit>
+      <Unit>
+        <Filename Value="kaytearm64pe.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="KayteArm64PE"/>
+      </Unit>
+      <Unit>
+        <Filename Value="mathlib.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="MathLib"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="kayte"/>
+      <Filename Value="../bin/kayte"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value=".;../jvm"/>
+      <UnitOutputDirectory Value="../build/units/kayte/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
+    <Conditionals Value="if TargetOS='linux' then
+  CustomOptions += ' -k-rpath=$ORIGIN';"/>
+    <CodeGeneration>
+      <Optimizations>
+        <OptimizationLevel Value="2"/>
+      </Optimizations>
+    </CodeGeneration>
+    <Other>
+      <CustomOptions Value="-vm3057,4046,5071,6058
+-vn
+-vh"/>
+    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions>

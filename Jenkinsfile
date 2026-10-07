@@ -35,11 +35,11 @@ pipeline {
                 echo 'Starting custom build process...'
                 script {
                     // Ensure the custom.sh script is executable
-                    sh 'chmod +x custom.sh'
+                    sh 'chmod +x scripts/custom.sh'
 
                     // Execute the custom build script
                     // The script's output will appear in the Jenkins console log.
-                    sh './custom.sh'
+                    sh './scripts/custom.sh'
                 }
             }
         }
@@ -62,9 +62,9 @@ pipeline {
             steps {
                 echo 'Archiving build artifacts...'
                 // Archive the universal macOS binary
-                archiveArtifacts artifacts: 'projects/vb6interpreter', fingerprint: true, allowEmpty: false
+                archiveArtifacts artifacts: 'bin/vb6interpreter', fingerprint: true, allowEmpty: false
                 // Archive the Linux ARM64 binary
-                archiveArtifacts artifacts: 'projects/build_linux_aarch64/vb6interpreter_linux_aarch64', fingerprint: true, allowEmpty: false
+                archiveArtifacts artifacts: 'build/vb6interpreter_linux_aarch64/vb6interpreter_linux_aarch64', fingerprint: true, allowEmpty: false
             }
         }
 
@@ -75,8 +75,8 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying application (placeholder - implement your deployment logic here)...'
-                // Example: sh 'scp projects/vb6interpreter user@your_macos_server:/path/to/app/'
-                // Example: sh 'scp projects/build_linux_aarch64/vb6interpreter_linux_aarch64 user@your_linux_server:/path/to/app/'
+                // Example: sh 'scp bin/vb6interpreter user@your_macos_server:/path/to/app/'
+                // Example: sh 'scp build/vb6interpreter_linux_aarch64/vb6interpreter_linux_aarch64 user@your_linux_server:/path/to/app/'
             }
         }
     }

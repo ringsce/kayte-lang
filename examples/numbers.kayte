@@ -1,0 +1,48 @@
+' Floating-point numbers
+'   bin/kayte --native examples/numbers.kayte -o numbers && ./numbers
+
+' Literals, and / that divides exactly (\ is whole-number division)
+PRINT 3.14, .5, 2.5E-3, 6.02E+23
+PRINT "17 / 5 =", 17 / 5, "  17 \ 5 =", 17 \ 5, "  17 MOD 5 =", 17 MOD 5
+PRINT "10 / 4 =", 10 / 4, "  10 / 2 =", 10 / 2, "(" & TypeName(10 / 2) & ")"
+
+' Compound interest
+balance = 1000
+rate = 0.035
+FOR year = 1 TO 5
+  balance = balance * (1 + rate)
+  PRINT "year", year, Round(balance, 2)
+NEXT
+
+' Statistics on an array
+scores = Array(72.5, 88, 91.25, 64, 79.5)
+sum = 0
+FOR EACH s IN scores
+  sum = sum + s
+NEXT
+mean = sum / LEN(scores)
+var = 0
+FOR EACH s IN scores
+  var = var + (s - mean) ^ 2
+NEXT
+PRINT "mean", mean, " std dev", Round(Sqr(var / LEN(scores)), 3)
+
+' Geometry and trigonometry
+pi = 4 * Atn(1)
+FOR r = 0.5 TO 2 STEP 0.5
+  PRINT "circle r =", r, "area", Round(pi * r ^ 2, 4)
+NEXT
+PRINT "sin 30 degrees:", Round(Sin(30 * pi / 180), 10), "  e =", Exp(1), "  ln 100 =", Log(100)
+
+' Rounding: CInt / ROUND go to the even number on .5, INT down, FIX toward 0
+PRINT "CInt(2.5) =", CInt(2.5), " CInt(3.5) =", CInt(3.5), " Int(-2.7) =", Int(-2.7), " Fix(-2.7) =", Fix(-2.7)
+
+' Text <-> numbers
+PRINT Val("19.99 EUR") * 2, CDbl("1.5E3"), Str(0.25), IsNumeric("2.5")
+
+' Doubles are binary: 0.1 + 0.2 isn't exactly 0.3 (PRINT rounds to 15 digits)
+PRINT 0.1 + 0.2, 0.1 + 0.2 = 0.3, Abs((0.1 + 0.2) - 0.3) < 1E-12
+
+' A random fraction 0 <= x < 1, and a dice roll
+x = Rnd
+PRINT "RND in range:", x >= 0 AND x < 1, "  dice:", Int(Rnd * 6) + 1 >= 1

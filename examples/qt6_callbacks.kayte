@@ -1,0 +1,92 @@
+' Qt6 event handlers - a to-do list where each event runs a SUB,
+' instead of an IF chain inside a WAIT loop.
+' Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then:
+'   kayte --compile examples/qt6_callbacks.kayte -o qt6_callbacks.bytecode
+'   kayte --run qt6_callbacks.bytecode
+
+QT "init"
+QT "window", "Kayte To-Do", 380, 420 TO win
+QT "vbox", win TO main
+QT "margins", main, 12
+
+QT "hbox" TO entryRow
+QT "edit", win, "" TO newItem
+QT "button", win, "Add" TO addBtn
+QT "add", entryRow, newItem, 1
+QT "add", entryRow, addBtn
+QT "add", main, entryRow
+
+QT "list", win TO items
+QT "add", main, items, 1
+
+QT "hbox" TO footer
+QT "label", win, "0 tasks" TO countLbl
+QT "add", footer, countLbl
+QT "stretch", footer
+QT "button", win, "Done" TO doneBtn
+QT "disable", doneBtn
+QT "add", footer, doneBtn
+QT "add", main, footer
+
+QT "menu", win, "Edit" TO editMenu
+QT "action", editMenu, "Clear all", "Ctrl+K" TO clearAct
+QT "separator", editMenu
+QT "action", editMenu, "Quit", "Ctrl+Q" TO quitAct
+
+' Wire events to SUBs. One SUB can serve several widgets: AddItem runs
+' for the Add button and for Enter in the text box.
+QT "on", addBtn, "AddItem"
+QT "on", newItem, "AddItem"
+QT "on", items, "SelectionChanged"
+QT "on", doneBtn, "RemoveSelected"
+QT "on", clearAct, "ClearAll"
+QT "on", quitAct, "QuitApp"
+
+tasks = 0
+QT "show", win
+
+' Runs the SUBs below as events arrive, until the window is closed.
+QT "run"
+PRINT "Bye!"
+
+SUB AddItem()
+  QT "gettext", newItem TO entry
+  IF entry = "" THEN RETURN
+  QT "additem", items, entry
+  QT "clear", newItem
+  tasks = tasks + 1
+  CALL Refresh
+END SUB
+
+SUB RemoveSelected()
+  QT "getvalue", items TO row
+  IF row < 0 THEN RETURN
+  QT "removeitem", items, row
+  tasks = tasks - 1
+  CALL Refresh
+END SUB
+
+SUB ClearAll()
+  IF tasks = 0 THEN RETURN
+  QT "confirm", "Clear all", "Remove all " & tasks & " tasks?" TO yes
+  IF yes = 0 THEN RETURN
+  QT "clear", items
+  tasks = 0
+  CALL Refresh
+END SUB
+
+' "Done" only makes sense with a task selected.
+SUB SelectionChanged()
+  QT "getvalue", items TO row
+  IF row >= 0 THEN QT "enable", doneBtn
+  IF row < 0 THEN QT "disable", doneBtn
+END SUB
+
+SUB Refresh()
+  QT "settext", countLbl, tasks & " tasks"
+  CALL SelectionChanged
+END SUB
+
+SUB QuitApp()
+  QT "close", win
+END SUB

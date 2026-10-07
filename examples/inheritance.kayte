@@ -1,0 +1,73 @@
+' Inheritance: INHERITS, overriding, MYBASE, TYPEOF ... IS
+'   bin/kayte --native examples/inheritance.kayte -o inheritance && ./inheritance
+
+DIM zoo(3)
+zoo(0) = NEW Dog("Rex")
+zoo(1) = NEW Cat("Tom")
+zoo(2) = NEW Puppy("Bit")
+zoo(3) = NEW Animal("Generic")
+
+FOR EACH a IN zoo
+  PRINT a.Introduce()            ' each one's own Speak(), called from Animal's code
+NEXT
+
+FOR EACH a IN zoo
+  IF TypeOf a Is Dog THEN PRINT a.Name, "is a dog (or a kind of dog):", TypeName(a)
+NEXT
+
+DIM p AS NEW Puppy("Dot")
+p.Fetch
+p.Fetch
+PRINT p.Name, "fetched", p.Fetches, "times; legs:", p.Legs
+
+' A class without its own SUB New uses its base class's
+c = NEW Kitten("Mia")
+PRINT c.Introduce(), "(TypeName:", TypeName(c) & ")"
+
+CLASS Animal
+  PUBLIC Name
+  PUBLIC Legs = 4
+
+  SUB New(n)
+    Name = n
+  END SUB
+
+  OVERRIDABLE FUNCTION Speak()
+    RETURN "..."
+  END FUNCTION
+
+  FUNCTION Introduce()
+    RETURN Name & " says " & Speak()
+  END FUNCTION
+END CLASS
+
+CLASS Dog INHERITS Animal
+  PUBLIC Fetches = 0
+
+  OVERRIDES FUNCTION Speak()
+    RETURN "Woof"
+  END FUNCTION
+
+  SUB Fetch()
+    Fetches = Fetches + 1
+  END SUB
+END CLASS
+
+CLASS Puppy INHERITS Dog
+  SUB New(n)
+    MYBASE.New(n & " Jr")          ' the base constructor
+  END SUB
+
+  OVERRIDES FUNCTION Speak()
+    RETURN "Yip! (" & MYBASE.Speak() & " one day)"
+  END FUNCTION
+END CLASS
+
+CLASS Cat INHERITS Animal
+  OVERRIDES FUNCTION Speak()
+    RETURN "Meow"
+  END FUNCTION
+END CLASS
+
+CLASS Kitten INHERITS Cat
+END CLASS

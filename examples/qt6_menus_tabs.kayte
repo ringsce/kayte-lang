@@ -1,0 +1,90 @@
+' Qt6 menus and tabs - a tiny notes app.
+' Build libkayte_qt6 first (scripts/build-kayte-qt6.sh), then:
+'   kayte --compile examples/qt6_menus_tabs.kayte -o qt6_menus_tabs.bytecode
+'   kayte --run qt6_menus_tabs.bytecode
+'
+' On macOS the menus appear in the system menu bar at the top of the
+' screen; elsewhere they sit at the top of the window.
+
+QT "init"
+QT "window", "Kayte Notes", 560, 420 TO win
+
+' --- Menus: choosing an item makes "wait" return its handle ---
+QT "menu", win, "File" TO fileMenu
+QT "action", fileMenu, "New", "Ctrl+N" TO newAct
+QT "action", fileMenu, "Open...", "Ctrl+O" TO openAct
+QT "separator", fileMenu
+QT "action", fileMenu, "Quit", "Ctrl+Q" TO quitAct
+
+QT "menu", win, "View" TO viewMenu
+QT "action", viewMenu, "Dark editor", "Ctrl+D", 1 TO darkAct
+QT "menu", viewMenu, "Text size" TO sizeMenu
+QT "action", sizeMenu, "Small" TO smallAct
+QT "action", sizeMenu, "Large" TO largeAct
+
+QT "menu", win, "Help" TO helpMenu
+QT "action", helpMenu, "About Kayte Notes" TO aboutAct
+
+' --- Window body: tabs on top, a status line below ---
+QT "vbox", win TO main
+QT "tabs", win TO tabs
+QT "add", main, tabs, 1
+QT "label", win, "Ready" TO status
+QT "add", main, status
+
+' Tab 1: an editor filling its page.
+QT "tab", tabs, "Editor" TO editPage
+QT "vbox", editPage TO editLayout
+QT "textedit", editPage TO editor
+QT "add", editLayout, editor
+
+' Tab 2: settings, mirrored by the View menu.
+QT "tab", tabs, "Settings" TO setPage
+QT "form", setPage TO setForm
+QT "spin", setPage, 8, 40 TO fontSize
+QT "setvalue", fontSize, 14
+QT "checkbox", setPage, "Dark editor" TO darkBox
+QT "addrow", setForm, "Text size:", fontSize
+QT "add", setForm, darkBox
+
+QT "show", win
+dark = 0
+
+QT "style", editor, "font-size: 14px;"
+QT "wait" TO ev
+WHILE ev <> 0
+  IF ev = quitAct THEN QT "close", win
+  IF ev = aboutAct THEN QT "message", "About", "Kayte Notes - a Qt6 demo written in Kayte."
+
+  IF ev = newAct THEN QT "clear", editor
+  IF ev = newAct THEN QT "settext", status, "New document"
+
+  ' Reads the file with the PROCESS statement (cat: macOS/Linux).
+  IF ev = openAct THEN QT "openfile", "Open text file", "Text (*.txt *.md *.kayte);;All files (*)" TO path
+  IF ev = openAct THEN IF path <> "" THEN PROCESS "cat", path TO body
+  IF ev = openAct THEN IF path <> "" THEN QT "settext", editor, body
+  IF ev = openAct THEN IF path <> "" THEN QT "settext", status, "Opened " & path
+
+  IF ev = smallAct THEN QT "setvalue", fontSize, 11
+  IF ev = largeAct THEN QT "setvalue", fontSize, 20
+
+  ' The checkable menu item and the checkbox stay in sync.
+  IF ev = darkAct THEN QT "getvalue", darkAct TO dark
+  IF ev = darkAct THEN QT "setvalue", darkBox, dark
+  IF ev = darkBox THEN QT "getvalue", darkBox TO dark
+  IF ev = darkBox THEN QT "setvalue", darkAct, dark
+
+  IF ev = tabs THEN QT "getvalue", tabs TO tabIndex
+  IF ev = tabs THEN IF tabIndex = 0 THEN QT "settext", status, "Editing"
+  IF ev = tabs THEN IF tabIndex = 1 THEN QT "settext", status, "Settings"
+
+  ' Re-apply the editor's look after whatever changed.
+  QT "getvalue", fontSize TO size
+  css = "font-size: " & size & "px;"
+  IF dark = 1 THEN css = css & " background: #1e1e1e; color: #e0e0e0;"
+  QT "style", editor, css
+
+  QT "wait" TO ev
+END WHILE
+
+PRINT "Bye!"

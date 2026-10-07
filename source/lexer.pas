@@ -15,6 +15,8 @@ type
     FCurrentCharIndex: Integer;
     FCurrentLine: String;
     FEOF: Boolean;
+    FQBMode: Boolean;
+    FRawRest: Boolean; // QuickBASIC DATA: the rest of the line is one token
 
     procedure Advance;
     procedure AdvanceLine;
@@ -33,6 +35,11 @@ type
     procedure Reset;
     function GetNextToken: TToken;
     function PeekNextToken: TToken;
+    // QuickBASIC (kayte --qbs): "?" is PRINT, names can end in % ! # & as
+    // well as $, &H / &O number literals, DATA takes the rest of its line
+    // as written, and Kayte's own keywords (CLASS, TRY, SHOW ...) are
+    // ordinary names.
+    property QBMode: Boolean read FQBMode write FQBMode;
 
 
     // --- Added Public Properties for Current Position ---
@@ -63,6 +70,7 @@ begin
   FCurrentCharIndex := 0;
   FCurrentLine := '';
   FEOF := False;
+  FRawRest := False;
   if (FSourceCode.Count > 0) then
     FCurrentLine := FSourceCode[FCurrentLineIndex]
   else
@@ -163,7 +171,8 @@ end;
 
 function TLexer.IsIdentifierChar(C: Char): Boolean;
 begin
-  Result := IsLetter(C) or IsDigit(C) or (C = '_');
+  // "$" for classic BASIC names like LEFT$ and name$.
+  Result := IsLetter(C) or IsDigit(C) or (C = '_') or (C = '$');
 end;
 
 function TLexer.GetTokenType(const S: String): TTokenType;
@@ -177,7 +186,8 @@ begin
     'SELECT', 'CASE', 'END SELECT', 'WHILE', 'WEND', 'FOR', 'NEXT', 'TO', 'STEP',
     'DIM', 'AS', 'REDIM', 'PRESERVE', 'CALL', 'GOTO', 'GOSUB', 'RETURN',
     'PRINT', 'INPUT', 'MSGBOX', 'FORM', 'END FORM', 'SHOW', 'HIDE', 'STRUCT',
-    'PROCESS':
+    'PROCESS', 'QT', 'QML', 'EXIT', 'DO', 'LOOP', 'UNTIL', 'CONTINUE',
+    'CLASS', 'NEW', 'PROPERTY', 'WITH', 'TRY', 'CATCH', 'FINALLY', 'THROW':
       Result := tkKeyword;
     // Boolean Literals
     'TRUE', 'FALSE':
@@ -185,7 +195,7 @@ begin
     // Operators (basic ones; full list would be larger)
     '+', '-', '*', '/', '=', '<', '>', '<=', '>=', '<>', '&': // '&' for string concat
       Result := tkOperator;
-    'AND', 'OR', 'NOT', 'IS': // Logical/comparison operators as keywords
+    'AND', 'OR', 'XOR', 'NOT', 'IS', 'MOD': // Logical/comparison/MOD operators as words
       Result := tkOperator; // Or keep as tkKeyword if you want to distinguish
     '(': Result := tkParenthesisOpen;
     ')': Result := tkParenthesisClose;
@@ -224,6 +234,20 @@ begin
   end;
 
   SkipWhitespace; // Skip leading whitespace
+
+  // The rest of a QuickBASIC DATA line, as written (see DataStatement).
+  if FRawRest then
+  begin
+    FRawRest := False;
+    if FCurrentCharIndex < Length(FCurrentLine) then
+    begin
+      Result.Column := FCurrentCharIndex;
+      Result.TokenType := tkComment;
+      Result.Lexeme := Copy(FCurrentLine, FCurrentCharIndex + 1, MaxInt);
+      FCurrentCharIndex := Length(FCurrentLine);
+      Exit;
+    end;
+  end;
 
   StartCol := FCurrentCharIndex;
   Result.Column := StartCol; // Update column number after skipping whitespace
@@ -320,16 +344,51 @@ begin
       raise Exception.CreateFmt('Lexer Error: Unclosed string literal at %d:%d', [Result.Line + 1, Result.Column + 1]);
   end;
 
-  // Handle Integer Literals
-  if IsDigit(CurrentChar) then
+  // Number literals: 42, 3.14, .5, 1E-3, 2.5E+10
+  if IsDigit(CurrentChar) or ((CurrentChar = '.') and IsDigit(PeekChar)) then
   begin
     LexemeBuilder := '';
+    CurrentTokType := tkIntegerLiteral;
     while IsDigit(CurrentChar) do
     begin
       LexemeBuilder := LexemeBuilder + CurrentChar;
       Advance;
     end;
-    Result.TokenType := tkIntegerLiteral;
+    if (CurrentChar = '.') and IsDigit(PeekChar) then
+    begin
+      CurrentTokType := tkFloatLiteral;
+      LexemeBuilder := LexemeBuilder + '.';
+      Advance;
+      while IsDigit(CurrentChar) do
+      begin
+        LexemeBuilder := LexemeBuilder + CurrentChar;
+        Advance;
+      end;
+    end;
+    // An exponent: E, an optional sign, digits.
+    if (UpCase(CurrentChar) = 'E') and
+       (IsDigit(PeekChar) or ((PeekChar in ['+', '-']) and (FCurrentCharIndex + 3 <= Length(FCurrentLine)) and
+         IsDigit(FCurrentLine[FCurrentCharIndex + 3]))) then
+    begin
+      CurrentTokType := tkFloatLiteral;
+      LexemeBuilder := LexemeBuilder + 'E';
+      Advance;
+      if CurrentChar in ['+', '-'] then
+      begin
+        LexemeBuilder := LexemeBuilder + CurrentChar;
+        Advance;
+      end;
+      while IsDigit(CurrentChar) do
+      begin
+        LexemeBuilder := LexemeBuilder + CurrentChar;
+        Advance;
+      end;
+    end;
+    if FQBMode and (CurrentChar in ['%', '&', '!', '#']) then
+      Advance; // a type suffix: 10& is 10, 2.5# is 2.5
+    if LexemeBuilder[1] = '.' then
+      LexemeBuilder := '0' + LexemeBuilder;
+    Result.TokenType := CurrentTokType;
     Result.Lexeme := LexemeBuilder;
     Exit;
   end;
@@ -343,8 +402,31 @@ begin
       LexemeBuilder := LexemeBuilder + CurrentChar;
       Advance;
     end;
+    if FQBMode and (CurrentChar in ['%', '&', '!', '#']) and
+       (LexemeBuilder[Length(LexemeBuilder)] <> '$') then
+    begin
+      LexemeBuilder := LexemeBuilder + CurrentChar; // a type suffix: count%, total&
+      Advance;
+    end;
 
     CurrentTokType := GetTokenType(LexemeBuilder);
+    if FQBMode then
+    begin
+      case AnsiUpperCase(LexemeBuilder) of
+        'CLASS', 'NEW', 'PROPERTY', 'WITH', 'TRY', 'CATCH', 'FINALLY', 'THROW', 'PROCESS', 'QT', 'QML',
+        'FORM', 'SHOW', 'HIDE', 'STRUCT', 'CONTINUE', 'MSGBOX':
+          CurrentTokType := tkIdentifier;
+        'DATA':
+          FRawRest := True;
+        // QuickBASIC has no TRUE / FALSE (programs define CONST TRUE = -1)
+        'TRUE', 'FALSE':
+          CurrentTokType := tkIdentifier;
+        'DEF': // DEF FN ... END DEF / EXIT DEF
+          CurrentTokType := tkKeyword;
+        'EQV', 'IMP':
+          CurrentTokType := tkOperator;
+      end;
+    end;
 
     // --- Special handling for "Option Explicit On/Off" sequence ---
     if (CurrentTokType = tkKeywordOption) then // Changed from tkOption
@@ -421,7 +503,7 @@ begin
   CurrentTokType := tkUnknown;
 
   case CurrentChar of
-    '+', '-', '*': CurrentTokType := tkOperator;
+    '+', '-', '*', '\': CurrentTokType := tkOperator; // '\' is integer division
     '/':
       begin
         // '//' comments should already be consumed upstream of this point -
@@ -465,7 +547,62 @@ begin
           LexemeBuilder := '>';
         end;
       end;
-    '&': CurrentTokType := tkOperator; // String concatenation
+    '&':
+      if FQBMode and (UpCase(PeekChar) in ['H', 'O']) then
+      begin
+        // &HFF / &O17: a number in hex / octal
+        Advance; // &
+        CurrentTokType := tkIntegerLiteral;
+        if UpCase(CurrentChar) = 'H' then
+        begin
+          Advance;
+          LexemeBuilder := '$';
+          while CurrentChar in ['0'..'9', 'a'..'f', 'A'..'F'] do
+          begin
+            LexemeBuilder := LexemeBuilder + CurrentChar;
+            Advance;
+          end;
+        end
+        else
+        begin
+          Advance;
+          LexemeBuilder := '&';
+          while CurrentChar in ['0'..'7'] do
+          begin
+            LexemeBuilder := LexemeBuilder + CurrentChar;
+            Advance;
+          end;
+        end;
+        if Length(LexemeBuilder) = 1 then
+          raise Exception.CreateFmt('Lexer Error: expected digits after &H / &O at %d:%d',
+            [Result.Line + 1, Result.Column + 1]);
+        if CurrentChar in ['%', '&'] then
+          Advance;
+        Result.TokenType := tkIntegerLiteral;
+        Result.Lexeme := IntToStr(StrToInt64(LexemeBuilder));
+        Exit;
+      end
+      else
+        CurrentTokType := tkOperator; // String concatenation
+    '^': CurrentTokType := tkOperator; // power
+    '#':
+      if FQBMode then
+        CurrentTokType := tkOperator // a file number: PRINT #1, ...
+      else
+        raise Exception.CreateFmt('Lexer Error: Unexpected character "#" at %d:%d',
+          [Result.Line + 1, Result.Column + 1]);
+    ';': CurrentTokType := tkSemicolon;
+    '?':
+      if FQBMode then
+      begin
+        Advance;
+        Result.TokenType := tkKeyword; // ? is PRINT
+        Result.Lexeme := 'PRINT';
+        Exit;
+      end
+      else
+        raise Exception.CreateFmt('Lexer Error: Unexpected character "?" at %d:%d',
+          [Result.Line + 1, Result.Column + 1]);
     '(': CurrentTokType := tkParenthesisOpen;
     ')': CurrentTokType := tkParenthesisClose;
     ',': CurrentTokType := tkComma;
@@ -491,15 +628,18 @@ var
   SavedCharIndex: Integer;
   SavedLine: String;
   SavedEOF: Boolean;
+  SavedRaw: Boolean;
 begin
   // Save current state
   SavedLineIndex := FCurrentLineIndex;
   SavedCharIndex := FCurrentCharIndex;
   SavedLine := FCurrentLine;
   SavedEOF := FEOF;
+  SavedRaw := FRawRest;
 
   // Get next token
   Result := GetNextToken;
+  FRawRest := SavedRaw;
 
   // Restore state
   FCurrentLineIndex := SavedLineIndex;

@@ -1,0 +1,76 @@
+// Recursion in the JavaScript-like front end: each call gets its own
+// parameters and locals.
+//   kayte --compile examples/recursion.kjs -o recursion.bytecode
+//   kayte --run recursion.bytecode
+
+function fib(n) {
+  if (n < 2) return n;
+  return fib(n - 1) + fib(n - 2);
+}
+
+function fact(n) {
+  return n <= 1 ? 1 : n * fact(n - 1);
+}
+
+function isEven(n) { return n == 0 ? true : isOdd(n - 1); }
+function isOdd(n) { return n == 0 ? false : isEven(n - 1); }
+
+// recursion inside a for loop: i, count must survive the inner calls
+function perms(k) {
+  if (k <= 1) return 1;
+  let count = 0;
+  for (let i = 1; i <= k; i++) {
+    count += perms(k - 1);
+  }
+  return count;
+}
+
+// the counting loop's limit/step are compiler temps - local per call
+function triangle(n) {
+  if (n == 0) return 0;
+  let s = 0;
+  for j from 1 to n {
+    s += 1;
+  }
+  return s + triangle(n - 1);
+}
+
+// % uses temps too
+function gcd(a, b) {
+  return b == 0 ? a : gcd(b, a % b);
+}
+
+function reverse(s, n) {
+  // builds "n ... 1" recursively
+  if (n == 0) return s;
+  return reverse(s + n + " ", n - 1);
+}
+
+function power(base, exp) {
+  if (exp == 0) return 1;
+  const half = power(base, exp / 2);
+  if (exp % 2 == 0) return half * half;
+  return base * half * half;
+}
+
+print("fib(20) =", fib(20));
+print("fact(10) =", fact(10));
+print("isEven(10), isOdd(7):", isEven(10), isOdd(7));
+print("perms(4) =", perms(4));
+print("triangle(6) =", triangle(6));
+print("gcd(1071, 462) =", gcd(1071, 462));
+print("reverse:", reverse("", 5));
+print("power(3, 13) =", power(3, 13));
+
+// locals stay local, globals stay shared
+let n = 100;
+let calls = 0;
+function count(n) {
+  calls++;
+  if (n > 0) count(n - 1);
+}
+count(5);
+print("global n still", n, "- calls =", calls);
+
+function down(n) { return n == 0 ? 0 : 1 + down(n - 1); }
+print("depth 5000:", down(5000));
